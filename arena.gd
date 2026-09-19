@@ -12,7 +12,7 @@ const BossScene := preload("res://entities/boss.tscn")
 
 @export var body_fade_duration: float = 2.0 ## s, ekran gaśnie po "śmierci" dużej formy (sekcja 8)
 @export var finale_taunt_duration: float = 4.0 ## s, jak długo wisi pytanie finałowe
-@export var eclipse_radius: float = 130.0 ## px, promień widoczności wokół gracza w Zaćmieniu
+@export var eclipse_radius: float = 160.0 ## px, promień widoczności wokół gracza w Zaćmieniu
 
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
