@@ -2,8 +2,10 @@ extends Node
 ## Stan całego przebiegu gry (rozszerzenie poza pierwotny dokument): które
 ## pomieszczenie z sześciu wcieleń jest teraz, ile fragmentów duszy zebrano,
 ## i przejścia między scenami. Autoload, więc przeżywa reload/zmianę sceny.
-## Na razie trzymane tylko w pamięci — resetuje się przy zamknięciu gry
-## (najprostsze rozwiązanie na start; łatwo dograć zapis do pliku później).
+## Zapisywane na dysk (na życzenie autora), żeby zamknięcie gry w trakcie
+## gauntletu nie cofało do pokoju 1.
+
+const SAVE_PATH := "user://gauntlet_progress.json"
 
 const ROOM_SCENE := "res://rooms/room.tscn"
 const ALTAR_SCENE := "res://rooms/altar.tscn"
@@ -38,6 +40,9 @@ var fragments_collected: Array[String] = [] ## nazwy zebranych fragmentów, w ko
 ## w pierwszym pokoju, więc gracz startuje tam z domyślnych wartości @export.
 var saved_player_state: Dictionary = {}
 
+func _ready() -> void:
+	_load_progress()
+
 func capture_player_state(player: Player) -> void:
 	saved_player_state = {
 		"health": player.health,
@@ -56,7 +61,7 @@ func apply_player_state(player: Player) -> void:
 	player.health = saved_player_state.get("health", player.health)
 	player.stamina = saved_player_state.get("stamina", player.stamina)
 	player.mana = saved_player_state.get("mana", player.mana)
-	player.set_heal_charge_hits(saved_player_state.get("heal_charge_hits", 0))
+	player.set_heal_charge_hits(int(saved_player_state.get("heal_charge_hits", 0))) # JSON zwraca float
 	player.current_weapon = saved_player_state.get("current_weapon", player.current_weapon)
 
 func current_incarnation_scene_path() -> String:
@@ -65,10 +70,17 @@ func current_incarnation_scene_path() -> String:
 func current_incarnation_name() -> String:
 	return INCARNATION_NAMES[current_room_index]
 
+## Scena, do której trzeba wrócić przy starcie gry, jeśli jest zapisany
+## przebieg w toku — np. jeśli gracz zamknął grę już po ołtarzu, wraca się
+## prosto do walki z Nemoraksem, nie do pokoju 1 (patrz menu.gd).
+func resume_scene_path() -> String:
+	return ROOM_SCENE if current_room_index < INCARNATION_SCENES.size() else ARENA_SCENE
+
 ## Wywoływane przez room.gd, gdy gracz pokona wcielenie w aktualnym pomieszczeniu.
 func complete_current_room() -> void:
 	fragments_collected.append(INCARNATION_NAMES[current_room_index])
 	current_room_index += 1
+	_save_progress()
 	if current_room_index >= INCARNATION_SCENES.size():
 		get_tree().change_scene_to_file(ALTAR_SCENE)
 	else:
@@ -78,8 +90,32 @@ func complete_current_room() -> void:
 func complete_altar() -> void:
 	get_tree().change_scene_to_file(ARENA_SCENE)
 
-## Do restartu całego przebiegu od zera (np. nowa gra z menu, gdyby powstało).
+## Do restartu całego przebiegu od zera — po PRZEGRANEJ z Nemoraksem
+## (patrz arena.gd) wraca się tu, do pokoju sprzed pierwszego bossa.
+## Zwycięstwo NIE resetuje przebiegu — to prawdziwy koniec (ekran endgame).
 func reset_run() -> void:
 	current_room_index = 0
 	fragments_collected.clear()
 	saved_player_state.clear()
+	_save_progress()
+
+func _load_progress() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var data = JSON.parse_string(file.get_as_text())
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	current_room_index = clampi(int(data.get("current_room_index", 0)), 0, INCARNATION_SCENES.size())
+	var loaded_fragments: Array = data.get("fragments_collected", [])
+	fragments_collected.assign(loaded_fragments)
+	saved_player_state = data.get("saved_player_state", {})
+
+func _save_progress() -> void:
+	var data := {
+		"current_room_index": current_room_index,
+		"fragments_collected": fragments_collected,
+		"saved_player_state": saved_player_state,
+	}
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(data))

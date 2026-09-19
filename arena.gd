@@ -134,6 +134,8 @@ func _finish_victory() -> void:
 	_battle_over = true
 	wins += 1
 	_save_progress()
+	# Wygrana to prawdziwy koniec przebiegu (endgame) — zostaje jako ekran
+	# końcowy, bez pętli z powrotem do pokoju 1.
 	ui.show_overlay(
 		"Zwycięstwo\n\nPodejście: %d\nUkończeń: %d\nCzas walki: %s\n\nEscape, aby wyjść" %
 		[_attempts(), wins, _format_time(_battle_time)]
@@ -150,8 +152,11 @@ func _on_player_died() -> void:
 func _handle_game_over_input() -> void:
 	match _game_over_kind:
 		"death":
+			# Przegrana z Nemoraksem = koniec całego przebiegu, nie tylko tej
+			# walki — wraca się do pokoju 1 na czysto (nowe fragmenty, świeży gracz).
 			if Input.is_action_just_pressed("ui_accept"):
-				get_tree().reload_current_scene()
+				GameFlow.reset_run()
+				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
 		"victory":
 			if Input.is_action_just_pressed("ui_cancel"):
 				get_tree().quit()

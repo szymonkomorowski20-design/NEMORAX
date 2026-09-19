@@ -1,13 +1,12 @@
 extends Node2D
-## Ekran startowy — rozszerzenie poza dokument bazowy. Resetuje GameFlow (na
-## wypadek powrotu tu po ukończonym/porzuconym przebiegu) i czeka na Spację.
-
-func _ready() -> void:
-	GameFlow.reset_run()
+## Ekran startowy — rozszerzenie poza dokument bazowy. NIE resetuje GameFlow —
+## postęp gauntletu jest zapisywany na dysk (patrz game_flow.gd), więc menu
+## musi wznowić dokładnie tam, gdzie gracz skończył, zamiast czyścić postęp
+## przy każdym uruchomieniu.
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("ui_accept"):
-		get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+		get_tree().change_scene_to_file(GameFlow.resume_scene_path())
 
 func _draw() -> void:
 	var size := get_viewport_rect().size
