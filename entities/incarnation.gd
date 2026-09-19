@@ -16,6 +16,7 @@ signal died(fragment_name: String)
 @export var contact_knockback: float = 300.0 ## px/s, odepchnięcie gracza przy dotyku
 @export var attack_interval: float = 2.2 ## s, odstęp między użyciami umiejętności
 @export var telegraph_duration: float = 0.5 ## s, wspólna zapowiedź przed umiejętnością
+@export var knockback_friction: float = 2000.0 ## px/s^2, jak szybko wytraca się odepchnięcie od bloku gracza
 
 var current_color: Color = Color.WHITE ## ustawiane przez podklasę
 var fragment_name: String = "" ## ustawiane przez podklasę — nazwa fragmentu duszy
@@ -41,6 +42,8 @@ var _lunge_timer: float = 0.0
 var _lunge_direction: Vector2 = Vector2.ZERO
 var _lunge_speed: float = 0.0
 
+var _knockback_velocity: Vector2 = Vector2.ZERO ## ustawiane z zewnątrz przez blok gracza (PPM)
+
 func _ready() -> void:
 	health = max_health
 	add_to_group("hittable") # dzięki temu miecz/różdżka gracza trafiają bez zmian w player.gd
@@ -53,7 +56,12 @@ func _physics_process(delta: float) -> void:
 
 	_check_contact()
 
-	if _lunge_active:
+	if _knockback_velocity.length() > 1.0:
+		# Odepchnięcie od bloku gracza chwilowo zastępuje dryfowanie/wypad —
+		# ta sama logika co u Nemoraxa w boss.gd.
+		global_position = _clamp_to_arena(global_position + _knockback_velocity * delta)
+		_knockback_velocity = _knockback_velocity.move_toward(Vector2.ZERO, knockback_friction * delta)
+	elif _lunge_active:
 		_process_lunge(delta)
 	else:
 		_drift_towards_player(delta)
@@ -65,6 +73,10 @@ func _physics_process(delta: float) -> void:
 	if _flash_frames > 0:
 		_flash_frames -= 1
 	queue_redraw()
+
+## Wywoływane z zewnątrz (blok gracza pod PPM) — odpycha wcielenie na chwilę.
+func apply_knockback(impulse: Vector2) -> void:
+	_knockback_velocity = impulse
 
 func _drift_towards_player(delta: float) -> void:
 	var to_player: Vector2 = player.global_position - global_position
