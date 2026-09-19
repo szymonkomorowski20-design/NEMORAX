@@ -27,7 +27,7 @@ const HEAL_COLOR := Color("#6FCF7A")
 @export var overlay_font_size: int = 24
 
 var player: Player = null
-var boss: Boss = null
+var boss = null ## Boss ALBO Incarnation — nietypowane celowo, oba mają health/max_health/current_color
 var hide_all: bool = false ## faza finałowa: UI znika w całości
 
 var _center_message: String = ""

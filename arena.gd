@@ -60,28 +60,7 @@ func _process(delta: float) -> void:
 		_handle_game_over_input()
 
 func _build_walls() -> void:
-	var r := ARENA_RECT
-	var segments := [
-		{"pos": Vector2(r.position.x + r.size.x * 0.5, r.position.y - WALL_THICKNESS * 0.5),
-			"size": Vector2(r.size.x + WALL_THICKNESS * 2.0, WALL_THICKNESS)}, # góra
-		{"pos": Vector2(r.position.x + r.size.x * 0.5, r.position.y + r.size.y + WALL_THICKNESS * 0.5),
-			"size": Vector2(r.size.x + WALL_THICKNESS * 2.0, WALL_THICKNESS)}, # dół
-		{"pos": Vector2(r.position.x - WALL_THICKNESS * 0.5, r.position.y + r.size.y * 0.5),
-			"size": Vector2(WALL_THICKNESS, r.size.y)}, # lewo
-		{"pos": Vector2(r.position.x + r.size.x + WALL_THICKNESS * 0.5, r.position.y + r.size.y * 0.5),
-			"size": Vector2(WALL_THICKNESS, r.size.y)}, # prawo
-	]
-	for seg in segments:
-		var body := StaticBody2D.new()
-		body.collision_layer = 1
-		body.collision_mask = 0
-		body.position = seg["pos"]
-		var shape := CollisionShape2D.new()
-		var rect_shape := RectangleShape2D.new()
-		rect_shape.size = seg["size"]
-		shape.shape = rect_shape
-		body.add_child(shape)
-		add_child(body)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS)
 
 ## Zaćmienie (faza 6, sekcja 7): ekran ciemnieje poza kręgiem wokół gracza. Godot 2D
 ## nie ma wbudowanego "otworu" w wypełnieniu, więc prościej jest o mały shader niż

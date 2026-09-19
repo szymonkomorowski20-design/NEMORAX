@@ -15,13 +15,14 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="NEMORAX"
-run/main_scene="res://arena.tscn"
+run/main_scene="res://rooms/room.tscn"
 config/features=PackedStringArray("4.7")
 
 [autoload]
 
 Palette="*res://autoload/palette.gd"
 Juice="*res://autoload/juice.gd"
+GameFlow="*res://autoload/game_flow.gd"
 
 [display]
 
