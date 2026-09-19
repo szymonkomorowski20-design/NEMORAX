@@ -15,7 +15,7 @@ class_name ZalazekIncarnation
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#F0447A")
-	fragment_name = "Zarodnik" # nazwa własna (dawniej "Zalążek", patrz LORE_I_ASSETY.md)
+	fragment_name = "Vhar’Nokh, Wygnany z Otchłani" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_teleport_strike, _skill_unstable_burst, _skill_double_blink]
 
 func _skill_teleport_strike() -> void:

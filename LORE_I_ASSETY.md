@@ -39,9 +39,9 @@ Paleta gry (dla spójności kolorów w promptach):
   błysk trafienia kodem, więc `hit` nie jest priorytetem.
 - Foldery docelowe: `assets/sprites/wcielenia/<nazwa>/`, `assets/sprites/gracz/`,
   `assets/sprites/nemorax/`, `assets/sprites/pokoje/`.
-- W kodzie nazwy plików/klas zostały po starszych roboczych nazwach faz
+- W kodzie nazwy plików/klas zostały po najstarszych roboczych nazwach faz
   (`zalazek.gd`, `cisza_incarnation.gd` itd.) — to tylko wewnętrzne identyfikatory,
-  gracz widzi WYŁĄCZNIE nazwy własne z sekcji 2 poniżej (`fragment_name`).
+  niewidoczne w grze. Gracz widzi WYŁĄCZNIE właściwe imiona z sekcji 2 (`fragment_name`).
 
 ---
 
@@ -51,7 +51,7 @@ Kolejność pokoi 1-6 = kolejność poniżej. Każde wcielenie ma trzy losowe
 umiejętności (już zaimplementowane w kodzie), tu opisany jest tylko koncept
 i wygląd.
 
-### 2.1 ZARODNIK (`#F0447A`)
+### 2.1 VHAR’NOKH, WYGNANY Z OTCHŁANI (`#F0447A`)
 
 - **Koncept**: surowa, niedokończona esencja hybrydy, wciąż się kształtująca —
   embrion czegoś, co jeszcze nie zdecydowało, czym będzie.
@@ -67,7 +67,7 @@ i wygląd.
   fragmenty geometrii wiszące w powietrzu, mgła.
 - **Fragment duszy**: nieforemna, pulsująca kropla światła w kolorze `#F0447A`.
 
-### 2.2 KRZYKOŻERCA (`#FF8A3D`)
+### 2.2 MORDRATH BEZ-WYMIARU (`#FF8A3D`)
 
 - **Koncept**: pożera krzyk i dźwięk — nie ma ust, a to, co połknęła, wciąż
   próbuje się wydostać spod skóry.
@@ -83,7 +83,7 @@ i wygląd.
 - **Fragment duszy**: mały, owinięty bandażem kokon, przez szczeliny sączy się
   pomarańczowe światło.
 
-### 2.3 ROZKŁADNIK (`#C44FD6`)
+### 2.3 ZHA’RUUN, POŻERACZ GRANIC (`#C44FD6`)
 
 - **Koncept**: zwłoki zamrożone w środku własnego rozkładu — czas wokół niego
   się zaciął, więc gnije w pętli, wlokąc za sobą urwane klatki własnego ruchu.
@@ -99,7 +99,7 @@ i wygląd.
 - **Fragment duszy**: mały odłamek szkła zegarowego, w środku widać zapętloną,
   powtarzającą się iskrę światła.
 
-### 2.4 ZIEMIODŁAW (`#6C63FF`)
+### 2.4 NEKRAVOR, TEN KTÓREGO ODRZUCONO (`#6C63FF`)
 
 - **Koncept**: zapada się pod własnym ciężarem i zabiera ze sobą wszystko
   dookoła — w piersi ma pustkę, która po cichu połyka światło i pył.
@@ -116,7 +116,7 @@ i wygląd.
 - **Fragment duszy**: mały, bardzo "ciężki" wyglądający kamień, wokół niego
   unoszący się pył wciągany do środka.
 
-### 2.5 TRZEWIOŻER (`#7ED957`)
+### 2.5 THAL’GOR, PĘKNIĘTY POMIĘDZY ŚWIATAMI (`#7ED957`)
 
 - **Koncept**: wiecznie głodny — dziesiątki drobnych, kłujących pysków
   otwierają się na całym jego ciele, żerując na wszystkim w zasięgu.
@@ -132,7 +132,7 @@ i wygląd.
 - **Fragment duszy**: mały, pulsujący jak serce fragment, otoczony drobnymi
   zębami.
 
-### 2.6 ŚWIATŁOGASZ (`#C9C2B4`)
+### 2.6 ORRYX CIEŃ-NICOŚCI (`#C9C2B4`)
 
 - **Koncept**: gasi światło wokół siebie — jego głowa to umierające zaćmienie,
   a ciało rozpływa się w gasnący popiół tam, gdzie powinny być nogi.
@@ -167,9 +167,9 @@ i wygląd.
 ## 4. Nemorax — finałowa hybryda
 
 - **Koncept**: chaotyczna, asymetryczna sylwetka łącząca cechy wszystkich
-  sześciu wcieleń — Zarodnika, Krzykożercy, Rozkładnika, Ziemiodławia,
-  Trzewiożera i Światłogasza naraz — największa i najbardziej niepokojąca
-  forma w grze, kolor przechodzący cyklicznie przez wszystkie sześć barw.
+  sześciu wcieleń — Vhar’Nokha, Mordratha, Zha’Ruuna, Nekravora, Thal’Gora i
+  Orryxa naraz — największa i najbardziej niepokojąca forma w grze, kolor
+  przechodzący cyklicznie przez wszystkie sześć barw.
 - **Prompt**:
   > A massive chaotic hybrid creature stitched together from six different
   > monstrous aspects: one arm dissolving into raw pink-magenta fetal mist, a

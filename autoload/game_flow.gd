@@ -22,7 +22,12 @@ const INCARNATION_SCENES: Array[String] = [
 ]
 
 const INCARNATION_NAMES: Array[String] = [
-	"Zarodnik", "Krzykożerca", "Rozkładnik", "Ziemiodław", "Trzewiożer", "Światłogasz",
+	"Vhar’Nokh, Wygnany z Otchłani",
+	"Mordrath Bez-Wymiaru",
+	"Zha’Ruun, Pożeracz Granic",
+	"Nekravor, Ten Którego Odrzucono",
+	"Thal’Gor, Pęknięty Pomiędzy Światami",
+	"Orryx Cień-Nicości",
 ]
 
 var current_room_index: int = 0 ## 0..5 — indeks aktualnego wcielenia/pomieszczenia

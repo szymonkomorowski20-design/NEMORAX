@@ -13,7 +13,7 @@ class_name CiszaIncarnation
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#FF8A3D")
-	fragment_name = "Krzykożerca" # nazwa własna (dawniej "Cisza", patrz LORE_I_ASSETY.md)
+	fragment_name = "Mordrath Bez-Wymiaru" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_silence_pulse, _skill_muffling_pull, _skill_silent_rush]
 
 func _skill_silence_pulse() -> void:
