@@ -14,7 +14,7 @@ class_name GlodIncarnation
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#7ED957")
-	fragment_name = "Głód"
+	fragment_name = "Trzewiożer" # nazwa własna (dawniej "Głód", patrz LORE_I_ASSETY.md)
 	_skills = [_skill_bite, _skill_ravenous_pulse, _skill_pull_and_bite]
 
 func _skill_bite() -> void:

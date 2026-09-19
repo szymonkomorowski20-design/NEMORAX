@@ -15,7 +15,7 @@ class_name ZwlokaIncarnation
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#C44FD6")
-	fragment_name = "Zwłoka"
+	fragment_name = "Rozkładnik" # nazwa własna (dawniej "Zwłoka", patrz LORE_I_ASSETY.md)
 	_skills = [_skill_echo_pulse, _skill_stutter_lunge, _skill_rewind_pull]
 
 func _skill_echo_pulse() -> void:

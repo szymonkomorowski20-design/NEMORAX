@@ -16,7 +16,7 @@ class_name CiezarIncarnation
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#6C63FF")
-	fragment_name = "Ciężar"
+	fragment_name = "Ziemiodław" # nazwa własna (dawniej "Ciężar", patrz LORE_I_ASSETY.md)
 	_skills = [_skill_gravity_pull, _skill_crush_pulse, _skill_gravity_lunge]
 
 func _skill_gravity_pull() -> void:

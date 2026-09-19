@@ -9,8 +9,9 @@ const ROOM_SCENE := "res://rooms/room.tscn"
 const ALTAR_SCENE := "res://rooms/altar.tscn"
 const ARENA_SCENE := "res://arena.tscn"
 
-## Kolejność wcieleń = kolejność pomieszczeń 1-6. Nazwa i kolor odpowiadają
-## fazom Nemoraxa (sekcja 2 katalogu LORE_I_ASSETY.md).
+## Kolejność wcieleń = kolejność pomieszczeń 1-6. Nazwy plików/klas zostały po
+## fazach Nemoraxa (Zalążek/Cisza/Zwłoka/Ciężar/Głód/Zaćmienie) ze starszej wersji
+## dokumentu — nazwy WŁASNE poniżej (INCARNATION_NAMES) to to, co widzi gracz.
 const INCARNATION_SCENES: Array[String] = [
 	"res://entities/incarnations/zalazek.tscn",
 	"res://entities/incarnations/cisza_incarnation.tscn",
@@ -21,7 +22,7 @@ const INCARNATION_SCENES: Array[String] = [
 ]
 
 const INCARNATION_NAMES: Array[String] = [
-	"Zalążek", "Cisza", "Zwłoka", "Ciężar", "Głód", "Zaćmienie",
+	"Zarodnik", "Krzykożerca", "Rozkładnik", "Ziemiodław", "Trzewiożer", "Światłogasz",
 ]
 
 var current_room_index: int = 0 ## 0..5 — indeks aktualnego wcielenia/pomieszczenia
