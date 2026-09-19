@@ -124,24 +124,123 @@ kolorem fragmentu.
 
 ---
 
-## 4. Otoczenie pokoi (podłoga/ściany)
+## 4. Otoczenie pokoi (podłoga/ściany) — każdy pokój osobno
 
-| Pokój | Szczegółowy wygląd |
-|---|---|
-| Vhar’Nokh | Surowy, nieukończony kamieniołom — chropowaty, świeżo rąbany kamień, fragmenty rusztowań i geometrii zawieszone w powietrzu jakby budowa stanęła w pół ruchu, pęknięcia sączące magenta-różowe światło (`#F0447A`), gęsta mgła przy podłodze. |
-| Mordrath | Wyściełane czarną, skóropodobną tapicerką ściany, zszywane grubymi widocznymi szwami, całkowicie tłumiące dźwięk; pod powierzchnią pulsują cienkie pomarańczowe żyłki (`#FF8A3D`), jakby ściany same oddychały. |
-| Zha’Ruun | Popękana marmurowa podłoga wysadzana potrzaskanymi trybikami zegarów i odłamkami klepsydr, ściany zastawione zatrzymanymi szafami zegarowymi, fioletowy pył (`#C44FD6`) osiadły w każdej szczelinie. |
-| Nekravor | Ciężkie, zapadające się sklepienie, kolumny wygięte do środka jak żebra, odłamki kości wtopione w zaprawę, głębokie pęknięcia sączące niebiesko-fioletową poświatę (`#6C63FF`). |
-| Thal’Gor | Organiczne, mięsiste ściany tunelu pulsujące jak wnętrze gardła, cienka błona naciągnięta między żebrowaniem sklepienia, chorobliwie zielone żyłki (`#7ED957`) na suficie. |
-| Orryx | Ściany matowo-czarne, pochłaniające niemal całe światło — widoczne tylko ledwo zarysowane krawędzie na styku ścian, reszta to czysta, niepokojąca ciemność. |
-| Ołtarz | Okrągła, wygładzona wiekami rytuału kamienna komnata, sześć sześciokątnych gniazd w kręgu (sekcja 3.3), delikatne rowki-kanały wyryte w podłodze prowadzące do centrum. |
+Każdy pokój ma dwa elementy do wygenerowania: **podłogę** (tileable, widok z
+góry, bo kamera w grze jest top-down) i **ścianę** (widoczną jako ramka wokół
+areny — mniej krytyczne, żeby była tileable, bo to głównie ozdobna ramka).
 
-Generyczny prompt (podmienić opis z tabeli):
-> Seamless tileable dark stone dungeon floor/wall texture, [opis z tabeli],
-> viewed from directly above, subtle accent glow in [kolor wcielenia].
+### 4.1 Pokój Vhar’Nokha — Kamieniołom Wygnania
+Surowy, nieukończony kamieniołom, jakby budowa stanęła w pół ruchu w chwili,
+gdy coś wygnało Vhar'Nokha do tego wymiaru.
+
+**Podłoga**:
+> Seamless tileable top-down dungeon floor texture: rough, freshly-hewn dark
+> stone slabs with visible chisel marks, hairline cracks glowing faint
+> magenta-pink (#F0447A) from within, thin dust and rubble scattered across
+> the surface. [+ styl otoczenia]
+
+**Ściana**:
+> Seamless tileable dungeon wall texture: unfinished raw quarry rock, jagged
+> and irregular, fragments of scaffolding-like geometry embedded and
+> half-collapsed into the wall, faint magenta-pink (#F0447A) glow bleeding
+> from deep fissures, thick low fog clinging near the base. [+ styl otoczenia]
+
+### 4.2 Pokój Mordratha — Komnata Bez Echa
+Całkowicie wyciszona komnata, jakby dźwięk sam bał się w niej istnieć.
+
+**Podłoga**:
+> Seamless tileable top-down dungeon floor texture: dark leathery padded
+> panels stitched together with thick visible black seams, slightly spongy
+> and sound-deadening in appearance, faint orange (#FF8A3D) veins pulsing
+> faintly beneath the surface like breathing skin. [+ styl otoczenia]
+
+**Ściana**:
+> Seamless tileable dungeon wall texture: thick quilted black leather-like
+> padding covering the stone beneath, heavy stitched seams, faint pulsing
+> orange (#FF8A3D) veins visible under the padding, utterly muffling and
+> claustrophobic. [+ styl otoczenia]
+
+### 4.3 Pokój Zha’Ruuna — Sala Złamanych Zegarów
+Czas w tym pokoju się zaciął — wszystko tu jest zatrzymane w momencie awarii.
+
+**Podłoga**:
+> Seamless tileable top-down dungeon floor texture: cracked dark marble
+> embedded with shattered clock gears and broken hourglass glass shards,
+> fine purple-magenta (#C44FD6) dust settled into every crack and groove.
 > [+ styl otoczenia]
 
-Tło poza areną (`Palette.BACKGROUND`) — opcjonalnie:
+**Ściana**:
+> Seamless tileable dungeon wall texture: rows of stopped, decaying
+> grandfather-clock husks fused into dark stone, cracked clock faces frozen
+> at different times, faint purple-magenta (#C44FD6) glow leaking from
+> broken clockwork innards. [+ styl otoczenia]
+
+### 4.4 Pokój Nekravora — Zapadnięta Krypta
+Sklepienie ledwo się trzyma, jakby cały pokój miał zaraz runąć pod własnym
+ciężarem — dosłowne echo Nekravora.
+
+**Podłoga**:
+> Seamless tileable top-down dungeon floor texture: heavy dark flagstones
+> under crushing pressure, hairline stress-fractures glowing faint
+> blue-violet (#6C63FF), scattered bone shard fragments pressed into the
+> mortar between stones. [+ styl otoczenia]
+
+**Ściana**:
+> Seamless tileable dungeon wall texture: massive stone support columns bowed
+> and bent inward like ribs under crushing weight, bone shards embedded in
+> the cracked mortar, deep fissures seeping blue-violet (#6C63FF) light.
+> [+ styl otoczenia]
+
+### 4.5 Pokój Thal’Gora — Gardziel
+Organiczny tunel, jakby gracz wchodził w żywy, pulsujący przełyk czegoś
+ogromnego.
+
+**Podłoga**:
+> Seamless tileable top-down organic floor texture: fleshy, faintly pulsing
+> membrane-like surface, thin sickly green (#7ED957) veins running just
+> beneath a translucent skin layer, damp and unsettling. [+ styl otoczenia]
+
+**Ściana**:
+> Seamless tileable organic wall texture: ribbed, muscular throat-like walls
+> gently pulsing, thin taut membrane stretched between rib-like support
+> beams, glowing sickly green (#7ED957) veins tracing along the ridges.
+> [+ styl otoczenia]
+
+### 4.6 Pokój Orryxa — Studnia Ciemności
+Brak własnego oświetlenia — jedynym źródłem światła w tym starciu jest sam
+Orryx.
+
+**Podłoga**:
+> Seamless tileable top-down floor texture: near-total matte black surface
+> absorbing almost all light, only the faintest hint of uneven stone texture
+> visible at extreme close range, otherwise pure oppressive darkness.
+> [+ styl otoczenia]
+
+**Ściana**:
+> Seamless tileable wall texture: matte black stone that seems to swallow
+> light entirely, edges and corners barely distinguishable from one another,
+> an extremely faint pale (#C9C2B4) outline hinting at the wall's shape.
+> [+ styl otoczenia]
+
+### 4.7 Ołtarz — Sala Sześciu Gniazd
+Okrągła, wygładzona wiekami rytuału komnata — jedyny pokój bez wroga, tylko z
+napięciem oczekiwania.
+
+**Podłoga**:
+> Seamless tileable top-down floor texture: smooth ancient ritual stone worn
+> pale and glassy by centuries of use, thin carved channel-grooves radiating
+> from the center outward toward six hexagonal sockets, faint multicolored
+> residual glow (#F0447A #FF8A3D #C44FD6 #6C63FF #7ED957 #C9C2B4) in the
+> grooves. [+ styl otoczenia]
+
+**Ściana**:
+> Seamless tileable dungeon wall texture: solid carved ceremonial dark stone,
+> smooth and deliberate compared to the other rooms, faint circular
+> engravings echoing the altar's ring motif. [+ styl otoczenia]
+
+### 4.8 Tło poza areną (`Palette.BACKGROUND`)
+Wspólne dla wszystkich pokoi, poza samą areną — opcjonalne.
 > A near-black void background texture, extremely subtle distant nebula-like
 > wisps, almost solid dark purple-black, barely perceptible motion.
 > [+ styl otoczenia]
