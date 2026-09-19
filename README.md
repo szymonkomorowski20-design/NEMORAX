@@ -27,14 +27,21 @@ proste kształty rysowane kodem (docelowo podmieniane na sprite'y — patrz
 | 1 | Miecz (atak z bliska) |
 | 2 | Różdżka (atak na dystans, pocisk) |
 | E | Leczenie — aktywne po 40 celnych trafieniach wroga, oddaje 50% max zdrowia |
+| F | Podniesienie duszy pokonanego wcielenia |
 
 ## Sześć wcieleń → ołtarz → Nemorax
 
 - Sześć pomieszczeń (`rooms/room.tscn`, ta sama scena za każdym razem —
   `GameFlow` autoload mówi, które wcielenie zespawnować), każde z jednym
-  wcieleniem hybrydy i jego umiejętnością sygnaturalną nawiązującą do jednej
-  z faz Nemoraxa (`entities/incarnations/`, wspólny szkielet w `entities/incarnation.gd`).
-- Pokonanie wcielenia zostawia fragment duszy i przenosi do kolejnego pokoju.
+  wcieleniem hybrydy i jego trzema umiejętnościami (losowane bez powtórzeń,
+  nawiązują do jednej z faz Nemoraxa — `entities/incarnations/`, wspólny
+  szkielet w `entities/incarnation.gd`).
+- Przebieg pokoju: pusty przedsionek → drzwi (podejście uruchamia wcielenie) →
+  walka → dusza wypada jako przedmiot (`rooms/soul.gd`) → podnosisz ją klawiszem
+  F → pojawiają się nowe drzwi (`rooms/door.gd`) → kolejny pokój.
+- Zdrowie, stamina, mana i ładunek leczenia gracza przenoszą się między pokojami
+  bez darmowego resetu (`GameFlow.capture_player_state`/`apply_player_state`) —
+  to samo dotyczy retry po śmierci w danym pokoju.
 - Po szóstym pokoju: `rooms/altar.gd` — podejście do ołtarza przywołuje Nemoraxa
   i przenosi do `arena.tscn`, czyli istniejącej walki opisanej niżej.
 
@@ -66,7 +73,9 @@ proste kształty rysowane kodem (docelowo podmieniane na sprite'y — patrz
   `shadow.gd`), pocisk gracza (`projectile.gd`), oraz `incarnation.gd` (wspólny szkielet
   wcieleń) z podklasami w `entities/incarnations/`
 - `rooms/` — `room.gd`/`room.tscn` (jedna scena reużywana dla wszystkich sześciu
-  pokoi) i `altar.gd`/`altar.tscn` (siódmy pokój, most do `arena.tscn`)
+  pokoi), `door.gd`/`door.tscn` (przejścia), `soul.gd`/`soul.tscn` (przedmiot do
+  podniesienia po pokonaniu wcielenia), `altar.gd`/`altar.tscn` (siódmy pokój,
+  most do `arena.tscn`)
 - `ui/` — `ui.gd`, cały interfejs rysowany na jednym `Control`
 - `arena.gd` / `arena.tscn` — finałowa walka z Nemoraksem: ściany, spawn, orkiestracja
   faz, licznik prób
