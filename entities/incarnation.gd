@@ -9,7 +9,7 @@ class_name Incarnation
 
 signal died(fragment_name: String)
 
-@export var max_health: float = 80.0
+@export var max_health: float = 160.0
 @export var radius: float = 36.0
 @export var drift_speed: float = 90.0
 @export var contact_damage: float = 8.0
