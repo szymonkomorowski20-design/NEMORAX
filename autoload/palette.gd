@@ -48,6 +48,7 @@ func _setup_input_map() -> void:
 	_bind_key("weapon_sword", KEY_1)
 	_bind_key("weapon_wand", KEY_2)
 	_bind_key("heal", KEY_E)
+	_bind_key("pickup", KEY_F)
 
 func _bind_key(action: String, keycode: Key) -> void:
 	if InputMap.has_action(action):

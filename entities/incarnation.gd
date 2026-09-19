@@ -25,6 +25,12 @@ var is_dead: bool = false
 var player: Player = null
 var arena_rect: Rect2 ## ustawiane z zewnątrz przez room.gd po zespawnowaniu
 
+## Pula umiejętności — każda podklasa wypełnia to w swoim _ready() (po super._ready())
+## co najmniej trzema Callable. Losowane bez powtórzenia tej samej dwa razy pod rząd,
+## tak samo jak ataki Nemoraxa w boss.gd.
+var _skills: Array[Callable] = []
+var _last_skill_index: int = -1
+
 var _attack_timer: float = 0.0
 var _telegraph_active: bool = false
 var _flash_frames: int = 0
@@ -81,19 +87,30 @@ func _start_telegraph() -> void:
 	await get_tree().create_timer(telegraph_duration).timeout
 	_telegraph_active = false
 	if not is_dead:
-		_perform_signature_skill()
+		_perform_random_skill()
 
-## JEDYNA rzecz, którą musi dodać podklasa — reszta jest tu, w bazie.
-func _perform_signature_skill() -> void:
-	pass
+## Losuje jedną z umiejętności podklasy (bez powtórzenia poprzedniej) i ją wywołuje.
+func _perform_random_skill() -> void:
+	if _skills.is_empty():
+		return
+	var index := randi() % _skills.size()
+	if _skills.size() > 1:
+		while index == _last_skill_index:
+			index = randi() % _skills.size()
+	_last_skill_index = index
+	_skills[index].call()
 
 # --- Wspólne prymitywy, z których podklasy budują swoje umiejętności ---
 
-func _damage_pulse(pulse_radius: float, damage: float) -> void:
+## Zwraca true, jeśli gracz był w zasięgu i faktycznie oberwał (przydatne np.
+## do leczenia się kosztem trafienia, patrz GlodIncarnation).
+func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 	if player.is_invulnerable():
-		return
-	if global_position.distance_to(player.global_position) <= pulse_radius:
-		player.take_damage(damage)
+		return false
+	if global_position.distance_to(player.global_position) > pulse_radius:
+		return false
+	player.take_damage(damage)
+	return true
 
 func _pull_player(strength: float) -> void:
 	var dir: Vector2 = global_position - player.global_position

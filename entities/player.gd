@@ -276,6 +276,13 @@ func is_heal_ready() -> bool:
 func heal_charge_ratio() -> float:
 	return float(_heal_charge_hits) / float(heal_hits_required)
 
+## Do przenoszenia stanu gracza między pokojami (GameFlow) — patrz room.gd.
+func get_heal_charge_hits() -> int:
+	return _heal_charge_hits
+
+func set_heal_charge_hits(value: int) -> void:
+	_heal_charge_hits = clampi(value, 0, heal_hits_required)
+
 ## Wywoływane z zewnątrz (bossa/void_zone itd.) — odpycha gracza i na chwilę
 ## odbiera mu sterowanie, żeby kopnięcie było wyczuwalne (patrz _process_normal_movement).
 func apply_knockback(impulse: Vector2) -> void:

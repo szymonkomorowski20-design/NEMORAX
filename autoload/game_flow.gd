@@ -27,6 +27,32 @@ const INCARNATION_NAMES: Array[String] = [
 var current_room_index: int = 0 ## 0..5 — indeks aktualnego wcielenia/pomieszczenia
 var fragments_collected: Array[String] = [] ## nazwy zebranych fragmentów, w kolejności
 
+## Migawka statystyk gracza z chwili przejścia do kolejnego pokoju (na życzenie
+## autora: "postać odradza się w kolejnym z takimi samymi statystykami") — puste
+## w pierwszym pokoju, więc gracz startuje tam z domyślnych wartości @export.
+var saved_player_state: Dictionary = {}
+
+func capture_player_state(player: Player) -> void:
+	saved_player_state = {
+		"health": player.health,
+		"stamina": player.stamina,
+		"mana": player.mana,
+		"heal_charge_hits": player.get_heal_charge_hits(),
+		"current_weapon": player.current_weapon,
+	}
+
+## Wywoływane w room.gd zaraz po zespawnowaniu gracza — działa zarówno przy
+## wejściu do nowego pokoju, jak i przy retry po śmierci w tym samym pokoju,
+## więc "checkpoint" zawsze jest stanem sprzed wejścia do BIEŻĄCEGO pokoju.
+func apply_player_state(player: Player) -> void:
+	if saved_player_state.is_empty():
+		return
+	player.health = saved_player_state.get("health", player.health)
+	player.stamina = saved_player_state.get("stamina", player.stamina)
+	player.mana = saved_player_state.get("mana", player.mana)
+	player.set_heal_charge_hits(saved_player_state.get("heal_charge_hits", 0))
+	player.current_weapon = saved_player_state.get("current_weapon", player.current_weapon)
+
 func current_incarnation_scene_path() -> String:
 	return INCARNATION_SCENES[current_room_index]
 
@@ -50,3 +76,4 @@ func complete_altar() -> void:
 func reset_run() -> void:
 	current_room_index = 0
 	fragments_collected.clear()
+	saved_player_state.clear()
