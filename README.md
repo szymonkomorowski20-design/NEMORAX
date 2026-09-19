@@ -1,7 +1,10 @@
 # NEMORAX
 
-Gra akcji 2D z widokiem z góry, jeden gracz kontra jeden boss. Godot 4, GDScript,
-bez plików graficznych — wszystko rysowane kodem (koła, prostokąty, proste kształty).
+Gra akcji 2D z widokiem z góry. Godot 4, GDScript. Sześć pomieszczeń z sześcioma
+wcieleniami hybrydy Nemorax, każde zostawia fragment duszy — po zebraniu
+wszystkich sześciu, ołtarz przywołuje finałowego bossa. Wizualnie na razie
+proste kształty rysowane kodem (docelowo podmieniane na sprite'y — patrz
+[LORE_I_ASSETY.md](LORE_I_ASSETY.md)).
 
 ## Wymagania
 
@@ -10,7 +13,8 @@ bez plików graficznych — wszystko rysowane kodem (koła, prostokąty, proste 
 ## Uruchomienie
 
 1. Otwórz folder projektu w Godot (`project.godot`).
-2. Uruchom scenę główną (F5) — `arena.tscn` jest ustawiona jako main scene.
+2. Uruchom scenę główną (F5) — `rooms/room.tscn` jest ustawiona jako main scene
+   i startuje od pierwszego wcielenia.
 
 ## Sterowanie
 
@@ -23,6 +27,16 @@ bez plików graficznych — wszystko rysowane kodem (koła, prostokąty, proste 
 | 1 | Miecz (atak z bliska) |
 | 2 | Różdżka (atak na dystans, pocisk) |
 | E | Leczenie — aktywne po 40 celnych trafieniach wroga, oddaje 50% max zdrowia |
+
+## Sześć wcieleń → ołtarz → Nemorax
+
+- Sześć pomieszczeń (`rooms/room.tscn`, ta sama scena za każdym razem —
+  `GameFlow` autoload mówi, które wcielenie zespawnować), każde z jednym
+  wcieleniem hybrydy i jego umiejętnością sygnaturalną nawiązującą do jednej
+  z faz Nemoraxa (`entities/incarnations/`, wspólny szkielet w `entities/incarnation.gd`).
+- Pokonanie wcielenia zostawia fragment duszy i przenosi do kolejnego pokoju.
+- Po szóstym pokoju: `rooms/altar.gd` — podejście do ołtarza przywołuje Nemoraxa
+  i przenosi do `arena.tscn`, czyli istniejącej walki opisanej niżej.
 
 ## Boss — Nemorax
 
@@ -46,11 +60,17 @@ bez plików graficznych — wszystko rysowane kodem (koła, prostokąty, proste 
 
 ## Struktura projektu
 
-- `autoload/` — `palette.gd` (kolory + mapa wejścia), `juice.gd` (hitstop, trzęsienie ekranu)
-- `entities/` — `player.gd`, `boss.gd`, oraz spawnowane przez bossa/gracza ataki
-  (`seal.gd`, `void_zone.gd`, `shadow.gd`, `projectile.gd`)
+- `autoload/` — `palette.gd` (kolory + mapa wejścia), `juice.gd` (hitstop, trzęsienie ekranu),
+  `game_flow.gd` (postęp przez sześć pokoi i zebrane fragmenty duszy)
+- `entities/` — `player.gd`, `boss.gd` (Nemorax), ataki bossa (`seal.gd`, `void_zone.gd`,
+  `shadow.gd`), pocisk gracza (`projectile.gd`), oraz `incarnation.gd` (wspólny szkielet
+  wcieleń) z podklasami w `entities/incarnations/`
+- `rooms/` — `room.gd`/`room.tscn` (jedna scena reużywana dla wszystkich sześciu
+  pokoi) i `altar.gd`/`altar.tscn` (siódmy pokój, most do `arena.tscn`)
 - `ui/` — `ui.gd`, cały interfejs rysowany na jednym `Control`
-- `arena.gd` / `arena.tscn` — scena główna: ściany, spawn, orkiestracja faz, licznik prób
+- `arena.gd` / `arena.tscn` — finałowa walka z Nemoraksem: ściany, spawn, orkiestracja
+  faz, licznik prób
+- `walls.gd` — współdzielone budowanie ścian areny (używane przez `arena.gd` i `room.gd`)
 
 Wszystkie liczby wpływające na odczucia z gry (prędkości, obrażenia, czasy,
 koszty zasobów) są `@export` — do dostrojenia bezpośrednio w Inspectorze Godota.
