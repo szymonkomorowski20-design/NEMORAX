@@ -40,6 +40,7 @@ const ROOM_WALL_TEXTURES: Array[Texture2D] = [
 
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
+@onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 
 var incarnation: Incarnation
 var _game_over_kind: String = "" # "" albo "death"
@@ -61,6 +62,14 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _game_over_kind != "":
 		_handle_game_over_input()
+
+## Escape poza ekranem game-over pauzuje/wznawia — w trakcie game-over Spacja
+## (ui_accept) już obsługuje retry, nie ma tam czego pauzować.
+func _unhandled_input(event: InputEvent) -> void:
+	if _game_over_kind != "":
+		return
+	if event.is_action_pressed("ui_cancel"):
+		pause_menu.toggle()
 
 func _spawn_door(pos: Vector2, on_entered: Callable) -> void:
 	var door: Door = DoorScene.instantiate()

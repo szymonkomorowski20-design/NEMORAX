@@ -10,6 +10,7 @@ const LOGO_SIZE := Vector2(480.0, 320.0) ## zachowuje proporcje źródłowego pl
 
 @onready var background: TextureRect = $Background
 @onready var logo: TextureRect = $Logo
+@onready var keybind_screen: KeybindScreen = $KeybindScreen
 
 func _ready() -> void:
 	var vp_size := get_viewport_rect().size
@@ -29,8 +30,16 @@ func _ready() -> void:
 	logo.position = Vector2((vp_size.x - LOGO_SIZE.x) * 0.5, vp_size.y * 0.28)
 
 func _process(_delta: float) -> void:
+	if keybind_screen.visible:
+		return
 	if Input.is_action_just_pressed("ui_accept"):
 		get_tree().change_scene_to_file(GameFlow.resume_scene_path())
+
+func _unhandled_input(event: InputEvent) -> void:
+	if keybind_screen.visible:
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K:
+		keybind_screen.open()
 
 func _draw() -> void:
 	var size := get_viewport_rect().size
@@ -39,3 +48,8 @@ func _draw() -> void:
 	var prompt_size := font.get_string_size(prompt, HORIZONTAL_ALIGNMENT_CENTER, -1, 22)
 	draw_string(font, Vector2((size.x - prompt_size.x) * 0.5, size.y * 0.68), prompt,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Palette.HIT_FLASH)
+
+	var keys_prompt := "K — zmień klawisze"
+	var keys_prompt_size := font.get_string_size(keys_prompt, HORIZONTAL_ALIGNMENT_CENTER, -1, 18)
+	draw_string(font, Vector2((size.x - keys_prompt_size.x) * 0.5, size.y * 0.74), keys_prompt,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)

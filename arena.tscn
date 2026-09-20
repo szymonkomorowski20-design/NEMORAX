@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://5wvj38158ymw" path="res://arena.gd" id="1"]
 [ext_resource type="PackedScene" path="res://entities/player.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://ui/ui.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="4"]
 
 [node name="Arena" type="Node2D" unique_id=522250192]
 script = ExtResource("1")
@@ -29,3 +30,5 @@ mouse_filter = 2
 color = Color(0, 0, 0, 0)
 
 [node name="UILayer" parent="." unique_id=1362445908 instance=ExtResource("3")]
+
+[node name="PauseLayer" parent="." instance=ExtResource("4")]

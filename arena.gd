@@ -25,6 +25,7 @@ const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_wall.p
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
 @onready var eclipse_rect: ColorRect = $EclipseLayer/EclipseRect
+@onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 
 var boss: Boss
 
@@ -66,6 +67,16 @@ func _process(delta: float) -> void:
 		_eclipse_material.set_shader_parameter("center", player.global_position)
 	if _game_over_kind != "":
 		_handle_game_over_input()
+
+## Escape poza ekranami game-over pauzuje/wznawia — ekran zwycięstwa już
+## używa Escape (ui_cancel) do wyjścia z gry (_handle_game_over_input), więc
+## pauza musi być wyłączona w tym stanie, inaczej dwa różne działania
+## walczyłyby o ten sam klawisz.
+func _unhandled_input(event: InputEvent) -> void:
+	if _game_over_kind != "":
+		return
+	if event.is_action_pressed("ui_cancel"):
+		pause_menu.toggle()
 
 func _build_walls() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)

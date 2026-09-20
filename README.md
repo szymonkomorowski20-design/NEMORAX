@@ -32,6 +32,15 @@ sekcja [Assety](#assety-grafika-i-dźwięk) niżej.
 | 2 | Różdżka (atak na dystans, pocisk) |
 | E | Leczenie — aktywne po 20 celnych trafieniach wroga, oddaje 50% max zdrowia |
 | F | Podniesienie duszy pokonanego wcielenia |
+| Escape | Pauza w trakcie gry (poza ekranami game-over) |
+| K | Zmiana klawiszy — z menu głównego albo z pauzy w trakcie gry |
+
+Wszystkie powyższe klawisze (poza samą pauzą/K) da się przypisać na nowo na
+ekranie rebindingu (`ui/keybind_screen.gd`) — strzałki wybierają akcję, Enter
+przechodzi w tryb nasłuchiwania, dowolny klawisz albo przycisk myszy go
+przypisuje, Escape wraca. Przypisania zapisują się w `user://settings.json`
+(`autoload/keybinds.gd`) i nakładają się na domyślną mapę z `palette.gd` przy
+starcie gry.
 
 ## Sześć wcieleń → ołtarz → Nemorax
 
@@ -112,7 +121,9 @@ reszta to opcjonalny polish (unikalne umiejętności, muzyka, ambient pokoi).
 
 ## Struktura projektu
 
-- `autoload/` — `palette.gd` (kolory + mapa wejścia), `juice.gd` (hitstop, trzęsienie ekranu),
+- `autoload/` — `palette.gd` (kolory + domyślna mapa wejścia), `keybinds.gd`
+  (rebinding — nakłada się na mapę z palette.gd, zapisuje do
+  `user://settings.json`), `juice.gd` (hitstop, trzęsienie ekranu),
   `game_flow.gd` (postęp przez sześć pokoi i zebrane fragmenty duszy)
 - `entities/` — `player.gd`, `boss.gd` (Nemorax), ataki bossa (`seal.gd`, `void_zone.gd`,
   `shadow.gd`), pocisk gracza (`projectile.gd`), oraz `incarnation.gd` (wspólny szkielet
@@ -121,7 +132,11 @@ reszta to opcjonalny polish (unikalne umiejętności, muzyka, ambient pokoi).
   pokoi), `door.gd`/`door.tscn` (przejścia), `soul.gd`/`soul.tscn` (przedmiot do
   podniesienia po pokonaniu wcielenia), `altar.gd`/`altar.tscn` (siódmy pokój,
   most do `arena.tscn`)
-- `ui/` — `ui.gd`, cały interfejs rysowany na jednym `Control`
+- `ui/` — `ui.gd` (paski/ikony gry), `pause_menu.gd` (Escape w trakcie gry,
+  reużywalny w `room.tscn`/`arena.tscn`), `keybind_screen.gd` (ekran
+  rebindingu, reużywalny z menu głównego i z pauzy)
+- `facing.gd` — wspólny wybór wariantu kierunkowego sprite'a (przód/tył/bok +
+  flip_h), pilotaż 360° (patrz `PLAN_ANIMACJE_KIERUNKOWE.md`)
 - `arena.gd` / `arena.tscn` — finałowa walka z Nemoraksem: ściany, spawn, orkiestracja
   faz, licznik prób
 - `walls.gd` — współdzielone budowanie ścian areny (używane przez `arena.gd` i `room.gd`)
