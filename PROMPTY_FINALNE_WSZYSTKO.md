@@ -6,13 +6,13 @@ Nie obejmuje 7 głównych postaci (Vhar'Nokh...Nemorax, już zrobione) ani ich
 póz do animacji — to osobno w [LORE_I_ASSETY.md](LORE_I_ASSETY.md) i
 [POZY_ANIMACJI.md](POZY_ANIMACJI.md).
 
-**Razem: 34 obrazki**, w 8 grupach. Checklisty do odhaczania w miarę robienia.
+**Razem: 36 obrazków**, w 8 grupach. Checklisty do odhaczania w miarę robienia.
 
 ---
 
 ## Uwaga techniczna przed startem — tileable tekstury
 
-Sekcja D (podłogi/ściany, 15 obrazków) musi się **bezszwowo powtarzać**
+Sekcja D (podłogi/ściany, 17 obrazków) musi się **bezszwowo powtarzać**
 (tileable) — większość botów NIE gwarantuje tego domyślnie, nawet jeśli
 prompt mówi "seamless". Po wygenerowaniu ustaw obrazek jako powtarzający się
 kafelek (np. w GIMP/Photoshopie: Filter → Offset o połowę szerokości/wysokości
@@ -112,7 +112,7 @@ gracza z 50% przezroczystością i żółtym konturem, robione w silniku.)*
   > silhouette, no text, no watermark, no character, transparent or plain
   > background.
 
-## D. Otoczenie pokoi — podłogi i ściany (15 obrazków)
+## D. Otoczenie pokoi — podłogi i ściany (17 obrazków)
 
 - [ ] **D1. Vhar'Nokh — podłoga**
   > Seamless tileable top-down dungeon floor texture: rough, freshly-hewn
@@ -220,6 +220,28 @@ gracza z 50% przezroczystością i żółtym konturem, robione w silniku.)*
   > nebula-like wisps, almost solid dark purple-black (#1A1026), barely
   > perceptible motion. Seamless tileable, no characters, no text, no
   > watermark.
+
+- [ ] **D16. Arena Nemoraksa — podłoga** (NOWE — dziś `arena.gd` tymczasowo
+  reużywa D13 ołtarza jako placeholder, brakowało osobnego wpisu w katalogu;
+  to ta sama komnata rytualna, w której Nemorax się wyłonił, patrz
+  `LORE_I_ASSETY.md` sekcja 3-4 — ma być rozpoznawalnie tym samym miejscem,
+  tylko opanowanym przez jego energię, nie zupełnie inną lokacją)
+  > Seamless tileable top-down ritual chamber floor texture: the same ancient
+  > pale ceremonial stone as the altar room, but now violently split open by
+  > six ritual cracks fused together at a scorched, warped center, each crack
+  > still carrying its own soul-fragment color (#F0447A, #9B4DFF, #C44FD6,
+  > #6C63FF, #E8524A, #8C9AC2) bleeding chaotically together into overlapping
+  > light instead of six calm separate rings. Viewed from directly above, no
+  > characters, no text, no watermark, moody and oppressive.
+
+- [ ] **D17. Arena Nemoraksa — ściana** (NOWE — jw., ta sama uwaga)
+  > Seamless tileable dungeon wall texture: the same carved ceremonial dark
+  > stone as the altar chamber, now cracked and bulging outward as if
+  > something enormous forced its way through from within, jagged fissures
+  > glowing with the same six soul-fragment colors (#F0447A, #9B4DFF,
+  > #C44FD6, #6C63FF, #E8524A, #8C9AC2) overlapping chaotically rather than
+  > staying separate. No characters, no text, no watermark, moody and
+  > oppressive.
 
 ## E. UI (7 obrazków)
 

@@ -96,11 +96,12 @@ podpiętych (123 bazowych + 26 z pilotażu kierunków 360°, patrz
 usterki (przezroczystość `death_screen_frame.png`, kolory podłóg/ścian
 Mordrath/Thal'Gor/Orryx) są już naprawione w podpiętych plikach.
 
-**Znany brak** — finałowa arena (`arena.gd`) reużywa wygląd ołtarza (podłoga/
-ściana/tło) jako zastępstwo, bo katalog D1-D15 w `PROMPTY_FINALNE_WSZYSTKO.md`
-nie ma osobnego wpisu na wygląd samej areny Nemoraksa — brakujące D16-D18
-(podłoga/ściana/tło areny, wygląd odróżniający się od ołtarza) to gotowy do
-dopisania wpis do tego katalogu, nie wygenerowana jeszcze grafika.
+**Znany brak** — finałowa arena (`arena.gd`) reużywa podłogę/ścianę ołtarza
+jako zastępstwo (tło poza areną, D15, jest już generyczne i wspólne dla
+wszystkich pomieszczeń, więc to nie problem). Prompty D16/D17 (podłoga/ściana
+areny — ta sama komnata ołtarza, ale opanowana przez energię Nemoraksa) są
+już dopisane w `PROMPTY_FINALNE_WSZYSTKO.md` — czeka tylko na wygenerowanie i
+podpięcie plików.
 
 **Dźwięk** — pełny katalog (muzyka, SFX, ambient, ~82 pozycje) w
 [AUDIO_KATALOG.md](AUDIO_KATALOG.md), płaska kolejka gotowych promptów pod
