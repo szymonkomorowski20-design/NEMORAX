@@ -275,13 +275,19 @@ func _handle_hunger_regen(delta: float) -> void:
 	if _time_since_hit >= hunger_regen_delay and health < max_health:
 		health = min(max_health, health + hunger_regen_rate * delta)
 
-func _pick_and_launch_attack() -> void:
-	var options := ["seal", "void", "shadow", "lunge"]
-	# Losuj, dopóki nie trafisz na inny atak niż ostatnio (max 4 ataki, więc szybko się skończy).
+## Wydzielone z _pick_and_launch_attack() dla testowalności — czysta logika
+## losowania bez efektów ubocznych (spawnowania scen ataku), wywoływalna na
+## samym Boss.new() bez drzewa sceny/gracza/areny.
+func _choose_attack_name(options: Array, previous: String) -> String:
 	var choice: String = options[randi() % options.size()]
 	if options.size() > 1:
-		while choice == _last_attack_name:
+		while choice == previous:
 			choice = options[randi() % options.size()]
+	return choice
+
+func _pick_and_launch_attack() -> void:
+	var options := ["seal", "void", "shadow", "lunge"]
+	var choice := _choose_attack_name(options, _last_attack_name)
 	_last_attack_name = choice
 	match choice:
 		"seal":

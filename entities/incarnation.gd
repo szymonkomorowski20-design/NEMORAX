@@ -130,14 +130,20 @@ func _start_telegraph() -> void:
 	if not is_dead:
 		_perform_random_skill()
 
+## Wydzielone dla testowalności — czysta logika losowania indeksu bez
+## wywoływania samej umiejętności (Callable), więc test nie musi jej wykonać.
+func _choose_skill_index(count: int, previous: int) -> int:
+	var index := randi() % count
+	if count > 1:
+		while index == previous:
+			index = randi() % count
+	return index
+
 ## Losuje jedną z umiejętności podklasy (bez powtórzenia poprzedniej) i ją wywołuje.
 func _perform_random_skill() -> void:
 	if _skills.is_empty():
 		return
-	var index := randi() % _skills.size()
-	if _skills.size() > 1:
-		while index == _last_skill_index:
-			index = randi() % _skills.size()
+	var index := _choose_skill_index(_skills.size(), _last_skill_index)
 	_last_skill_index = index
 	_skills[index].call()
 
