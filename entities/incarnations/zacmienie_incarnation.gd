@@ -19,7 +19,7 @@ var _intangible: bool = false
 
 func _ready() -> void:
 	super._ready()
-	current_color = Color("#C9C2B4")
+	current_color = Color("#8C9AC2") # dopasowane do dostarczonej grafiki (chłodny błękit, nie ciepły beż)
 	fragment_name = "Orryx Cień-Nicości" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_vanish_strike, _skill_flicker_pulse, _skill_dark_pull]
 

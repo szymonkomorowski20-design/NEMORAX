@@ -8,8 +8,8 @@ const ARENA_RECT := Rect2(90, 60, 1100, 600)
 const WALL_THICKNESS := 20.0
 const ALTAR_RADIUS := 60.0
 const SOCKET_COLORS := [
-	Color("#F0447A"), Color("#FF8A3D"), Color("#C44FD6"),
-	Color("#6C63FF"), Color("#7ED957"), Color("#C9C2B4"),
+	Color("#F0447A"), Color("#9B4DFF"), Color("#C44FD6"),
+	Color("#6C63FF"), Color("#E8524A"), Color("#8C9AC2"),
 ]
 
 @export var summon_trigger_radius: float = 50.0 ## px, jak blisko środka musi podejść gracz

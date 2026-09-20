@@ -14,11 +14,11 @@ const HIT_FLASH := Color("#FFFFFF")
 # Kolory kolejnych faz bossa (sekcja 7) — każdy inny, w kolejności od 600 HP do 0 HP.
 const PHASE_COLORS := [
 	Color("#F0447A"), # bez formy (faza nauki)
-	Color("#FF8A3D"), # Cisza
+	Color("#9B4DFF"), # Cisza — dopasowane do grafiki Mordratha (fioletowa, nie pomarańczowa)
 	Color("#C44FD6"), # Zwłoka
 	Color("#6C63FF"), # Ciężar
-	Color("#7ED957"), # Głód
-	Color("#C9C2B4"), # Zaćmienie
+	Color("#E8524A"), # Głód — dopasowane do grafiki Thal'Gora (czerwona, nie zielona)
+	Color("#8C9AC2"), # Zaćmienie — dopasowane do grafiki Orryxa (chłodny błękit, nie beż)
 ]
 
 const PHASE_NAMES := [
