@@ -50,9 +50,12 @@ const ROOM_MUSIC_TRACKS: Array[AudioStream] = [
 ]
 
 @export var player_start_offset: Vector2 = Vector2(0.0, 220.0) ## względem środka areny
-@export var start_door_offset: Vector2 = Vector2(0.0, 60.0)
 @export var incarnation_spawn_offset: Vector2 = Vector2(0.0, -150.0)
-@export var exit_door_offset: Vector2 = Vector2(0.0, -250.0)
+## Drzwi zawsze dokładnie na ścianie (Walls.wall_point), nie na dowolnym
+## przesunięciu od środka — poprzednio floated na otwartej podłodze zamiast
+## tkwić w ścianie, na życzenie autora poprawione.
+const START_DOOR_WALL := "bottom"
+const EXIT_DOOR_WALL := "top"
 
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
@@ -83,7 +86,7 @@ func _ready() -> void:
 
 	ui.player = player
 
-	_spawn_door(center + start_door_offset, _on_start_door_entered)
+	_spawn_door(Walls.wall_point(ARENA_RECT, START_DOOR_WALL), _on_start_door_entered)
 
 func _process(_delta: float) -> void:
 	if _game_over_kind != "":
@@ -123,7 +126,7 @@ func _on_incarnation_died(fragment_name: String) -> void:
 
 func _on_soul_collected(fragment_name: String) -> void:
 	ui.show_taunt("Zdobyto fragment duszy: %s" % fragment_name, 2.0)
-	_spawn_door(ARENA_RECT.get_center() + exit_door_offset, _on_exit_door_entered)
+	_spawn_door(Walls.wall_point(ARENA_RECT, EXIT_DOOR_WALL), _on_exit_door_entered)
 
 func _on_exit_door_entered() -> void:
 	GameFlow.capture_player_state(player)

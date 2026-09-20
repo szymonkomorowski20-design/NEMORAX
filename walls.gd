@@ -55,6 +55,24 @@ static func build_floor(parent: Node2D, rect: Rect2, floor_texture: Texture2D) -
 	sprite.z_index = -10
 	parent.add_child(sprite)
 
+## Punkt na środku danej ściany, dokładnie tam gdzie build() powyżej stawia jej
+## segment (na granicy rect, nie gdzieś w otwartej podłodze) — do stawiania
+## drzwi TAK, żeby wizualnie tkwiły w ścianie, na życzenie autora (poprzednio
+## drzwi dostawały dowolne przesunięcie od środka areny i floated na podłodze).
+static func wall_point(rect: Rect2, side: String) -> Vector2:
+	var center := rect.get_center()
+	match side:
+		"top":
+			return Vector2(center.x, rect.position.y)
+		"bottom":
+			return Vector2(center.x, rect.position.y + rect.size.y)
+		"left":
+			return Vector2(rect.position.x, center.y)
+		"right":
+			return Vector2(rect.position.x + rect.size.x, center.y)
+		_:
+			return center
+
 ## Tło poza areną (reszta viewportu) — najgłębsza warstwa, kafelkowana tak samo.
 static func build_void_background(parent: Node2D, viewport_size: Vector2, texture: Texture2D) -> void:
 	var sprite := Sprite2D.new()
