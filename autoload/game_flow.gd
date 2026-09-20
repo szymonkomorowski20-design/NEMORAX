@@ -49,6 +49,7 @@ func capture_player_state(player: Player) -> void:
 		"stamina": player.stamina,
 		"mana": player.mana,
 		"heal_charge_hits": player.get_heal_charge_hits(),
+		"heal_stacks": player.get_heal_stacks(),
 		"current_weapon": player.current_weapon,
 	}
 
@@ -62,6 +63,7 @@ func apply_player_state(player: Player) -> void:
 	player.stamina = saved_player_state.get("stamina", player.stamina)
 	player.mana = saved_player_state.get("mana", player.mana)
 	player.set_heal_charge_hits(int(saved_player_state.get("heal_charge_hits", 0))) # JSON zwraca float
+	player.set_heal_stacks(int(saved_player_state.get("heal_stacks", 0)))
 	player.current_weapon = saved_player_state.get("current_weapon", player.current_weapon)
 
 func current_incarnation_scene_path() -> String:

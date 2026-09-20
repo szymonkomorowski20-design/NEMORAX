@@ -30,7 +30,7 @@ sekcja [Assety](#assety-grafika-i-dźwięk) niżej.
 | PPM | Blok — odpycha wroga w zasięgu, koszt 3/4 max staminy |
 | 1 | Miecz (atak z bliska) |
 | 2 | Różdżka (atak na dystans, pocisk) |
-| E | Leczenie — aktywne po 20 celnych trafieniach wroga, oddaje 50% max zdrowia |
+| E | Leczenie — stack co 10 celnych trafień wroga (max 3 w banku), każde naciśnięcie zużywa jeden stack i oddaje 50% max zdrowia |
 | F | Podniesienie duszy pokonanego wcielenia |
 | Escape | Pauza w trakcie gry (poza ekranami game-over) |
 | K | Zmiana klawiszy — z menu głównego albo z pauzy w trakcie gry |

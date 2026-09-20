@@ -113,9 +113,13 @@ const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockbac
 @export var block_invuln_duration: float = 0.3 ## s nietykalności przy bloku
 @export var block_visual_duration: float = 0.15 ## s, jak długo pokazuje się poza bloku
 
-# --- Leczenie (E) — dodane na życzenie autora, poza dokumentem ---
-@export var heal_hits_required: int = 20 ## ile celnych trafień wroga ładuje jedno leczenie
-@export var heal_amount_fraction: float = 0.5 ## ułamek MAX zdrowia odzyskiwany leczeniem
+# --- Leczenie (E) — dodane na życzenie autora, poza dokumentem. System
+# "stacków": trafienia ładują pasek co heal_hits_per_stack aż do max_heal_stacks
+# ładunków w banku naraz — E zużywa JEDEN stack na naciśnięcie, więc gracz sam
+# decyduje, czy leczy się od razu, czy odkłada zapas na później. ---
+@export var heal_hits_per_stack: int = 10 ## ile celnych trafień wroga ładuje jeden stack leczenia
+@export var max_heal_stacks: int = 3 ## ile stacków leczenia można nabankować naraz
+@export var heal_amount_fraction: float = 0.5 ## ułamek MAX zdrowia odzyskiwany JEDNYM stackiem
 @export var heal_visual_duration: float = 0.4 ## s, jak długo pokazuje się poza leczenia
 
 # --- Odepchnięcie (dodane na życzenie autora) ---
@@ -123,7 +127,8 @@ const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockbac
 
 var stamina: float
 var mana: float
-var _heal_charge_hits: int = 0
+var _heal_charge_hits: int = 0 ## postęp w stronę NASTĘPNEGO stacka (0..heal_hits_per_stack-1)
+var _heal_stacks: int = 0 ## ile stacków jest już gotowych do zużycia (0..max_heal_stacks)
 var _heal_visual_timer: float = 0.0
 var _knockback_timer: float = 0.0
 
@@ -332,33 +337,43 @@ func _perform_block_push() -> void:
 	if pushed_something:
 		_play_sfx(SND_BLOCK_PUSH_HIT)
 
-## Leczenie (E) — ładuje się samo za heal_hits_required celnych trafień wroga
-## (patrz register_hit_on_enemy), zużywa cały ładunek i oddaje połowę MAX zdrowia.
+## Leczenie (E) — trafienia ładują stacki (patrz register_hit_on_enemy), E
+## zużywa JEDEN stack na naciśnięcie (nie cały bank naraz) i oddaje połowę MAX
+## zdrowia — można więc leczyć się od razu albo bankować do max_heal_stacks
+## i rozłożyć leczenie na kilka późniejszych naciśnięć.
 func _handle_heal_input() -> void:
 	if state == State.DEAD:
 		return
 	if not Input.is_action_just_pressed("heal"):
 		return
-	if _heal_charge_hits < heal_hits_required:
+	if _heal_stacks <= 0:
 		_play_sfx(SND_ATTACK_DENIED)
 		return
-	_heal_charge_hits = 0
+	_heal_stacks -= 1
 	_heal_visual_timer = heal_visual_duration
 	health = min(max_health, health + max_health * heal_amount_fraction)
 	_play_sfx(SND_HEAL_USE)
 
 func is_heal_ready() -> bool:
-	return _heal_charge_hits >= heal_hits_required
+	return _heal_stacks > 0
 
+## Postęp w stronę KOLEJNEGO stacka (0-1) — używane przez UI do przygaszania
+## ikony leczenia, gdy bank jeszcze nie jest pełny (patrz ui.gd).
 func heal_charge_ratio() -> float:
-	return float(_heal_charge_hits) / float(heal_hits_required)
+	return float(_heal_charge_hits) / float(heal_hits_per_stack)
 
 ## Do przenoszenia stanu gracza między pokojami (GameFlow) — patrz room.gd.
 func get_heal_charge_hits() -> int:
 	return _heal_charge_hits
 
 func set_heal_charge_hits(value: int) -> void:
-	_heal_charge_hits = clampi(value, 0, heal_hits_required)
+	_heal_charge_hits = clampi(value, 0, heal_hits_per_stack - 1)
+
+func get_heal_stacks() -> int:
+	return _heal_stacks
+
+func set_heal_stacks(value: int) -> void:
+	_heal_stacks = clampi(value, 0, max_heal_stacks)
 
 ## Wywoływane z zewnątrz (bossa/void_zone itd.) — odpycha gracza i na chwilę
 ## odbiera mu sterowanie, żeby kopnięcie było wyczuwalne (patrz _process_normal_movement).
@@ -419,12 +434,17 @@ func _fire_projectile() -> void:
 	get_parent().add_child(projectile)
 
 ## Wywoływane za KAŻDE celne trafienie wroga, niezależnie jaką bronią — jedyny
-## sposób odzyskania many, a co heal_hits_required-te takie trafienie ładuje leczenie (E).
+## sposób odzyskania many, a co heal_hits_per_stack-te takie trafienie dokłada
+## jeden stack leczenia (do max_heal_stacks — powyżej banku trafienia nic już
+## nie robią, żeby nie liczyć w nieskończoność stanu, który i tak przepadnie).
 func register_hit_on_enemy() -> void:
 	mana = min(max_mana, mana + mana_regen_per_hit)
-	var was_ready := is_heal_ready()
-	_heal_charge_hits = min(_heal_charge_hits + 1, heal_hits_required)
-	if is_heal_ready() and not was_ready:
+	if _heal_stacks >= max_heal_stacks:
+		return
+	_heal_charge_hits += 1
+	if _heal_charge_hits >= heal_hits_per_stack:
+		_heal_charge_hits = 0
+		_heal_stacks += 1
 		_play_sfx(SND_HEAL_READY)
 	else:
 		_play_sfx(SND_HEAL_CHARGE_TICK)

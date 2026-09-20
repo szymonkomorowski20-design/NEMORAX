@@ -73,6 +73,8 @@ var _center_message_font_size: int = 32
 var _overlay_text: String = ""
 var _overlay_active: bool = false
 
+var _heal_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do rysowania liczby stacków obok ikony leczenia
+
 @onready var player_bar_under: Sprite2D = $PlayerBarUnder
 @onready var player_bar: Sprite2D = $PlayerBar
 @onready var stamina_bar_under: Sprite2D = $StaminaBarUnder
@@ -116,6 +118,7 @@ func _ready() -> void:
 	dash_lock_cross.size = Vector2(dash_icon_size, dash_icon_size)
 
 	var heal_pos := dash_pos + Vector2(dash_icon_size + 10.0, 0.0)
+	_heal_pos = heal_pos # zapamiętane do _draw_heal_stack_count() — ile stacków w banku
 	heal_icon.texture = TEX_HEAL_ICON
 	heal_icon.centered = false
 	heal_icon.position = heal_pos
@@ -216,6 +219,21 @@ func _draw() -> void:
 	if _overlay_active:
 		_draw_overlay()
 	_draw_center_message()
+	_draw_heal_stack_count()
+
+## Liczba zbankowanych stacków leczenia (0-max_heal_stacks) obok ikony — bez
+## tego gracz nie ma jak poznać, ile ma zapasu poza samą jasnością ikony
+## (która i tak jest w pełni jasna już przy 1 stacku).
+func _draw_heal_stack_count() -> void:
+	if player == null or hide_all or _overlay_active:
+		return
+	var stacks := player.get_heal_stacks()
+	if stacks <= 0:
+		return
+	var font := ThemeDB.fallback_font
+	var text := "x%d" % stacks
+	var pos := _heal_pos + Vector2(heal_icon_size + 2.0, heal_icon_size)
+	draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Palette.HIT_FLASH)
 
 func _draw_center_message() -> void:
 	if _center_message == "":
