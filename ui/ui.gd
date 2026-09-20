@@ -31,6 +31,17 @@ const TEX_HEAL_ICON := preload("res://assets/sprites/ui/heal_icon.png")
 const TEX_DEATH_FRAME := preload("res://assets/sprites/end_screens/death_screen_frame.png")
 const TEX_VICTORY_FRAME := preload("res://assets/sprites/end_screens/victory_screen_frame.png")
 
+# Paski mają OGROMNE przezroczyste marginesy na płótnie 1536x1024 — sama
+# rysowana grafika to ułamek tego (np. stamina: 138/1024 wysokości). Skalowanie
+# całego płótna do docelowego bar_size ściskałoby też te marginesy, i sam
+# widoczny pasek wychodziłby jako ledwie widoczny skrawek. Dlatego skala i
+# region_rect liczone są względem tych zmierzonych (piksel po pikselu,
+# +margines bezpieczeństwa) prostokątów treści, nie całego płótna.
+const PLAYER_BAR_CONTENT := Rect2(64.0, 326.0, 1408.0, 354.0)
+const STAMINA_BAR_CONTENT := Rect2(76.0, 438.0, 1382.0, 138.0)
+const MANA_BAR_CONTENT := Rect2(106.0, 420.0, 1332.0, 172.0)
+const BOSS_BAR_CONTENT := Rect2(0.0, 318.0, 1536.0, 394.0)
+
 # Paski "under" (tło/tor) to ta sama grafika co "fill", tylko przyciemniona
 # modulate — jeden wygenerowany obrazek na pasek, nie osobna para pusty/pełny
 # (patrz PROMPTY_FINALNE_WSZYSTKO.md sekcja E).
@@ -77,16 +88,16 @@ func _ready() -> void:
 	# powstał neutralny biało-złoty, żeby dało się go zabarwiać dynamicznie
 	# per faza (patrz PROMPTY_FINALNE_WSZYSTKO.md E2).
 	var player_pos := Vector2(30.0, VIEWPORT_SIZE.y - 50.0)
-	_setup_bar(player_bar_under, player_bar, TEX_PLAYER_BAR, player_pos, player_bar_size, Color.WHITE)
+	_setup_bar(player_bar_under, player_bar, TEX_PLAYER_BAR, PLAYER_BAR_CONTENT, player_pos, player_bar_size, Color.WHITE)
 
 	var stamina_pos := player_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
-	_setup_bar(stamina_bar_under, stamina_bar, TEX_STAMINA_BAR, stamina_pos, resource_bar_size, Color.WHITE)
+	_setup_bar(stamina_bar_under, stamina_bar, TEX_STAMINA_BAR, STAMINA_BAR_CONTENT, stamina_pos, resource_bar_size, Color.WHITE)
 
 	var mana_pos := stamina_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
-	_setup_bar(mana_bar_under, mana_bar, TEX_MANA_BAR, mana_pos, resource_bar_size, Color.WHITE)
+	_setup_bar(mana_bar_under, mana_bar, TEX_MANA_BAR, MANA_BAR_CONTENT, mana_pos, resource_bar_size, Color.WHITE)
 
 	var boss_pos := Vector2(ARENA_LEFT, 20.0)
-	_setup_bar(boss_bar_under, boss_bar, TEX_BOSS_BAR, boss_pos, Vector2(ARENA_WIDTH, boss_bar_height), Color.WHITE)
+	_setup_bar(boss_bar_under, boss_bar, TEX_BOSS_BAR, BOSS_BAR_CONTENT, boss_pos, Vector2(ARENA_WIDTH, boss_bar_height), Color.WHITE)
 
 	var dash_pos := Vector2(30.0 + player_bar_size.x + 16.0, VIEWPORT_SIZE.y - 50.0)
 	dash_icon.texture = TEX_DASH_ICON
@@ -120,23 +131,24 @@ func _tex_size(tex: Texture2D) -> Vector2:
 ## dostaje region_rect przycinany co klatkę w _update_bars() do lewej części
 ## odpowiadającej wartości 0-1 — stąd pasek "pustoszeje" od prawej, z lewą
 ## krawędzią zawsze na miejscu, tak jak dawny FILL_LEFT_TO_RIGHT.
-func _setup_bar(under: Sprite2D, fill: Sprite2D, tex: Texture2D, pos: Vector2, bar_size: Vector2, tint: Color) -> void:
-	var tex_size := _tex_size(tex)
-	var bar_scale := bar_size / tex_size
+func _setup_bar(under: Sprite2D, fill: Sprite2D, tex: Texture2D, content: Rect2, pos: Vector2, bar_size: Vector2, tint: Color) -> void:
+	var bar_scale := bar_size / content.size
 	for bar in [under, fill]:
 		bar.texture = tex
 		bar.centered = false
 		bar.position = pos
 		bar.scale = bar_scale
 		bar.region_enabled = true
-	under.region_rect = Rect2(Vector2.ZERO, tex_size)
+	under.region_rect = content
 	under.modulate = UNDER_MODULATE
-	fill.region_rect = Rect2(Vector2.ZERO, tex_size)
+	fill.region_rect = content
 	fill.modulate = tint
 
-func _update_bar_fill(fill: Sprite2D, ratio: float) -> void:
-	var tex_size := _tex_size(fill.texture)
-	fill.region_rect = Rect2(0.0, 0.0, tex_size.x * clamp(ratio, 0.0, 1.0), tex_size.y)
+## `content` to ten sam zmierzony prostokąt treści co przy _setup_bar (patrz
+## PLAYER_BAR_CONTENT i inne) — przycinanie zaczyna się od jego lewej krawędzi,
+## nie x=0 całego płótna, inaczej pasek "pustoszejąc" ujawniłby pusty margines.
+func _update_bar_fill(fill: Sprite2D, content: Rect2, ratio: float) -> void:
+	fill.region_rect = Rect2(content.position.x, content.position.y, content.size.x * clamp(ratio, 0.0, 1.0), content.size.y)
 
 func _process(delta: float) -> void:
 	if _center_message_timer > 0.0:
@@ -181,9 +193,9 @@ func _update_bars() -> void:
 		return
 
 	if player != null:
-		_update_bar_fill(player_bar, player.health / player.max_health)
-		_update_bar_fill(stamina_bar, player.stamina / player.max_stamina)
-		_update_bar_fill(mana_bar, player.mana / player.max_mana)
+		_update_bar_fill(player_bar, PLAYER_BAR_CONTENT, player.health / player.max_health)
+		_update_bar_fill(stamina_bar, STAMINA_BAR_CONTENT, player.stamina / player.max_stamina)
+		_update_bar_fill(mana_bar, MANA_BAR_CONTENT, player.mana / player.max_mana)
 
 		dash_icon.modulate = Color(1.0, 1.0, 1.0, 0.35 if player.is_dash_on_cooldown() else 1.0)
 		dash_lock_cross.visible = player.is_dash_locked_by_void()
@@ -191,7 +203,7 @@ func _update_bars() -> void:
 		heal_icon.modulate = Color(1.0, 1.0, 1.0, 1.0 if player.is_heal_ready() else 0.4 + 0.3 * player.heal_charge_ratio())
 
 	if boss != null:
-		_update_bar_fill(boss_bar, boss.health / boss.max_health)
+		_update_bar_fill(boss_bar, BOSS_BAR_CONTENT, boss.health / boss.max_health)
 		boss_bar.modulate = boss.current_color
 
 func _draw() -> void:
