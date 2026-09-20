@@ -12,11 +12,56 @@ enum State { NORMAL, DASHING, DEAD }
 
 const ProjectileScene := preload("res://entities/projectile.tscn")
 
+# --- Sprite'y (zamiast dawnego _draw()) ---
+const TEX_BASE := preload("res://assets/sprites/gracz/player_base.png")
+const TEX_WALK := preload("res://assets/sprites/gracz/player_walk.png")
+const TEX_DASH := preload("res://assets/sprites/gracz/player_dash.png")
+const TEX_SWORD_WINDUP := preload("res://assets/sprites/gracz/player_sword_windup.png")
+const TEX_SWORD_ACTIVE := preload("res://assets/sprites/gracz/player_sword_active.png")
+const TEX_WAND_WINDUP := preload("res://assets/sprites/gracz/player_wand_windup.png")
+const TEX_WAND_FIRE := preload("res://assets/sprites/gracz/player_wand_fire.png")
+const TEX_BLOCK := preload("res://assets/sprites/gracz/player_block.png")
+const TEX_HEAL := preload("res://assets/sprites/gracz/player_heal.png")
+const TEX_HIT := preload("res://assets/sprites/gracz/player_hit.png")
+const TEX_DEATH := preload("res://assets/sprites/gracz/player_death.png")
+const TEX_SLASH_ARC := preload("res://assets/sprites/ekwipunek/sword_slash_arc.png")
+const TEX_WAND_CHARGE := preload("res://assets/sprites/ekwipunek/wand_charge.png")
+const TEX_DASH_TRAIL := preload("res://assets/sprites/ekwipunek/player_dash_trail.png")
+
+# --- Dźwięki (P20/P21 — ból/śmierć gracza — jeszcze nie wygenerowane, brak na razie) ---
+const SND_DASH_START := preload("res://assets/audio/sfx/gracz/P01_dash_start.wav")
+const SND_DASH_DENIED := preload("res://assets/audio/sfx/gracz/P02_dash_denied.wav")
+const SND_DASH_VOID_LOCKED := preload("res://assets/audio/sfx/gracz/P03_dash_void_locked.wav")
+const SND_WEAPON_SWITCH := preload("res://assets/audio/sfx/gracz/P04_weapon_switch.wav")
+const SND_ATTACK_DENIED := preload("res://assets/audio/sfx/gracz/P05_attack_denied.wav")
+const SND_SWORD_SWING := preload("res://assets/audio/sfx/gracz/P07_sword_swing.wav")
+const SND_SWORD_HIT := preload("res://assets/audio/sfx/gracz/P08_sword_hit.wav")
+const SND_SWORD_MISS := preload("res://assets/audio/sfx/gracz/P09_sword_miss.wav")
+const SND_WAND_CHARGE := preload("res://assets/audio/sfx/gracz/P10_wand_charge.wav")
+const SND_WAND_FIRE := preload("res://assets/audio/sfx/gracz/P11_wand_fire.wav")
+const SND_BLOCK_RAISE := preload("res://assets/audio/sfx/gracz/P13_block_raise.wav")
+const SND_BLOCK_PUSH_HIT := preload("res://assets/audio/sfx/gracz/P14_block_push_hit.wav")
+const SND_HEAL_USE := preload("res://assets/audio/sfx/gracz/P16_heal_use.wav")
+const SND_HEAL_CHARGE_TICK := preload("res://assets/audio/sfx/gracz/P18_heal_charge_tick.wav")
+const SND_HEAL_READY := preload("res://assets/audio/sfx/gracz/P19_heal_ready.wav")
+const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockback.wav")
+
+@onready var sprite: Sprite2D = $Sprite
+@onready var slash_arc: Sprite2D = $SlashArc
+@onready var wand_charge_sprite: Sprite2D = $WandCharge
+@onready var sfx: AudioStreamPlayer2D = $Sfx
+
 # --- Ruch ---
 @export var max_speed: float = 300.0 ## px/s, maksymalna prędkość biegu
 @export var acceleration: float = 2600.0 ## px/s^2, jak szybko gracz rozpędza się do max_speed
 @export var friction: float = 2500.0 ## px/s^2, jak szybko gracz hamuje bez wejścia
 @export var radius: float = 14.0 ## px, promień koła gracza (też kolizji)
+
+# --- Wygląd (dostrojenie sprite'ów wobec oryginalnych plików 1024-1254px) ---
+@export var sprite_scale: float = 0.08 ## postać gracza
+@export var slash_arc_scale: float = 0.14 ## wycinek ataku mieczem
+@export var wand_charge_scale: float = 0.05 ## kula ładowania różdżki
+@export var trail_ghost_scale: float = 0.08 ## kopie śladu dasha
 
 # --- Dash ---
 @export var dash_speed: float = 900.0 ## px/s, prędkość w trakcie dasha
@@ -60,10 +105,12 @@ const ProjectileScene := preload("res://entities/projectile.tscn")
 @export var block_range: float = 90.0 ## px, zasięg odepchnięcia wroga blokiem
 @export var block_knockback_strength: float = 500.0 ## px/s, siła odepchnięcia wroga blokiem
 @export var block_invuln_duration: float = 0.3 ## s nietykalności przy bloku
+@export var block_visual_duration: float = 0.15 ## s, jak długo pokazuje się poza bloku
 
 # --- Leczenie (E) — dodane na życzenie autora, poza dokumentem ---
 @export var heal_hits_required: int = 40 ## ile celnych trafień wroga ładuje jedno leczenie
 @export var heal_amount_fraction: float = 0.5 ## ułamek MAX zdrowia odzyskiwany leczeniem
+@export var heal_visual_duration: float = 0.4 ## s, jak długo pokazuje się poza leczenia
 
 # --- Odepchnięcie (dodane na życzenie autora) ---
 @export var knockback_recovery_duration: float = 0.15 ## s, jak długo po odepchnięciu nie steruje się ruchem
@@ -71,6 +118,7 @@ const ProjectileScene := preload("res://entities/projectile.tscn")
 var stamina: float
 var mana: float
 var _heal_charge_hits: int = 0
+var _heal_visual_timer: float = 0.0
 var _knockback_timer: float = 0.0
 
 var health: float
@@ -91,9 +139,9 @@ var _attack_direction: Vector2 = Vector2.RIGHT
 var _attack_hit_targets: Array = []
 
 var _invuln_timer: float = 0.0 ## nietykalność po obrażeniach (miganie)
-var _flash_frames: int = 0 ## błysk trafienia — ile klatek jeszcze rysować na biało
+var _flash_frames: int = 0 ## błysk trafienia — ile klatek jeszcze pokazywać poze trafienia
+var _block_visual_timer: float = 0.0
 
-var _trail: Array = [] ## kopie śladu dasha: {"pos": Vector2, "life": float}
 var _trail_spawn_timer: float = 0.0
 
 # Faza Ciężar: stałe przyciąganie w stronę bossa. Ustawiane z zewnątrz (arena/boss),
@@ -111,9 +159,15 @@ func _ready() -> void:
 	add_to_group("player")
 	collision_layer = 2
 	collision_mask = 1
+	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	slash_arc.scale = Vector2(slash_arc_scale, slash_arc_scale)
+	slash_arc.texture = TEX_SLASH_ARC
+	wand_charge_sprite.texture = TEX_WAND_CHARGE
+	_update_visuals()
 
 func _physics_process(delta: float) -> void:
 	if state == State.DEAD:
+		_update_visuals()
 		return
 
 	_tick_timers(delta)
@@ -135,12 +189,14 @@ func _physics_process(delta: float) -> void:
 	_tick_stamina_regen(delta)
 	move_and_slide()
 	_update_trail(delta)
-	queue_redraw()
+	_update_visuals()
 
 func _tick_timers(delta: float) -> void:
 	_dash_cooldown_timer = max(0.0, _dash_cooldown_timer - delta)
 	_void_dash_lock_timer = max(0.0, _void_dash_lock_timer - delta)
 	_invuln_timer = max(0.0, _invuln_timer - delta)
+	_block_visual_timer = max(0.0, _block_visual_timer - delta)
+	_heal_visual_timer = max(0.0, _heal_visual_timer - delta)
 	if _flash_frames > 0:
 		_flash_frames -= 1
 
@@ -159,8 +215,10 @@ func _handle_weapon_switch() -> void:
 	# broni złapanej w _start_attack() przez _swing_weapon, więc się nie zepsuje.
 	if Input.is_action_just_pressed("weapon_sword"):
 		current_weapon = "sword"
+		_play_sfx(SND_WEAPON_SWITCH)
 	elif Input.is_action_just_pressed("weapon_wand"):
 		current_weapon = "wand"
+		_play_sfx(SND_WEAPON_SWITCH)
 
 func _handle_dash_input() -> void:
 	if state == State.DASHING or state == State.DEAD:
@@ -168,6 +226,7 @@ func _handle_dash_input() -> void:
 	if not Input.is_action_just_pressed("dash"):
 		return
 	if not _is_dash_ready():
+		_play_sfx(SND_DASH_VOID_LOCKED if _void_dash_lock_timer > 0.0 else SND_DASH_DENIED)
 		return
 	# Atak NIE jest już przerywany dashem (na życzenie autora) — leci dalej
 	# niezależnie, patrz _attack_phase i _process_attack_phase().
@@ -178,6 +237,7 @@ func _handle_dash_input() -> void:
 	_dash_timer = dash_duration
 	_dash_cooldown_timer = dash_cooldown
 	_trail_spawn_timer = 0.0
+	_play_sfx(SND_DASH_START)
 
 func _process_dash(delta: float) -> void:
 	_dash_timer -= delta
@@ -231,6 +291,7 @@ func _handle_attack_input() -> void:
 	if not Input.is_action_just_pressed("attack"):
 		return
 	if not _can_afford_attack():
+		_play_sfx(SND_ATTACK_DENIED)
 		return
 	_start_attack()
 
@@ -243,12 +304,16 @@ func _handle_block_input() -> void:
 		return
 	var cost := max_stamina * block_stamina_cost_fraction
 	if stamina < cost:
+		_play_sfx(SND_ATTACK_DENIED)
 		return
 	stamina -= cost
 	_invuln_timer = max(_invuln_timer, block_invuln_duration)
+	_block_visual_timer = block_visual_duration
+	_play_sfx(SND_BLOCK_RAISE)
 	_perform_block_push()
 
 func _perform_block_push() -> void:
+	var pushed_something := false
 	for target in get_tree().get_nodes_in_group("hittable"):
 		var to_target: Vector2 = target.global_position - global_position
 		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
@@ -257,6 +322,9 @@ func _perform_block_push() -> void:
 		if target.has_method("apply_knockback"):
 			var dir := to_target.normalized() if to_target.length() > 0.01 else Vector2.RIGHT
 			target.apply_knockback(dir * block_knockback_strength)
+			pushed_something = true
+	if pushed_something:
+		_play_sfx(SND_BLOCK_PUSH_HIT)
 
 ## Leczenie (E) — ładuje się samo za 40 celnych trafień wroga (patrz
 ## register_hit_on_enemy), zużywa cały ładunek i oddaje połowę MAX zdrowia.
@@ -266,9 +334,12 @@ func _handle_heal_input() -> void:
 	if not Input.is_action_just_pressed("heal"):
 		return
 	if _heal_charge_hits < heal_hits_required:
+		_play_sfx(SND_ATTACK_DENIED)
 		return
 	_heal_charge_hits = 0
+	_heal_visual_timer = heal_visual_duration
 	health = min(max_health, health + max_health * heal_amount_fraction)
+	_play_sfx(SND_HEAL_USE)
 
 func is_heal_ready() -> bool:
 	return _heal_charge_hits >= heal_hits_required
@@ -288,11 +359,13 @@ func set_heal_charge_hits(value: int) -> void:
 func apply_knockback(impulse: Vector2) -> void:
 	velocity = impulse
 	_knockback_timer = knockback_recovery_duration
+	_play_sfx(SND_KNOCKBACK)
 
 func _start_attack() -> void:
 	_swing_weapon = current_weapon # broń "zamrożona" na czas tego zamachu
 	if _swing_weapon == "wand":
 		mana -= wand_mana_cost
+		_play_sfx(SND_WAND_CHARGE)
 	else:
 		stamina -= sword_stamina_cost
 	_attack_phase = "windup"
@@ -316,12 +389,16 @@ func _process_attack_phase(delta: float) -> void:
 			_attack_phase = "active"
 			_attack_timer = attack_active if is_sword else wand_active
 			if is_sword:
+				_play_sfx(SND_SWORD_SWING)
 				_check_attack_hits()
 			else:
 				_fire_projectile() # różdżka strzela raz, w momencie wystrzału
+				_play_sfx(SND_WAND_FIRE)
 		"active":
 			_attack_phase = "recovery"
 			_attack_timer = attack_recovery if is_sword else wand_recovery
+			if is_sword and _attack_hit_targets.is_empty():
+				_play_sfx(SND_SWORD_MISS)
 		_:
 			_attack_phase = ""
 
@@ -339,7 +416,12 @@ func _fire_projectile() -> void:
 ## sposób odzyskania many, a co 40. takie trafienie ładuje leczenie (E).
 func register_hit_on_enemy() -> void:
 	mana = min(max_mana, mana + mana_regen_per_hit)
+	var was_ready := is_heal_ready()
 	_heal_charge_hits = min(_heal_charge_hits + 1, heal_hits_required)
+	if is_heal_ready() and not was_ready:
+		_play_sfx(SND_HEAL_READY)
+	else:
+		_play_sfx(SND_HEAL_CHARGE_TICK)
 
 func _check_attack_hits() -> void:
 	var half_angle := deg_to_rad(attack_angle_degrees) * 0.5
@@ -370,6 +452,7 @@ func _check_attack_hits() -> void:
 		if target.has_method("flash_white"):
 			target.flash_white()
 		register_hit_on_enemy()
+		_play_sfx(SND_SWORD_HIT)
 		Juice.hitstop(Juice.boss_hit_hitstop)
 		Juice.screen_shake()
 
@@ -380,15 +463,26 @@ func _read_input_vector() -> Vector2:
 	return v
 
 func _update_trail(delta: float) -> void:
-	if state == State.DASHING:
-		_trail_spawn_timer -= delta
-		if _trail_spawn_timer <= 0.0:
-			_trail_spawn_timer = dash_duration / float(max(1, dash_trail_count))
-			_trail.append({"pos": global_position, "life": dash_trail_lifetime})
+	if state != State.DASHING:
+		return
+	_trail_spawn_timer -= delta
+	if _trail_spawn_timer <= 0.0:
+		_trail_spawn_timer = dash_duration / float(max(1, dash_trail_count))
+		_spawn_trail_ghost()
 
-	for ghost in _trail:
-		ghost["life"] -= delta
-	_trail = _trail.filter(func(g): return g["life"] > 0.0)
+## Zanikająca kopia śladu dasha — osobny top_level Sprite2D zamiast wpisu w
+## tablicy do _draw(), żeby została w miejscu spawnu zamiast jechać z graczem.
+func _spawn_trail_ghost() -> void:
+	var ghost := Sprite2D.new()
+	ghost.texture = TEX_DASH_TRAIL
+	ghost.scale = Vector2(trail_ghost_scale, trail_ghost_scale)
+	ghost.top_level = true
+	ghost.global_position = global_position
+	ghost.modulate = Color(1.0, 1.0, 1.0, 0.5)
+	add_child(ghost)
+	var tw := create_tween()
+	tw.tween_property(ghost, "modulate:a", 0.0, dash_trail_lifetime)
+	tw.tween_callback(ghost.queue_free)
 
 ## Wywoływane z zewnątrz (pieczęcie, cień, kontakt) — jedna, wspólna brama obrażeń,
 ## dzięki której nietykalność po trafieniu działa tak samo niezależnie od źródła.
@@ -425,42 +519,45 @@ func is_invulnerable() -> bool:
 func flash_white() -> void:
 	_flash_frames = 2
 
-func _draw() -> void:
-	for ghost in _trail:
-		var alpha: float = (ghost["life"] / dash_trail_lifetime) * 0.5
-		var local_pos: Vector2 = ghost["pos"] - global_position
-		draw_circle(local_pos, radius, Color(Palette.PLAYER_BODY, alpha))
+func _play_sfx(stream: AudioStream) -> void:
+	sfx.stream = stream
+	sfx.play()
 
-	if _attack_phase == "windup" or _attack_phase == "active":
-		if _swing_weapon == "sword":
-			_draw_attack_sector()
-		else:
-			_draw_wand_charge()
+## Zastępuje dawny _draw() — wybiera właściwą teksturę wg priorytetu stanu i
+## ustawia VFX ataku (wycinek miecza / kula różdżki) w miejsce dawnych rysowanych kształtów.
+func _update_visuals() -> void:
+	if state == State.DEAD:
+		sprite.texture = TEX_DEATH
+	elif _flash_frames > 0:
+		sprite.texture = TEX_HIT
+	elif _block_visual_timer > 0.0:
+		sprite.texture = TEX_BLOCK
+	elif _heal_visual_timer > 0.0:
+		sprite.texture = TEX_HEAL
+	elif state == State.DASHING:
+		sprite.texture = TEX_DASH
+	elif _attack_phase == "windup":
+		sprite.texture = TEX_SWORD_WINDUP if _swing_weapon == "sword" else TEX_WAND_WINDUP
+	elif _attack_phase == "active" or _attack_phase == "recovery":
+		sprite.texture = TEX_SWORD_ACTIVE if _swing_weapon == "sword" else TEX_WAND_FIRE
+	elif velocity.length() > 5.0:
+		sprite.texture = TEX_WALK
+	else:
+		sprite.texture = TEX_BASE
 
-	var body_color := Palette.PLAYER_BODY
-	if _flash_frames > 0:
-		body_color = Palette.HIT_FLASH
 	var blinking_hidden := _invuln_timer > 0.0 and int(_invuln_timer * 20.0) % 2 == 0
-	if not blinking_hidden:
-		draw_circle(Vector2.ZERO, radius, body_color)
+	sprite.visible = not blinking_hidden
 
-func _draw_attack_sector() -> void:
-	var half_angle := deg_to_rad(attack_angle_degrees) * 0.5
-	var base_angle := _attack_direction.angle()
-	var segments := 12
-	var points := PackedVector2Array()
-	points.append(Vector2.ZERO)
-	for i in range(segments + 1):
-		var a := base_angle - half_angle + (2.0 * half_angle) * float(i) / float(segments)
-		points.append(Vector2(cos(a), sin(a)) * attack_range)
+	var showing_slash := _attack_phase != "" and _swing_weapon == "sword"
+	slash_arc.visible = showing_slash
+	if showing_slash:
+		slash_arc.rotation = _attack_direction.angle()
+		slash_arc.position = _attack_direction * (attack_range * 0.5)
+		slash_arc.modulate.a = 0.5 if _attack_phase == "windup" else 1.0
 
-	var fill_alpha := 0.35 if _attack_phase == "windup" else 0.6
-	draw_colored_polygon(points, Color(Palette.DANGER, fill_alpha))
-	draw_polyline(points, Color(Palette.DANGER, 1.0), 1.0, true)
-
-## Telegraf różdżki: mała żółta iskra przy lufie zamiast wycinka miecza —
-## krótka zapowiedź w kierunku strzału, rosnąca aż do momentu wystrzału.
-func _draw_wand_charge() -> void:
-	var muzzle := _attack_direction * (radius + 6.0)
-	var glow_radius := 4.0 if _attack_phase == "windup" else 7.0
-	draw_circle(muzzle, glow_radius, Color(Palette.DANGER, 0.9))
+	var showing_wand := _attack_phase != "" and _swing_weapon == "wand"
+	wand_charge_sprite.visible = showing_wand
+	if showing_wand:
+		wand_charge_sprite.position = _attack_direction * (radius + 6.0)
+		var charge_t: float = 0.6 if _attack_phase == "windup" else 1.0
+		wand_charge_sprite.scale = Vector2(wand_charge_scale, wand_charge_scale) * charge_t

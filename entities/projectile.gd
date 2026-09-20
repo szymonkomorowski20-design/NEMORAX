@@ -2,14 +2,25 @@ extends Node2D
 ## Pocisk różdżki (broń 2 gracza — dodatek na życzenie autora, poza dokumentem).
 ## Leci po prostej, znika po trafieniu, po czasie życia albo poza areną.
 
+const TEX_PROJECTILE := preload("res://assets/sprites/ekwipunek/player_wand_projectile.png")
+const SND_IMPACT := preload("res://assets/audio/sfx/gracz/P12_wand_impact.wav")
+
 @export var radius: float = 6.0
 @export var speed: float = 600.0
 @export var lifetime: float = 1.0
 @export var damage: float = 8.0
+@export var sprite_scale: float = 0.03
 
 var direction: Vector2 = Vector2.RIGHT
 var shooter: Player = null ## żeby oddać manę strzelcowi za trafienie
 var _life_timer: float = 0.0
+
+@onready var sprite: Sprite2D = $Sprite
+
+func _ready() -> void:
+	sprite.texture = TEX_PROJECTILE
+	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	sprite.rotation = direction.angle()
 
 func _physics_process(delta: float) -> void:
 	_life_timer += delta
@@ -18,7 +29,6 @@ func _physics_process(delta: float) -> void:
 		return
 	global_position += direction * speed * delta
 	_check_hit()
-	queue_redraw()
 
 func _check_hit() -> void:
 	for target in get_tree().get_nodes_in_group("hittable"):
@@ -33,10 +43,6 @@ func _check_hit() -> void:
 			shooter.register_hit_on_enemy()
 		Juice.hitstop(Juice.boss_hit_hitstop)
 		Juice.screen_shake()
+		Juice.play_sfx_at(SND_IMPACT, global_position)
 		queue_free()
 		return
-
-func _draw() -> void:
-	# Żółty, bo zadaje obrażenia (sekcja 2, punkt 2) — niezależnie od tego, że
-	# to atak gracza, nie bossa; reguła koloru jest uniwersalna.
-	draw_circle(Vector2.ZERO, radius, Palette.DANGER)

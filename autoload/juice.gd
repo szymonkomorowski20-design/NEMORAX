@@ -29,6 +29,19 @@ func hitstop(duration: float) -> void:
 func screen_shake() -> void:
 	_shake_time_left = shake_duration
 
+## Odtwarza jednorazowy dźwięk w danym miejscu świata i sam się sprząta po
+## zakończeniu — do obiektów, które znikają (queue_free()) w tej samej klatce,
+## w której powinien zabrzmieć ich dźwięk (pocisk, pieczęć, dusza itd.), więc
+## własny AudioStreamPlayer2D obiektu zniknąłby razem z dźwiękiem.
+func play_sfx_at(stream: AudioStream, world_position: Vector2, bus: String = "SFX") -> void:
+	var player := AudioStreamPlayer2D.new()
+	player.stream = stream
+	player.bus = bus
+	player.global_position = world_position
+	get_tree().current_scene.add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+
 func _process(delta: float) -> void:
 	if _shake_time_left <= 0.0:
 		return
