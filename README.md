@@ -2,9 +2,10 @@
 
 Gra akcji 2D z widokiem z góry. Godot 4, GDScript. Sześć pomieszczeń z sześcioma
 wcieleniami hybrydy Nemorax, każde zostawia fragment duszy — po zebraniu
-wszystkich sześciu, ołtarz przywołuje finałowego bossa. Wizualnie na razie
-proste kształty rysowane kodem (docelowo podmieniane na sprite'y — patrz
-[LORE_I_ASSETY.md](LORE_I_ASSETY.md)).
+wszystkich sześciu, ołtarz przywołuje finałowego bossa. Kod gry jest kompletny
+i przetestowany; wizualnie sceny są dziś nadal rysowane kodem (`_draw()`),
+docelowo podmieniane na wygenerowane sprite'y i dźwięk — patrz sekcja
+[Assety](#assety-grafika-i-dźwięk) niżej.
 
 ## Wymagania
 
@@ -44,6 +45,11 @@ proste kształty rysowane kodem (docelowo podmieniane na sprite'y — patrz
   to samo dotyczy retry po śmierci w danym pokoju.
 - Po szóstym pokoju: `rooms/altar.gd` — podejście do ołtarza przywołuje Nemoraxa
   i przenosi do `arena.tscn`, czyli istniejącej walki opisanej niżej.
+- Postęp przez sześć pokoi (który jest aktualny, zebrane fragmenty, migawka
+  statystyk gracza) jest zapisywany na dysk (`user://gauntlet_progress.json`,
+  `autoload/game_flow.gd`) — zamknięcie gry w trakcie gauntletu nie cofa do
+  pokoju 1, menu wznawia dokładnie tam, gdzie gracz skończył
+  (`GameFlow.resume_scene_path()`).
 
 ## Boss — Nemorax
 
@@ -57,6 +63,10 @@ proste kształty rysowane kodem (docelowo podmieniane na sprite'y — patrz
 - Po pierwszym pokonaniu duża forma "umiera" i po chwili wraca jako mniejsza,
   szybsza forma finałowa z odwróconym sterowaniem i wszystkimi modyfikatorami
   fazowymi naraz.
+- **Przegrana z Nemoraksem** resetuje cały przebieg (`GameFlow.reset_run()`) i
+  odsyła gracza z powrotem do pokoju 1 — nowe fragmenty, świeży gracz.
+  **Zwycięstwo** to prawdziwy koniec gry (endgame): ekran ze statystykami,
+  Escape zamyka grę — bez pętli z powrotem do początku.
 
 ## Gracz
 
@@ -64,6 +74,30 @@ proste kształty rysowane kodem (docelowo podmieniane na sprite'y — patrz
 - Mana napędza różdżkę, regeneruje się wyłącznie za trafienia wroga.
 - Dash zostawia zanikający ślad i daje pełną nietykalność na czas trwania.
 - Atak można zacząć w dowolnym momencie dasha — nie przerywają się nawzajem.
+
+## Assety (grafika i dźwięk)
+
+Cały content design (co ma wyglądać/brzmieć jak, gotowe prompty do wklejenia w
+generatory) jest rozpisany w dokumentach w tym repo — same wygenerowane pliki
+(obrazy/dźwięki) leżą poza repo, w osobnych folderach roboczych na dysku, i są
+podpinane do Godota dopiero na etapie integracji.
+
+**Grafika** — katalog i status w [LORE_I_ASSETY.md](LORE_I_ASSETY.md) (sześć
+wcieleń + Nemorax + gracz/miecz/różdżka), [ASSETY_SWIATA_I_UI.md](ASSETY_SWIATA_I_UI.md)
+(wszystko poza postaciami: VFX, otoczenie, UI, menu), [PROMPTY_FINALNE_WSZYSTKO.md](PROMPTY_FINALNE_WSZYSTKO.md)
+(scalona, gotowa do odklikania checklista), [POZY_ANIMACJI.md](POZY_ANIMACJI.md)
+(pełny zestaw póz animacji per postać) i [GRACZ_KOMPLETNY.md](GRACZ_KOMPLETNY.md)
+(baza + 10 póz gracza + ekwipunek). Stan: 123/123 wygenerowanych plików, ale
+2 znane usterki czekają na poprawkę — nieprzezroczyste tło `death_screen_frame.png`
+i 3 tekstury pokoi (Mordrath/Thal'Gor/Orryx) wciąż w starych kolorach, niezgodne
+z paletą w `autoload/palette.gd` (gotowe prompty poprawek w `PROMPTY_FINALNE_WSZYSTKO.md`).
+
+**Dźwięk** — pełny katalog (muzyka, SFX, ambient, ~82 pozycje) w
+[AUDIO_KATALOG.md](AUDIO_KATALOG.md), płaska kolejka gotowych promptów pod
+ElevenLabs w [ELEVENLABS_KOLEJKA.md](ELEVENLABS_KOLEJKA.md). Stan: cały
+niezbędny szkielet audio (rdzeń wcieleń, gracz, Nemorax, kluczowe momenty
+fabularne) jest już wygenerowany/znaleziony w darmowej paczce dźwięków —
+reszta to opcjonalny polish (unikalne umiejętności, muzyka, ambient pokoi).
 
 ## Struktura projektu
 
