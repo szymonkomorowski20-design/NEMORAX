@@ -57,8 +57,10 @@ const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockbac
 @onready var wand_charge_sprite: Sprite2D = $WandCharge
 @onready var sfx: AudioStreamPlayer2D = $Sfx
 
-# --- Ruch ---
-@export var max_speed: float = 300.0 ## px/s, maksymalna prędkość biegu
+# --- Ruch --- (max_speed to teraz WARTOŚĆ BAZOWA, patrz sekcja "Poziom i
+# punkty statystyk" niżej — efektywny max_speed liczy _recompute_effective_stats())
+@export var base_max_speed: float = 300.0 ## px/s, maksymalna prędkość biegu przed bonusem z punktów
+var max_speed: float ## efektywna wartość — base_max_speed * (1 + punkty*speed_bonus_per_point)
 @export var acceleration: float = 2600.0 ## px/s^2, jak szybko gracz rozpędza się do max_speed
 @export var friction: float = 2500.0 ## px/s^2, jak szybko gracz hamuje bez wejścia
 @export var radius: float = 14.0 ## px, promień koła gracza (też kolizji)
@@ -82,29 +84,65 @@ const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockbac
 @export var attack_recovery: float = 0.22 ## s, bezwładność po ataku
 @export var attack_range: float = 70.0 ## px, zasięg wycinka koła ataku
 @export var attack_angle_degrees: float = 100.0 ## stopnie, szerokość wycinka ataku
-@export var attack_damage: float = 10.0 ## obrażenia zadawane trafionemu celowi
+@export var base_attack_damage: float = 10.0 ## obrażenia zadawane trafionemu celowi, przed bonusem z punktów "atak"
+var attack_damage: float ## efektywna wartość — base_attack_damage * (1 + punkty*damage_bonus_per_point)
 @export var attack_move_speed_fraction: float = 0.75 ## ułamek max_speed w trakcie ataku — spowolnienie, nie zatrzymanie
 
 # --- Różdżka (broń 2, atak na dystans) ---
 @export var wand_windup: float = 0.10 ## s, zamach przed strzałem (telegraf)
 @export var wand_active: float = 0.06 ## s, moment wystrzału pocisku
 @export var wand_recovery: float = 0.30 ## s, bezwładność po strzale
-@export var wand_damage: float = 8.0 ## obrażenia zadawane przez trafiony pocisk
+@export var base_wand_damage: float = 8.0 ## obrażenia zadawane przez trafiony pocisk, przed bonusem z punktów "atak"
+var wand_damage: float ## efektywna wartość — base_wand_damage * (1 + punkty*damage_bonus_per_point)
 @export var wand_projectile_speed: float = 600.0 ## px/s, prędkość lotu pocisku
 @export var wand_projectile_lifetime: float = 1.0 ## s, po tylu sekundach pocisk znika sam
 
 # --- Życie ---
-@export var max_health: float = 100.0
+@export var base_max_health: float = 100.0 ## przed bonusem z punktów "życie"
+var max_health: float ## efektywna wartość — base_max_health + punkty*health_per_point
 @export var damage_invulnerability: float = 0.5 ## s nietykalności po otrzymaniu obrażeń
 
 # --- Stamina (miecz + dash) i mana (różdżka) — dodane na życzenie autora, poza dokumentem ---
-@export var max_stamina: float = 100.0
-@export var stamina_regen_rate: float = 30.0 ## /s, regeneracja gdy nie atakuję mieczem ani nie dashuję
+@export var base_max_stamina: float = 100.0 ## przed bonusem z punktów "stamina"
+var max_stamina: float ## efektywna wartość — base_max_stamina + punkty*stamina_per_point
+@export var base_stamina_regen_rate: float = 30.0 ## /s, przed bonusem z punktów "regeneracja staminy"
+var stamina_regen_rate: float ## efektywna wartość — base_stamina_regen_rate * (1 + punkty*stamina_regen_bonus_per_point)
 @export var sword_stamina_cost: float = 20.0
 @export var dash_stamina_cost: float = 25.0
-@export var max_mana: float = 100.0
+@export var base_max_mana: float = 100.0 ## przed bonusem z punktów "mana"
+var max_mana: float ## efektywna wartość — base_max_mana + punkty*mana_per_point
 @export var wand_mana_cost: float = 25.0
 @export var mana_regen_per_hit: float = 15.0 ## mana nie regeneruje się z czasem — wyłącznie za trafienia wroga
+
+# --- Poziom postaci i punkty statystyk (na życzenie autora, poza dokumentem) ---
+# 1 XP za KAŻDE pokonanie przeciwnika (patrz gain_xp(), wołane z room.gd/arena.gd),
+# co xp_per_level XP daje +1 level, płasko (nie rosnąco), aż do max_level — 30
+# pokoi ÷ 10 poziomów = dokładnie 3, więc level 10 wypada tuż przed ołtarzem
+# przy normalnym tempie gry. Każdy level = 1 punkt do wydania w jedną z 6 statystyk
+# (ui/stats_screen.gd, klawisz Tab).
+@export var max_level: int = 10
+@export var xp_per_level: float = 3.0
+@export var health_per_point: float = 10.0
+@export var stamina_per_point: float = 10.0
+@export var mana_per_point: float = 10.0
+@export var damage_bonus_per_point: float = 0.10 ## +10% do obrażeń miecza I różdżki za punkt
+@export var speed_bonus_per_point: float = 0.05 ## +5% do max_speed za punkt
+@export var stamina_regen_bonus_per_point: float = 0.10 ## +10% do regeneracji staminy za punkt
+
+const STAT_KEYS: Array[String] = ["health", "stamina", "mana", "damage", "speed", "stamina_regen"]
+const STAT_LABELS := {
+	"health": "Życie",
+	"stamina": "Stamina",
+	"mana": "Mana",
+	"damage": "Atak",
+	"speed": "Szybkość poruszania się",
+	"stamina_regen": "Regeneracja staminy",
+}
+
+var level: int = 0
+var xp: float = 0.0
+var unspent_stat_points: int = 0
+var stat_points: Dictionary = {"health": 0, "stamina": 0, "mana": 0, "damage": 0, "speed": 0, "stamina_regen": 0}
 
 # --- Blok (prawy przycisk myszy) — dodane na życzenie autora, poza dokumentem ---
 @export var block_stamina_cost_fraction: float = 0.75 ## ułamek MAX staminy zużywany na blok
@@ -164,6 +202,7 @@ var pull_strength: float = 0.0
 var input_reversed: bool = false
 
 func _ready() -> void:
+	_recompute_effective_stats()
 	health = max_health
 	stamina = max_stamina
 	mana = max_mana
@@ -374,6 +413,49 @@ func get_heal_stacks() -> int:
 
 func set_heal_stacks(value: int) -> void:
 	_heal_stacks = clampi(value, 0, max_heal_stacks)
+
+## Wywoływane za KAŻDE pokonanie przeciwnika (room.gd/arena.gd) — 1 XP na
+## zabójstwo domyślnie. Po max_level nic już nie robi (pasek levela to twardy
+## sufit, nie licznik totalnych zabójstw w przebiegu).
+func gain_xp(amount: float = 1.0) -> void:
+	if level >= max_level:
+		return
+	xp += amount
+	while xp >= xp_per_level and level < max_level:
+		xp -= xp_per_level
+		level += 1
+		unspent_stat_points += 1
+	if level >= max_level:
+		xp = 0.0
+
+## Postęp do następnego levela (0-1) — do paska w ui/stats_screen.gd. 0 na max_level.
+func xp_ratio() -> float:
+	return 0.0 if level >= max_level else xp / xp_per_level
+
+## Wywoływane z ui/stats_screen.gd po naciśnięciu Enter na wybranej statystyce.
+## Zwraca false (i nic nie robi), jeśli nie ma punktów do wydania.
+func spend_stat_point(stat_key: String) -> bool:
+	if unspent_stat_points <= 0 or not stat_points.has(stat_key):
+		return false
+	unspent_stat_points -= 1
+	stat_points[stat_key] += 1
+	_recompute_effective_stats()
+	return true
+
+## Przelicza max_health/max_stamina/max_mana/max_speed/attack_damage/wand_damage/
+## stamina_regen_rate na nowo z base_* + punktów — IDEMPOTENTNE (bezpieczne
+## wywołać wielokrotnie, zawsze liczy od zera z base_*, nigdy nie mnoży samo
+## siebie). Musi być wołane po KAŻDEJ zmianie stat_points oraz w _ready() —
+## każdy pokój tworzy NOWĄ instancję Playera (patrz room.gd), więc bez tego
+## efektywne statystyki cofałyby się do bazowych przy każdym wejściu do pokoju.
+func _recompute_effective_stats() -> void:
+	max_health = base_max_health + stat_points["health"] * health_per_point
+	max_stamina = base_max_stamina + stat_points["stamina"] * stamina_per_point
+	max_mana = base_max_mana + stat_points["mana"] * mana_per_point
+	max_speed = base_max_speed * (1.0 + stat_points["speed"] * speed_bonus_per_point)
+	stamina_regen_rate = base_stamina_regen_rate * (1.0 + stat_points["stamina_regen"] * stamina_regen_bonus_per_point)
+	attack_damage = base_attack_damage * (1.0 + stat_points["damage"] * damage_bonus_per_point)
+	wand_damage = base_wand_damage * (1.0 + stat_points["damage"] * damage_bonus_per_point)
 
 ## Wywoływane z zewnątrz (bossa/void_zone itd.) — odpycha gracza i na chwilę
 ## odbiera mu sterowanie, żeby kopnięcie było wyczuwalne (patrz _process_normal_movement).

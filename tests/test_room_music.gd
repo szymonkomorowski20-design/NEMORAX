@@ -19,6 +19,7 @@ func test_room_assigns_and_plays_a_pool_track(root: Node) -> void:
 	NemoraxTest.assert_true(room.music.stream in room.ROOM_MUSIC_TRACKS, "przypisany utwór musi pochodzić z puli ROOM_MUSIC_TRACKS")
 	NemoraxTest.assert_true(room.music.playing, "muzyka powinna zacząć grać zaraz po wejściu do pokoju")
 	NemoraxTest.assert_eq(room.music.stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "utwory pokoju muszą się zapętlać (loop_mode=1 w imporcie)")
+	NemoraxTest.assert_true(room.ui.show_minimap, "room.gd powinien włączyć minimapę w UI (arena.gd jej nie włącza)")
 	_cleanup(room, root)
 
 func test_music_pool_has_enough_tracks_to_feel_random(_root: Node) -> void:

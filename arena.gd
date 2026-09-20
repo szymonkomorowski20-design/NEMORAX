@@ -26,6 +26,7 @@ const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_wall.p
 @onready var ui: GameUI = $UILayer/UI
 @onready var eclipse_rect: ColorRect = $EclipseLayer/EclipseRect
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
+@onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
 
 var boss: Boss
 
@@ -77,6 +78,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		pause_menu.toggle()
+	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_TAB:
+		stats_screen.open(player)
 
 func _build_walls() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
@@ -112,6 +115,7 @@ void fragment() {
 	eclipse_rect.visible = false
 
 func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) -> void:
+	player.gain_xp() # spójne z pokojami — traktujemy każdą pokonaną fazę jak "pokonanego przeciwnika"
 	if rule_name != "":
 		ui.show_form_name(rule_name)
 	match phase_index:

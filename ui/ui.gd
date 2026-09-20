@@ -65,6 +65,7 @@ const UNDER_MODULATE := Color(1.0, 1.0, 1.0, 0.25)
 var player: Player = null
 var boss = null ## Boss ALBO Incarnation — nietypowane celowo, oba mają health/max_health/current_color
 var hide_all: bool = false ## faza finałowa: UI znika w całości
+var show_minimap: bool = false ## ustawiane przez room.gd (nie arena.gd — po 30 pokojach minimapa nie ma już sensu)
 
 var _center_message: String = ""
 var _center_message_timer: float = 0.0
@@ -220,6 +221,37 @@ func _draw() -> void:
 		_draw_overlay()
 	_draw_center_message()
 	_draw_heal_stack_count()
+	_draw_minimap()
+
+## Minimapa liniowa (na życzenie autora, "żeby wiedzieć gdzie się było") — 30
+## pokoi jako siatka 6 rzędów (rozdziały) × 5 kolumn (4 losowe + 1 z duszą,
+## ostatnia kolumna z obwódką). Bieżący pokój podświetlony, ukończone pokoje z
+## duszą kolorowane wg Palette.PHASE_COLORS tego rozdziału, reszta ukończonych
+## na szaro, nieodwiedzone prawie niewidoczne.
+func _draw_minimap() -> void:
+	if not show_minimap or hide_all or _overlay_active:
+		return
+	var pip_size := 12.0
+	var gap := 3.0
+	var cols := GameFlow.ROOMS_PER_CHAPTER
+	var rows := GameFlow.CHAPTER_COUNT
+	var total_width := cols * pip_size + (cols - 1) * gap
+	var origin := Vector2(VIEWPORT_SIZE.x - total_width - 20.0, 20.0)
+	for chapter in range(rows):
+		for slot in range(cols):
+			var room_index := chapter * cols + slot
+			var is_soul_slot := slot == cols - 1
+			var pos := origin + Vector2(slot * (pip_size + gap), chapter * (pip_size + gap))
+			var color: Color
+			if room_index < GameFlow.current_room_index:
+				color = Palette.PHASE_COLORS[chapter] if is_soul_slot else Color(Palette.PLAYER_BODY, 0.55)
+			elif room_index == GameFlow.current_room_index:
+				color = Palette.HIT_FLASH
+			else:
+				color = Color(1.0, 1.0, 1.0, 0.15)
+			draw_rect(Rect2(pos, Vector2(pip_size, pip_size)), color, true)
+			if is_soul_slot:
+				draw_rect(Rect2(pos, Vector2(pip_size, pip_size)), Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
 
 ## Liczba zbankowanych stacków leczenia (0-max_heal_stacks) obok ikony — bez
 ## tego gracz nie ma jak poznać, ile ma zapasu poza samą jasnością ikony

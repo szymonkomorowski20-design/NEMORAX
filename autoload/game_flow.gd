@@ -74,6 +74,10 @@ func capture_player_state(player: Player) -> void:
 		"heal_charge_hits": player.get_heal_charge_hits(),
 		"heal_stacks": player.get_heal_stacks(),
 		"current_weapon": player.current_weapon,
+		"level": player.level,
+		"xp": player.xp,
+		"unspent_stat_points": player.unspent_stat_points,
+		"stat_points": player.stat_points.duplicate(),
 	}
 
 ## Wywoływane w room.gd zaraz po zespawnowaniu gracza — działa zarówno przy
@@ -82,6 +86,17 @@ func capture_player_state(player: Player) -> void:
 func apply_player_state(player: Player) -> void:
 	if saved_player_state.is_empty():
 		return
+	# Poziom/punkty MUSZĄ wrócić PRZED health/stamina/mana — _recompute_effective_stats()
+	# przelicza max_health itd. z punktów, a zaraz potem ustawiamy KONKRETNĄ
+	# zapisaną wartość health (nie max_health), więc kolejność ma znaczenie.
+	player.level = int(saved_player_state.get("level", 0))
+	player.xp = saved_player_state.get("xp", 0.0)
+	player.unspent_stat_points = int(saved_player_state.get("unspent_stat_points", 0))
+	var loaded_points: Dictionary = saved_player_state.get("stat_points", {})
+	for key in player.stat_points.keys():
+		player.stat_points[key] = int(loaded_points.get(key, 0))
+	player._recompute_effective_stats()
+
 	player.health = saved_player_state.get("health", player.health)
 	player.stamina = saved_player_state.get("stamina", player.stamina)
 	player.mana = saved_player_state.get("mana", player.mana)

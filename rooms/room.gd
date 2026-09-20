@@ -62,6 +62,7 @@ const EXIT_DOOR_WALL := "top"
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
+@onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
 @onready var music: AudioStreamPlayer = $Music
 
 var incarnation: Incarnation
@@ -100,6 +101,7 @@ func _ready() -> void:
 	GameFlow.apply_player_state(player) # ta sama migawka co przy wejściu do tego pokoju
 
 	ui.player = player
+	ui.show_minimap = true
 
 	_spawn_door(Walls.wall_point(ARENA_RECT, START_DOOR_WALL), _on_start_door_entered)
 
@@ -109,11 +111,16 @@ func _process(_delta: float) -> void:
 
 ## Escape poza ekranem game-over pauzuje/wznawia — w trakcie game-over Spacja
 ## (ui_accept) już obsługuje retry, nie ma tam czego pauzować.
+## Ten handler nie musi sam pilnować wykluczania z pause_menu/stats_screen —
+## oba pauzują drzewo, kiedy są otwarte, a wtedy TEN węzeł (domyślny
+## process_mode) w ogóle przestaje dostawać input, więc się nie zdublują.
 func _unhandled_input(event: InputEvent) -> void:
 	if _game_over_kind != "":
 		return
 	if event.is_action_pressed("ui_cancel"):
 		pause_menu.toggle()
+	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_TAB:
+		stats_screen.open(player)
 
 func _spawn_door(pos: Vector2, on_entered: Callable) -> void:
 	var door: Door = DoorScene.instantiate()
@@ -139,6 +146,7 @@ func _on_start_door_entered() -> void:
 	ui.boss = incarnation
 
 func _on_incarnation_died(fragment_name: String) -> void:
+	player.gain_xp() # 1 XP za każdego pokonanego przeciwnika, losowego i wcielenie jednakowo
 	if GameFlow.is_random_enemy_room():
 		# Losowi przeciwnicy nie dają fragmentów/dusz do podniesienia (ustalone
 		# z autorem) — od razu nowe drzwi dalej, bez kroku z podnoszeniem duszy.
