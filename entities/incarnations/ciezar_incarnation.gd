@@ -13,11 +13,25 @@ class_name CiezarIncarnation
 @export var lunge_speed: float = 360.0
 @export var lunge_duration: float = 0.3
 
+const TEX_WALK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk.png")
+const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_telegraph.png")
+const TEX_LUNGE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_lunge.png")
+const TEX_PULSE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_cast-pulse.png")
+const TEX_PULL := preload("res://assets/sprites/wcielenia/nekravor/nekravor_pull.png")
+const TEX_HIT := preload("res://assets/sprites/wcielenia/nekravor/nekravor_hit.png")
+const TEX_DEATH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_death.png")
+const TEX_CRUSH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_crush.png")
+
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#6C63FF")
 	fragment_name = "Nekravor, Ten Którego Odrzucono" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_gravity_pull, _skill_crush_pulse, _skill_gravity_lunge]
+	_sprite_textures = {
+		"walk": TEX_WALK, "telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
+		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
+		"crush": TEX_CRUSH,
+	}
 
 func _skill_gravity_pull() -> void:
 	_pull_player(pull_strength)
@@ -27,6 +41,7 @@ func _skill_gravity_pull() -> void:
 
 func _skill_crush_pulse() -> void:
 	_damage_pulse(crush_radius, crush_damage)
+	_set_skill_pose("crush")
 
 func _skill_gravity_lunge() -> void:
 	_pull_player(pull_strength * 0.6)

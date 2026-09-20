@@ -12,11 +12,25 @@ class_name ZalazekIncarnation
 @export var unstable_damage: float = 12.0
 @export var double_blink_gap: float = 0.15 ## s, przerwa między dwoma wypadami
 
+const TEX_WALK := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_walk.png")
+const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_telegraph.png")
+const TEX_LUNGE := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_lunge.png")
+const TEX_PULSE := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_cast-pulse.png")
+const TEX_PULL := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_pull.png")
+const TEX_HIT := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_hit.png")
+const TEX_DEATH := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_death.png")
+const TEX_TELEPORT := preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_teleport.png")
+
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#F0447A")
 	fragment_name = "Vhar’Nokh, Wygnany z Otchłani" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_teleport_strike, _skill_unstable_burst, _skill_double_blink]
+	_sprite_textures = {
+		"walk": TEX_WALK, "telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
+		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
+		"teleport": TEX_TELEPORT,
+	}
 
 func _skill_teleport_strike() -> void:
 	_teleport_near_player()
@@ -34,5 +48,6 @@ func _skill_double_blink() -> void:
 		_lunge_toward_player(lunge_speed, lunge_duration)
 
 func _teleport_near_player() -> void:
+	_set_skill_pose("teleport")
 	var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized() * teleport_range
 	global_position = _clamp_to_arena(player.global_position + offset)

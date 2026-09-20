@@ -11,11 +11,33 @@ class_name GlodIncarnation
 @export var ravenous_damage: float = 12.0
 @export var pull_strength: float = 350.0
 
+const TEX_WALK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk.png")
+const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_telegraph.png")
+const TEX_LUNGE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_lunge.png")
+const TEX_PULSE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_cast-pulse.png")
+const TEX_PULL := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_pull.png")
+const TEX_HIT := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_hit.png")
+const TEX_DEATH := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_death.png")
+const TEX_BITE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_lifesteal-bite.png")
+
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#E8524A") # dopasowane do dostarczonej grafiki (czerwona, nie zielona)
 	fragment_name = "Thal’Gor, Pęknięty Pomiędzy Światami" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_bite, _skill_ravenous_pulse, _skill_pull_and_bite]
+	_sprite_textures = {
+		"walk": TEX_WALK, "telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
+		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
+		"lifesteal_bite": TEX_BITE,
+	}
+
+## Wszystkie trzy umiejętności to warianty ugryzienia/wypadu — jedyne wcielenie,
+## gdzie KAŻDY wypad (nie tylko jeden konkretny skill) pokazuje unikalną pozę
+## zamiast generycznego "lunge", stąd nadpisanie _update_sprite_state().
+func _update_sprite_state() -> void:
+	super._update_sprite_state()
+	if _lunge_active and _sprite_textures.has("lifesteal_bite"):
+		sprite.texture = _sprite_textures["lifesteal_bite"]
 
 func _skill_bite() -> void:
 	_lunge_toward_player(bite_speed, bite_duration)

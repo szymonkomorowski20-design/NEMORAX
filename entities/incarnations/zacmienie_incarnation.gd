@@ -17,13 +17,29 @@ class_name ZacmienieIncarnation
 
 var _intangible: bool = false
 
+const TEX_WALK := preload("res://assets/sprites/wcielenia/orryx/orryx_walk.png")
+const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/orryx/orryx_telegraph.png")
+const TEX_LUNGE := preload("res://assets/sprites/wcielenia/orryx/orryx_lunge.png")
+const TEX_PULSE := preload("res://assets/sprites/wcielenia/orryx/orryx_cast-pulse.png")
+const TEX_PULL := preload("res://assets/sprites/wcielenia/orryx/orryx_pull.png")
+const TEX_HIT := preload("res://assets/sprites/wcielenia/orryx/orryx_hit.png")
+const TEX_DEATH := preload("res://assets/sprites/wcielenia/orryx/orryx_death.png")
+const TEX_VANISH := preload("res://assets/sprites/wcielenia/orryx/orryx_vanish.png")
+const TEX_REAPPEAR := preload("res://assets/sprites/wcielenia/orryx/orryx_reappear.png")
+
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#8C9AC2") # dopasowane do dostarczonej grafiki (chłodny błękit, nie ciepły beż)
 	fragment_name = "Orryx Cień-Nicości" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_vanish_strike, _skill_flicker_pulse, _skill_dark_pull]
+	_sprite_textures = {
+		"walk": TEX_WALK, "telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
+		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
+		"vanish": TEX_VANISH, "reappear": TEX_REAPPEAR,
+	}
 
 func _skill_vanish_strike() -> void:
+	_set_skill_pose("vanish") # widoczne na klatce tuż przed zniknięciem
 	_intangible = true
 	visible = false
 	await get_tree().create_timer(vanish_duration).timeout
@@ -33,14 +49,17 @@ func _skill_vanish_strike() -> void:
 	global_position = _clamp_to_arena(player.global_position + offset)
 	visible = true
 	_intangible = false
+	_set_skill_pose("reappear")
 	_lunge_toward_player(strike_speed, strike_duration)
 
 func _skill_flicker_pulse() -> void:
+	_set_skill_pose("vanish")
 	_intangible = true
 	visible = false
 	await get_tree().create_timer(flicker_duration).timeout
 	visible = true
 	_intangible = false
+	_set_skill_pose("reappear")
 	if not is_dead:
 		_damage_pulse(flicker_radius, flicker_damage)
 
