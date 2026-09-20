@@ -64,6 +64,16 @@ var _lunge_speed: float = 0.0
 
 var _knockback_velocity: Vector2 = Vector2.ZERO ## ustawiane z zewnątrz przez blok gracza (PPM)
 
+## Skalowanie trudności dla pokoi z losowymi przeciwnikami (nie wcieleniami z
+## duszami, które mają ręcznie dobrane, stałe statystyki na życzenie autora) —
+## mnożnik rośnie z numerem pokoju w GameFlow, patrz room.gd._spawn_random_enemy().
+## Wywoływane PO add_child() — health jest już ustawione przez _ready() na
+## bazowe max_health, więc trzeba je tutaj jawnie przeliczyć na nowo.
+func apply_difficulty_scale(multiplier: float) -> void:
+	max_health *= multiplier
+	health = max_health
+	contact_damage *= multiplier
+
 func _ready() -> void:
 	health = max_health
 	add_to_group("hittable") # dzięki temu miecz/różdżka gracza trafiają bez zmian w player.gd

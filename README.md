@@ -1,11 +1,13 @@
 # NEMORAX
 
-Gra akcji 2D z widokiem z góry. Godot 4, GDScript. Sześć pomieszczeń z sześcioma
-wcieleniami hybrydy Nemorax, każde zostawia fragment duszy — po zebraniu
-wszystkich sześciu, ołtarz przywołuje finałowego bossa. Kod gry jest kompletny
-i przetestowany; grafika i dźwięk są w pełni podpięte (sprite'y, nie
-`_draw()`) — jedyny znany brak to dedykowana tekstura finałowej areny, patrz
-sekcja [Assety](#assety-grafika-i-dźwięk) niżej.
+Gra akcji 2D z widokiem z góry. Godot 4, GDScript. 30 pomieszczeń w 6
+rozdziałach (4 losowe pokoje + 1 wcielenie hybrydy Nemorax na rozdział), każde
+wcielenie zostawia fragment duszy — po zebraniu wszystkich sześciu, ołtarz
+przywołuje finałowego bossa. Kod gry jest kompletny i przetestowany; grafika i
+dźwięk są w pełni podpięte (sprite'y, nie `_draw()`) dla gracza/wcieleń/Nemoraksa
+— 7 dedykowanych przeciwników losowych i ich 8 wyglądów pokoi są w trakcie
+generowania, patrz [PLAN_LOSOWYCH_POKOI.md](PLAN_LOSOWYCH_POKOI.md) (dziś
+zastępczo reużywają assety wcieleń, w pełni grywalne).
 
 ## Wymagania
 
@@ -17,8 +19,8 @@ sekcja [Assety](#assety-grafika-i-dźwięk) niżej.
 2. Uruchom scenę główną (F5) — main scene to `menu.tscn` (prawdziwy ekran
    startowy). Spacja na ekranie startowym woła `GameFlow.resume_scene_path()`,
    który wznawia dokładnie tam, gdzie gracz skończył: `rooms/room.tscn`
-   (pierwsze wcielenie albo zapisany postęp w trakcie sześciu pokoi) lub
-   `arena.tscn`, jeśli ołtarz został już ukończony.
+   (pierwszy pokój albo zapisany postęp w trakcie 30 pokoi) lub `arena.tscn`,
+   jeśli ołtarz został już ukończony.
 
 ## Sterowanie
 
@@ -42,22 +44,32 @@ przypisuje, Escape wraca. Przypisania zapisują się w `user://settings.json`
 (`autoload/keybinds.gd`) i nakładają się na domyślną mapę z `palette.gd` przy
 starcie gry.
 
-## Sześć wcieleń → ołtarz → Nemorax
+## 30 pokoi (6 rozdziałów) → ołtarz → Nemorax
 
-- Sześć pomieszczeń (`rooms/room.tscn`, ta sama scena za każdym razem —
-  `GameFlow` autoload mówi, które wcielenie zespawnować), każde z jednym
-  wcieleniem hybrydy i jego trzema umiejętnościami (losowane bez powtórzeń,
-  nawiązują do jednej z faz Nemoraxa — `entities/incarnations/`, wspólny
-  szkielet w `entities/incarnation.gd`).
-- Przebieg pokoju: pusty przedsionek → drzwi (podejście uruchamia wcielenie) →
-  walka → dusza wypada jako przedmiot (`rooms/soul.gd`) → podnosisz ją klawiszem
-  F → pojawiają się nowe drzwi (`rooms/door.gd`) → kolejny pokój.
-- Zdrowie, stamina, mana i ładunek leczenia gracza przenoszą się między pokojami
+- `rooms/room.tscn` (ta sama scena za każdym razem) przeładowuje się 30 razy —
+  `GameFlow` autoload mówi, co zespawnować w danym slocie. Każdy z 6 rozdziałów
+  to **4 pokoje z losowym przeciwnikiem** (`GameFlow.RANDOM_ENEMY_SCENES`,
+  rosnąca trudność co pokój, patrz `GameFlow.RANDOM_ENEMY_DIFFICULTY_STEP`) +
+  **1 pokój z wcieleniem** hybrydy i jego trzema umiejętnościami (losowane bez
+  powtórzeń, nawiązują do jednej z faz Nemoraxa — `entities/incarnations/`,
+  wspólny szkielet w `entities/incarnation.gd`). Docelowy zestaw 7 losowych
+  przeciwników (4 wręcz + 3 dystansowych) i ich 8 wyglądów pokoi jest w trakcie
+  generowania — patrz [PLAN_LOSOWYCH_POKOI.md](PLAN_LOSOWYCH_POKOI.md) po
+  dokładny stan i checklistę podpięcia.
+- Przebieg pokoju: pusty przedsionek → drzwi na ścianie (podejście uruchamia
+  przeciwnika) → walka → **wcielenie**: dusza wypada jako przedmiot
+  (`rooms/soul.gd`), podnosisz ją klawiszem F, dopiero potem nowe drzwi;
+  **losowy przeciwnik**: bez duszy/fragmentu, nowe drzwi pojawiają się od razu
+  → kolejny pokój (`rooms/door.gd`, zawsze dokładnie na ścianie,
+  `Walls.wall_point()`).
+- Zdrowie, stamina, mana i stacki leczenia gracza przenoszą się między pokojami
   bez darmowego resetu (`GameFlow.capture_player_state`/`apply_player_state`) —
   to samo dotyczy retry po śmierci w danym pokoju.
-- Po szóstym pokoju: `rooms/altar.gd` — podejście do ołtarza przywołuje Nemoraxa
-  i przenosi do `arena.tscn`, czyli istniejącej walki opisanej niżej.
-- Postęp przez sześć pokoi (który jest aktualny, zebrane fragmenty, migawka
+- Po 30. pokoju: `rooms/altar.gd` — podejście do ołtarza przywołuje Nemoraxa
+  i przenosi do `arena.tscn`, czyli istniejącej walki opisanej niżej. System
+  sześciu fragmentów duszy jest bez zmian — dają je wyłącznie pokoje z
+  wcieleniami, nie losowi przeciwnicy.
+- Postęp przez 30 pokoi (który jest aktualny, zebrane fragmenty, migawka
   statystyk gracza) jest zapisywany na dysk (`user://gauntlet_progress.json`,
   `autoload/game_flow.gd`) — zamknięcie gry w trakcie gauntletu nie cofa do
   pokoju 1, menu wznawia dokładnie tam, gdzie gracz skończył
@@ -124,13 +136,13 @@ reszta to opcjonalny polish (unikalne umiejętności, muzyka, ambient pokoi).
 - `autoload/` — `palette.gd` (kolory + domyślna mapa wejścia), `keybinds.gd`
   (rebinding — nakłada się na mapę z palette.gd, zapisuje do
   `user://settings.json`), `juice.gd` (hitstop, trzęsienie ekranu),
-  `game_flow.gd` (postęp przez sześć pokoi i zebrane fragmenty duszy)
+  `game_flow.gd` (postęp przez 30 pokoi/6 rozdziałów i zebrane fragmenty duszy)
 - `entities/` — `player.gd`, `boss.gd` (Nemorax), ataki bossa (`seal.gd`, `void_zone.gd`,
   `shadow.gd`), pocisk gracza (`projectile.gd`), oraz `incarnation.gd` (wspólny szkielet
-  wcieleń) z podklasami w `entities/incarnations/`
-- `rooms/` — `room.gd`/`room.tscn` (jedna scena reużywana dla wszystkich sześciu
-  pokoi), `door.gd`/`door.tscn` (przejścia), `soul.gd`/`soul.tscn` (przedmiot do
-  podniesienia po pokonaniu wcielenia), `altar.gd`/`altar.tscn` (siódmy pokój,
+  wcieleń I losowych przeciwników) z podklasami w `entities/incarnations/`
+- `rooms/` — `room.gd`/`room.tscn` (jedna scena reużywana dla wszystkich 30
+  pokoi), `door.gd`/`door.tscn` (przejścia, zawsze na ścianie), `soul.gd`/`soul.tscn`
+  (przedmiot do podniesienia po pokonaniu wcielenia), `altar.gd`/`altar.tscn` (31. pokój,
   most do `arena.tscn`)
 - `ui/` — `ui.gd` (paski/ikony gry), `pause_menu.gd` (Escape w trakcie gry,
   reużywalny w `room.tscn`/`arena.tscn`), `keybind_screen.gd` (ekran

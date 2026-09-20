@@ -1,12 +1,14 @@
 extends Node2D
 ## Jedna, generyczna scena pomieszczenia — rozszerzenie poza dokument bazowy
-## (patrz LORE_I_ASSETY.md). Ta sama scena jest przeładowywana dla każdego z sześciu
-## pokoi; GameFlow.current_room_index mówi, które wcielenie zespawnować.
+## (patrz LORE_I_ASSETY.md). Ta sama scena jest przeładowywana dla każdego z 30
+## pokoi (6 rozdziałów × [4 losowe pokoje + 1 wcielenie], patrz game_flow.gd) —
+## GameFlow.is_random_enemy_room() mówi, który typ przeciwnika zespawnować.
 ##
 ## Przebieg: gracz startuje w pustym przedsionku -> podchodzi do drzwi (próg) ->
-## wcielenie się pojawia -> po jego pokonaniu wypada dusza -> gracz podnosi ją
-## klawiszem F -> pojawiają się nowe drzwi dalej -> przejście do GameFlow
-## (kolejny pokój albo ołtarz), z zachowaniem statystyk gracza.
+## przeciwnik się pojawia -> po jego pokonaniu (wcielenie: wypada dusza, gracz
+## podnosi ją klawiszem F; losowy przeciwnik: bez duszy, od razu drzwi dalej)
+## -> nowe drzwi -> przejście do GameFlow (kolejny pokój albo ołtarz), z
+## zachowaniem statystyk gracza.
 
 const ARENA_RECT := Rect2(90, 60, 1100, 600) # ta sama wyśrodkowana arena co w arena.tscn
 const WALL_THICKNESS := 20.0
@@ -67,8 +69,21 @@ var _game_over_kind: String = "" # "" albo "death"
 
 func _ready() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
-	Walls.build_floor(self, ARENA_RECT, ROOM_FLOOR_TEXTURES[GameFlow.current_room_index])
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS, ROOM_WALL_TEXTURES[GameFlow.current_room_index])
+	var floor_tex: Texture2D
+	var wall_tex: Texture2D
+	if GameFlow.is_random_enemy_room():
+		# TYMCZASOWE: docelowo 8 par podłoga/ściana dedykowanych pokojom z
+		# losowymi przeciwnikami (patrz PLAN_LOSOWYCH_POKOI.md) — reużywam na
+		# razie tekstury pokoi wcieleń (po current_room_index), żeby 30-pokojowy
+		# przebieg był grywalny, zanim te 16 assetów powstanie.
+		var theme_index := GameFlow.current_room_index % ROOM_FLOOR_TEXTURES.size()
+		floor_tex = ROOM_FLOOR_TEXTURES[theme_index]
+		wall_tex = ROOM_WALL_TEXTURES[theme_index]
+	else:
+		floor_tex = ROOM_FLOOR_TEXTURES[GameFlow.current_chapter_index()]
+		wall_tex = ROOM_WALL_TEXTURES[GameFlow.current_chapter_index()]
+	Walls.build_floor(self, ARENA_RECT, floor_tex)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, wall_tex)
 
 	var track: AudioStreamWAV = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
 	# Ustawiane w kodzie, nie tylko w .import — headless `--import` (używane w
@@ -108,15 +123,27 @@ func _spawn_door(pos: Vector2, on_entered: Callable) -> void:
 	add_child(door)
 
 func _on_start_door_entered() -> void:
-	var scene: PackedScene = load(GameFlow.current_incarnation_scene_path())
+	var is_random := GameFlow.is_random_enemy_room()
+	var scene_path := GameFlow.choose_random_enemy_scene_path() if is_random else GameFlow.current_incarnation_scene_path()
+	var scene: PackedScene = load(scene_path)
 	incarnation = scene.instantiate() as Incarnation
 	incarnation.arena_rect = ARENA_RECT
 	incarnation.global_position = ARENA_RECT.get_center() + incarnation_spawn_offset
 	incarnation.died.connect(_on_incarnation_died)
 	add_child(incarnation)
+	if is_random:
+		# Rosnąca trudność losowych przeciwników z numerem pokoju (ustalone z
+		# autorem) — wcielenia z duszami zachowują swoje ręcznie dobrane,
+		# stałe statystyki, więc ta gałąź ich nie dotyczy.
+		incarnation.apply_difficulty_scale(1.0 + GameFlow.current_room_index * GameFlow.RANDOM_ENEMY_DIFFICULTY_STEP)
 	ui.boss = incarnation
 
 func _on_incarnation_died(fragment_name: String) -> void:
+	if GameFlow.is_random_enemy_room():
+		# Losowi przeciwnicy nie dają fragmentów/dusz do podniesienia (ustalone
+		# z autorem) — od razu nowe drzwi dalej, bez kroku z podnoszeniem duszy.
+		_spawn_door(Walls.wall_point(ARENA_RECT, EXIT_DOOR_WALL), _on_exit_door_entered)
+		return
 	var soul: Soul = SoulScene.instantiate()
 	soul.color = incarnation.current_color
 	soul.player = player

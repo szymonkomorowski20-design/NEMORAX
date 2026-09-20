@@ -25,3 +25,13 @@ func test_incarnation_skill_never_repeats(_root: Node) -> void:
 		NemoraxTest.assert_true(index != previous, "indeks (%d) nie powinien powtórzyć poprzedniego (%d)" % [index, previous])
 		NemoraxTest.assert_true(index >= 0 and index < count, "indeks (%d) poza zakresem 0..%d" % [index, count - 1])
 		previous = index
+
+func test_incarnation_difficulty_scale_multiplies_health_and_damage(_root: Node) -> void:
+	var incarnation := Incarnation.new()
+	incarnation.max_health = 100.0
+	incarnation.health = 100.0
+	incarnation.contact_damage = 10.0
+	incarnation.apply_difficulty_scale(1.5)
+	NemoraxTest.assert_almost_eq(incarnation.max_health, 150.0, 0.01, "max_health powinien wzrosnąć o mnożnik")
+	NemoraxTest.assert_almost_eq(incarnation.health, 150.0, 0.01, "health powinien zostać przeliczony na nowe max_health")
+	NemoraxTest.assert_almost_eq(incarnation.contact_damage, 15.0, 0.01, "contact_damage powinien wzrosnąć o ten sam mnożnik")
