@@ -1,137 +1,145 @@
 # NEMORAX — Kolejka generowania w ElevenLabs (Sound Effects)
 
-Płaska, sekwencyjna checklista wyciągnięta z [AUDIO_KATALOG.md](AUDIO_KATALOG.md) —
-jeden wiersz = jedna generacja w ElevenLabs. Rób od góry do dołu, odhaczaj,
-zapisuj pod podaną nazwą pliku. Pominięte kody (P15, P17, U3, U5, U6) to
-świadome duplikaty — patrz kolumna w katalogu, nie generuj ich osobno.
+Wersja 2: dużo bardziej szczegółowe prompty, napisane specjalnie pod to, jak
+ElevenLabs faktycznie interpretuje opisy dźwięku. Różnice względem wersji 1:
 
-Sekcje muzyczne (na końcu, oznaczone 🎵) są bardziej "kompozycyjne" —
-ElevenLabs może dać radę, ale jeśli wynik brzmi jak efekt dźwiękowy zamiast
-utworu, to sygnał żeby ten JEDEN konkretny wiersz zrobić w Suno zamiast tu
-(patrz `AUDIO_KATALOG.md` Krok 1).
+- **Zero liczby sekund w treści promptu.** ElevenLabs i tak ma twardy limit
+  minimum 0.5s (`duration_seconds` w API), a liczba w tekście to tylko
+  sugestia, nie realny parametr — więc zamiast "0.2s" opisuję słowami KSZTAŁT
+  dźwięku w czasie (natychmiastowy atak, brak ogona, szybkie wybrzmienie itd.),
+  co model rozumie dużo lepiej. Docelową długość i przycinanie masz osobno w
+  kolumnie **Cel**.
+- **Konkretne materiały i fizyka** zamiast ogólników — "metallic clamp
+  snapping shut" zamiast "metallic sound". Model radzi sobie wyraźnie lepiej,
+  gdy wie, JAKI obiekt i JAKA czynność generuje dźwięk.
+- **Jawne "dry recording, no reverb"** przy większości efektów — pogłos ma
+  dokładać Godot (per pokój, przez busy audio), nie sam plik źródłowy. Bez
+  tego zastrzeżenia modele często dodają pogłos hali/katedry, którego potem
+  nie da się zdjąć.
+- **"Seamlessly loopable" + opis stałej faktury** przy pętlach (muzyka/
+  ambient) zamiast obiecywania konkretnej struktury utworu.
 
-**Ważne — twardy limit ElevenLabs: minimum 0.5 sekundy na generację**
-(potwierdzone w dokumentacji API: `duration_seconds` musi być ≥0.5). Sporo
-wierszy poniżej ma w opisie krótszy czas (0.05-0.4s) — to niemożliwe do
-uzyskania wprost. Liczba sekund w tekście promptu to tylko sugestia
-"jak krótki ma brzmieć charakter dźwięku", nie realny parametr. Rób tak:
-1. Ustaw długość generacji na **0.5s** (minimum) dla każdego takiego wiersza.
-2. W Audacity **przytnij** wynik do docelowej długości z opisu — model zwykle
-   i tak daje "trzask"/transient na samym początku, resztę po prostu odetnij.
+## Jak czytać kolumnę "Cel"
+ElevenLabs nie zejdzie poniżej 0.5s. Dla wszystkiego, co docelowo ma być
+krótsze: ustaw generację na **0.5s**, potem w Audacity przytnij do liczby
+podanej w "Cel". Dla pętli (muzyka/ambient) generuj **blisko maksimum, 25-30s**
+(twardy limit API to 30s) — Godot i tak zapętli ten kawałek w nieskończoność
+przez `Loop = On`, więc nie trzeba (i nie da się) wygenerować całej
+kilkuminutowej ścieżki na raz.
 
-Jeśli w interfejsie widzisz przełącznik **"Loop"** przy generowaniu — włącz
-go dla wszystkiego z sekcji 🎵 (muzyka/ambient), to model sam postara się o
-bezszwową pętlę, bez ręcznego crossfade'u w Audacity.
+Jeśli w interfejsie jest przełącznik **"Loop"** — włącz go przy WSZYSTKICH
+pozycjach 🎵, model sam postara się o zgodne zapętlenie.
 
 ---
 
 ## Priorytet 1 — Gracz (20 dźwięków)
 
-- [ ] `P01_dash_start.ogg` — Quick whoosh dash sound, short air displacement, energetic, 0.3s
-- [ ] `P02_dash_denied.ogg` — Short dull denial blip, low-pitched, no reverb, 0.15s
-- [ ] `P03_dash_void_locked.ogg` — Short metallic locking/clamping sound, restrictive, slightly ominous, 0.2s
-- [ ] `P04_weapon_switch.ogg` — Quick weapon-switch click, mechanical, subtle metallic shift, 0.15s
-- [ ] `P05_attack_denied.ogg` — Soft empty-resource denial sound, hollow thud, 0.15s
-- [ ] `P06_sword_windup.ogg` — Short sword wind-up swish, building tension, 0.2s
-- [ ] `P07_sword_swing.ogg` — Sharp sword slash through air, fast metallic whoosh, aggressive, 0.25s
-- [ ] `P08_sword_hit.ogg` — Heavy impactful sword hit, sharp crunch with a slight metallic ring, punchy, 0.2s
-- [ ] `P09_sword_miss.ogg` — Sword swing whoosh with no impact, slightly disappointed tail, 0.2s
-- [ ] `P10_wand_charge.ogg` — Rising magical charge-up hum, energy building, sparkly high-frequency tail, 0.4s
-- [ ] `P11_wand_fire.ogg` — Magic projectile launch, short energetic zap, bright tonal quality, 0.25s
-- [ ] `P12_wand_impact.ogg` — Magic projectile impact, sparkly burst hit, medium punch, 0.2s
-- [ ] `P13_block_raise.ogg` — Shield-raise sound, brief metallic resonance, defensive, 0.2s
-- [ ] `P14_block_push_hit.ogg` — Blunt shockwave push impact, deep thud with a knockback whoosh, 0.25s
-- [ ] `P16_heal_use.ogg` — Warm healing chime, soft rising tone, gentle magical shimmer, 0.5s
-- [ ] `P18_heal_charge_tick.ogg` — Tiny subtle tick, barely audible charge-up pip, 0.05s
-- [ ] `P19_heal_ready.ogg` — Clear bright ready-notification ping, single bell-like tone, 0.3s
-- [ ] `P20_player_hurt.ogg` — Player pain grunt combined with a dull impact hit, visceral but not graphic, 0.3s
-- [ ] `P21_player_death.ogg` — Falling defeat sound, descending pitch groan, fading out, 1s
-- [ ] `P22_player_knockback.ogg` — Quick forceful push-back whoosh, 0.2s
+- [ ] **P01_dash_start.ogg** (cel: ~0.3s) — A very short, sharp whoosh of displaced air as a lightweight figure bursts forward at high speed, quick rising pitch sweep from low to high, crisp and energetic with almost no tail, dry recording with no reverb or room tone.
+- [ ] **P02_dash_denied.ogg** (cel: ~0.15s) — A very short, dull low-pitched electronic blip signaling a blocked action, flat and unresonant like a muted rubber tap, instant attack with no ring or sustain, dry and close, no reverb.
+- [ ] **P03_dash_void_locked.ogg** (cel: ~0.2s) — A short metallic clamp locking shut, a heavy latch or manacle snapping closed, cold and restrictive with a faint ominous low-end resonance underneath, dry recording, no reverb.
+- [ ] **P04_weapon_switch.ogg** (cel: ~0.15s) — A quick, precise mechanical click of a weapon holster or clasp switching position, subtle metallic slide followed by a firm snap, small-scale and tactile, dry and close-up with no reverb.
+- [ ] **P05_attack_denied.ogg** (cel: ~0.15s) — A soft, hollow thud representing an empty or exhausted resource, low muted knock with no ring or brightness, slightly disappointing and flat in tone, dry recording, no reverb.
+- [ ] **P06_sword_windup.ogg** (cel: ~0.2s) — A short rising swish of a blade being drawn back through the air in preparation to strike, thin and tense air-cutting sound with a quick upward pitch build, dry and close, no reverb.
+- [ ] **P07_sword_swing.ogg** (cel: ~0.25s) — A fast, sharp metallic sword slash cutting through the air, aggressive whoosh with a thin high-frequency edge and a quick low-to-high pitch sweep, dry recording, no reverb or room tone.
+- [ ] **P08_sword_hit.ogg** (cel: ~0.2s) — A heavy, punchy sword impact striking flesh and bone, a sharp crunching hit layered with a brief metallic ring from the blade, immediate hard attack with a very short decay, dry and close-up.
+- [ ] **P09_sword_miss.ogg** (cel: ~0.2s) — A fast sword swing whoosh through empty air with no impact at the end, thin metallic edge fading quickly into nothing, slightly anticlimactic tail, dry recording, no reverb.
+- [ ] **P10_wand_charge.ogg** (cel: ~0.4s) — A rising magical energy charge-up, a smooth electric hum climbing steadily in pitch and intensity, glittering high-frequency sparkle woven through the buildup, tension increasing toward a peak, dry recording, no reverb.
+- [ ] **P11_wand_fire.ogg** (cel: ~0.25s) — A short, bright magical zap as an energy projectile launches forward, a crisp electric crackle with a quick forward pitch sweep and a clean tonal center, energetic and precise, dry and close, no reverb.
+- [ ] **P12_wand_impact.ogg** (cel: ~0.2s) — A magical projectile striking its target, a compact sparkly burst with a medium-weight punch at its core, bright crackling energy dissipating quickly outward, dry recording, no reverb.
+- [ ] **P13_block_raise.ogg** (cel: ~0.2s) — A defensive shield or blade being raised into a guard position, a brief metallic resonance with a soft magical shimmer underneath, controlled and solid rather than aggressive, dry and close-up, no reverb.
+- [ ] **P14_block_push_hit.ogg** (cel: ~0.25s) — A blunt defensive shockwave pushing an attacker back, a deep low-end thud at the moment of contact immediately followed by a short forceful whoosh of displaced air, dry recording, no reverb.
+- [ ] **P16_heal_use.ogg** (cel: ~0.5s) — A warm, gentle healing chime, a soft tone rising smoothly in pitch with a light magical shimmer trailing behind it, comforting and soothing rather than bright or sharp, dry recording with a natural soft decay, no reverb.
+- [ ] **P18_heal_charge_tick.ogg** (cel: ~0.05s) — An extremely small, subtle electronic tick, a barely-there pip marking one increment of progress, soft and unobtrusive with no ring or sustain at all, dry and close, no reverb.
+- [ ] **P19_heal_ready.ogg** (cel: ~0.3s) — A single clear, bright bell-like ping notifying that something is fully ready, clean pure tone with a short natural decay, pleasant and satisfying, dry recording, no reverb.
+- [ ] **P20_player_hurt.ogg** (cel: ~0.3s) — A short human pain grunt layered with a dull physical impact hit, visceral and immediate but restrained rather than graphic or gory, a single sharp exhale of effort and pain, dry recording, no reverb.
+- [ ] **P21_player_death.ogg** (cel: ~1s) — A defeated human groan with a descending pitch, breath fading and weakening as the body collapses, a slow exhausted exhale trailing off into silence, dry recording with a natural soft fade, no reverb.
+- [ ] **P22_player_knockback.ogg** (cel: ~0.2s) — A quick, forceful whoosh of a body being knocked backward through the air, a short burst of displaced air with a sudden onset and fast fade, dry recording, no reverb.
 
 ## Priorytet 2 — Nemorax, finałowy boss (19 dźwięków)
 
-- [ ] `N01_transform_roar.ogg` — Powerful monstrous transformation roar, long sustained growl with rising pitch, earth-shaking, 1.5s
-- [ ] `N02_attack_inhale.ogg` — Short menacing inhale/charge-up before an attack, ominous, 0.4s
-- [ ] `N03_seal_telegraph.ogg` — Rising crackling energy build-up, warning tone, 0.6s
-- [ ] `N04_seal_explosion.ogg` — Sharp rune explosion, bright crackling burst, energetic, 0.3s
-- [ ] `N05_void_open.ogg` — Reality-tearing rip sound, deep void opening, unsettling low drone, 0.5s
-- [ ] `N06_void_lock.ogg` — Metallic locking clamp, restrictive and final, 0.2s
-- [ ] `N07_void_close.ogg` — Void closing shut, reversed tearing sound collapsing inward, 0.4s
-- [ ] `N08_shadow_spawn.ogg` — Distorted echo of footsteps and a whisper, dark twisted mimicry, 0.4s
-- [ ] `N09_shadow_hit.ogg` — Distorted version of a pain hit, warped and unnatural, 0.2s
-- [ ] `N10_shadow_fade.ogg` — Shadow dissolving, whispery fade into nothing, 0.5s
-- [ ] `N11_lunge_telegraph.ogg` — Deep menacing charge-up growl before a lunge, heavy and threatening, 0.5s
-- [ ] `N12_lunge_charge.ogg` — Massive charging dash sound, heavy footfalls and rushing air, aggressive, 0.4s
-- [ ] `N13_lunge_chain.ogg` — Second immediate lunge sound, same as a charging dash but slightly sharper/urgent, 0.4s
-- [ ] `N14_body_contact.ogg` — Heavy dull body-contact thud, massive creature touch, 0.2s
-- [ ] `N15_hunger_regen_loop.ogg` — Subtle ominous regenerating hum loop, low pulsing, unsettling, seamless loop
-- [ ] `N16_nemorax_hurt.ogg` — Deep monstrous pain roar, short and guttural, 0.3s
-- [ ] `N17_bigform_collapse.ogg` — Massive form collapsing, long descending groan that does not fully resolve, 1.2s
-- [ ] `N18_smallform_resurrect.ogg` — Quiet unsettling resurrection sound, small but wrong, faint whisper-laugh undertone, 1s
-- [ ] `N19_true_death.ogg` — Final massive death collapse, long dissonant descending tone, dissolves completely, 2s
+- [ ] **N01_transform_roar.ogg** (cel: ~1.5s) — A massive monstrous roar during a violent bodily transformation, a long sustained guttural growl that rises steadily in pitch and intensity, deep chest-shaking low frequencies mixed with a raw straining upper register, powerful and sustained throughout, dry recording, no reverb.
+- [ ] **N02_attack_inhale.ogg** (cel: ~0.4s) — A short, menacing monstrous inhale as a creature draws breath before attacking, a deep rasping intake of air with an ominous low growl underneath, tension building toward the end, dry recording, no reverb.
+- [ ] **N03_seal_telegraph.ogg** (cel: ~0.6s) — A rising crackling arcane energy build-up warning of an impending explosion, sharp electrical crackle intensifying steadily in pitch and density, a thin warning tone woven through it, dry recording, no reverb.
+- [ ] **N04_seal_explosion.ogg** (cel: ~0.3s) — A sharp magical rune explosion, a bright energetic crackling burst with a hard percussive attack at its center, quickly dissipating into fading electrical sparks, dry recording, no reverb.
+- [ ] **N05_void_open.ogg** (cel: ~0.5s) — A reality-tearing rip as a void portal forcefully opens, a deep unsettling low drone underpinning a harsh tearing texture, cold and vast rather than explosive, dry recording, minimal natural room tone only.
+- [ ] **N06_void_lock.ogg** (cel: ~0.2s) — A heavy metallic clamp locking shut with finality, a solid mechanical snap with a short resonant metallic ring, restrictive and cold, dry recording, no reverb.
+- [ ] **N07_void_close.ogg** (cel: ~0.4s) — A void portal collapsing shut, a tearing texture that seems to play in reverse and rush inward toward a single point, ending in an abrupt cold silence, dry recording, minimal room tone.
+- [ ] **N08_shadow_spawn.ogg** (cel: ~0.4s) — A distorted, twisted echo of footsteps blended with a faint whispering voice, dark unnatural mimicry of something human, pitched slightly wrong and unsettling, subtle natural echo only, no heavy reverb.
+- [ ] **N09_shadow_hit.ogg** (cel: ~0.2s) — A pain-impact sound that has been warped and pitch-distorted into something unnatural, a hit and a cry blended and twisted together, brief and jarring, dry recording, no reverb.
+- [ ] **N10_shadow_fade.ogg** (cel: ~0.5s) — A shadowy figure dissolving into nothing, a soft whispery textured fade that thins out gradually until silence, airy and insubstantial, dry recording, no reverb.
+- [ ] **N11_lunge_telegraph.ogg** (cel: ~0.5s) — A deep menacing growl building steadily as a massive creature prepares to lunge, heavy low-end weight with a threatening rising tension, guttural and powerful, dry recording, no reverb.
+- [ ] **N12_lunge_charge.ogg** (cel: ~0.4s) — A massive creature charging forward at speed, heavy pounding footfalls layered with a rushing blast of displaced air, aggressive and forceful throughout, dry recording, no reverb.
+- [ ] **N13_lunge_chain.ogg** (cel: ~0.4s) — A second immediate charging lunge coming right on the heels of the first, the same heavy rushing charge but slightly sharper and more urgent in attack, dry recording, no reverb.
+- [ ] **N14_body_contact.ogg** (cel: ~0.2s) — A heavy, dull thud of a massive creature's body making contact, low-frequency weight with almost no brightness or ring, solid and blunt, dry recording, no reverb.
+- [ ] **N15_hunger_regen_loop.ogg** (cel: 25-30s, loop) — A subtle, ominous regenerating hum, a low pulsing drone that breathes slowly in and out in volume, unsettling and organic like something quietly healing itself, consistent texture with no clear beginning or end, seamlessly loopable.
+- [ ] **N16_nemorax_hurt.ogg** (cel: ~0.3s) — A deep, short monstrous roar of pain, a guttural burst of raw vocal power with a hard sudden attack and quick cutoff, powerful but brief, dry recording, no reverb.
+- [ ] **N17_bigform_collapse.ogg** (cel: ~1.2s) — A massive creature's body collapsing without truly dying, a long descending groan that trails off before fully resolving, leaving a sense that something still lingers underneath, dry recording, minimal natural room tone.
+- [ ] **N18_smallform_resurrect.ogg** (cel: ~1s) — A quiet, unsettling resurrection of something small but deeply wrong, a faint breathy movement with a barely-audible whispered laugh woven underneath, restrained rather than loud, dry recording, no reverb.
+- [ ] **N19_true_death.ogg** (cel: ~2s) — A final, complete death collapse, a long dissonant tone descending steadily in pitch as the creature fully dissolves, gradually losing all body and texture until nothing remains, dry recording, minimal natural room tone.
 
 ## Priorytet 3 — Wspólny core sześciu wcieleń (8 dźwięków, pokrywa wszystkie 6 pokoi)
 
-- [ ] `I01_telegraph.ogg` — Rising ominous warning drone, building tension, telegraphs an incoming attack, 0.5s
-- [ ] `I02_damage_pulse.ogg` — Dark magical shockwave burst, radiating outward, deep low-end thump, 0.3s
-- [ ] `I03_pull.ogg` — Reversed sucking whoosh, pulling inward, unsettling, 0.4s
-- [ ] `I04_lunge_start.ogg` — Aggressive lunging dash sound, fast approach, guttural undertone, 0.3s
-- [ ] `I05_contact_hit.ogg` — Dull creature-contact hit, organic thud, 0.15s
-- [ ] `I06_knockback_received.ogg` — Creature knocked back, pained grunt with a whoosh, 0.25s
-- [ ] `I07_incarnation_hurt.ogg` — Short creature pain shriek, sharp and dissonant, 0.2s
-- [ ] `I08_incarnation_death.ogg` — Creature death dissolve, descending dissonant tone fading into silence, 0.8s
+- [ ] **I01_telegraph.ogg** (cel: ~0.5s) — A rising ominous drone warning that an attack is about to happen, steadily increasing in pitch and intensity, tense and unmistakable, dry recording, no reverb.
+- [ ] **I02_damage_pulse.ogg** (cel: ~0.3s) — A dark magical shockwave bursting outward from a single point, a deep low-end thump at the core with a quick radiating energy sizzle, contained and immediate, dry recording, no reverb.
+- [ ] **I03_pull.ogg** (cel: ~0.4s) — An unsettling reversed whoosh that sounds like it is sucking everything inward toward a central point, air and energy rushing backward rather than outward, dry recording, no reverb.
+- [ ] **I04_lunge_start.ogg** (cel: ~0.3s) — An aggressive creature lunging forward suddenly, a fast rushing approach sound with a low guttural growl underneath, quick onset and forward motion, dry recording, no reverb.
+- [ ] **I05_contact_hit.ogg** (cel: ~0.15s) — A dull, organic thud of a creature's body making brief contact, soft and fleshy rather than metallic, low-key and quick, dry recording, no reverb.
+- [ ] **I06_knockback_received.ogg** (cel: ~0.25s) — A creature grunting in pain as it gets knocked backward, a short guttural cry blended with a quick whoosh of forced motion, dry recording, no reverb.
+- [ ] **I07_incarnation_hurt.ogg** (cel: ~0.2s) — A short, sharp creature shriek of pain, dissonant and unnatural in pitch, a quick harsh cry with an abrupt cutoff, dry recording, no reverb.
+- [ ] **I08_incarnation_death.ogg** (cel: ~0.8s) — A creature dissolving at the moment of death, a descending dissonant tone that thins out gradually as the body loses cohesion, fading completely into silence, dry recording, no reverb.
 
 ## Priorytet 4a — Unikalne warianty per wcielenie (7 dźwięków)
 
-- [ ] `VN_teleport.ogg` (Vhar'Nokh) — Sharp teleport blink, quick displacement pop with a brief static crackle, 0.2s
-- [ ] `MD_muffled_burst.ogg` (Mordrath) — Muffled, underwater-like version of a magical burst, dampened high frequencies, distant and suppressed, 0.3s
-- [ ] `ZR_echo_pulse.ogg` (Zha'Ruun) — Delayed echo repeat of a magical burst, same hit but faded and slightly detuned, like a stuck echo, 0.3s
-- [ ] `NK_crush_pulse.ogg` (Nekravor) — Heavy crushing gravitational impact, deep sub-bass slam, oppressive weight, 0.4s
-- [ ] `TG_bite_drain.ogg` (Thal'Gor) — Wet visceral bite sound followed by a draining slurp, predatory, 0.3s
-- [ ] `OR_vanish.ogg` (Orryx) — Fading vanish whoosh, dissolving into silence, ghostly, 0.3s
-- [ ] `OR_reappear.ogg` (Orryx) — Sudden reappearing thud with a dark magical flourish, 0.25s
+- [ ] **VN_teleport.ogg** (Vhar'Nokh, cel: ~0.2s) — A sharp instant teleport blink, a quick displacement pop as a body vanishes and reappears, a brief crackle of static energy accompanying the snap, dry recording, no reverb.
+- [ ] **MD_muffled_burst.ogg** (Mordrath, cel: ~0.3s) — A magical energy burst that sounds heavily muffled, as if heard through thick padding or underwater, high frequencies almost completely dampened, distant and suppressed rather than sharp, dry recording, no natural room reverb — the muffling comes from filtering, not space.
+- [ ] **ZR_echo_pulse.ogg** (Zha'Ruun, cel: ~0.3s) — A magical burst immediately followed by a faded, slightly detuned echo repeat of itself, as if a single moment in time is stuttering and repeating, the second hit noticeably weaker and off-pitch, dry recording, no natural reverb — the repeat is a distinct echo, not room ambience.
+- [ ] **NK_crush_pulse.ogg** (Nekravor, cel: ~0.4s) — A heavy gravitational crushing impact, a deep sub-bass slam with an oppressive sense of enormous weight bearing down, slow and crushing rather than sharp, dry recording, no reverb.
+- [ ] **TG_bite_drain.ogg** (Thal'Gor, cel: ~0.3s) — A wet, visceral creature bite clamping down, immediately followed by a draining slurping sound as life force is pulled away, predatory and hungry, dry recording, no reverb.
+- [ ] **OR_vanish.ogg** (Orryx, cel: ~0.3s) — A ghostly vanishing whoosh as a creature turns intangible and disappears, airy and thin, dissolving smoothly into complete silence, dry recording, no reverb.
+- [ ] **OR_reappear.ogg** (Orryx, cel: ~0.25s) — A creature suddenly reappearing out of nowhere, a sudden low thud marking the instant of return layered with a brief dark magical flourish, startling and abrupt, dry recording, no reverb.
 
 ## Priorytet 4b — Świat / pokoje (5 dźwięków)
 
-- [ ] `W01_door_pass.ogg` — Heavy stone door creak and thud, brief, ancient mechanism, 0.4s
-- [ ] `W02_soul_idle_hum.ogg` — Soft pulsing magical hum, gentle and inviting, seamless loop, quiet
-- [ ] `W03_soul_pickup.ogg` — Warm collection chime, rising magical shimmer, satisfying, 0.4s
-- [ ] `W04_altar_tension.ogg` — Rising ritualistic tension drone, building anticipation, 1s
-- [ ] `W05_altar_summon.ogg` — Massive ceremonial summoning thunder, deep resonant boom with chanting undertone, 2s
+- [ ] **W01_door_pass.ogg** (cel: ~0.4s) — A heavy ancient stone door creaking briefly as it shifts, a low grinding groan of old stone-on-stone friction ending in a solid thud, brief rather than prolonged, natural stone-room tone only, minimal reverb.
+- [ ] **W02_soul_idle_hum.ogg** (cel: 25-30s, loop) — A soft, gentle magical hum that pulses slowly in volume, quiet and inviting rather than threatening, a warm steady tone with subtle shimmer, consistent texture with no clear beginning or end, seamlessly loopable.
+- [ ] **W03_soul_pickup.ogg** (cel: ~0.4s) — A warm, satisfying collection chime, a bright rising magical shimmer that resolves cleanly at the top, rewarding and pleasant, dry recording, no reverb.
+- [ ] **W04_altar_tension.ogg** (cel: ~1s) — A rising ritualistic drone building steady anticipation, a slow deepening tone with a faint ceremonial undertone, deliberate and unhurried, dry recording, minimal natural room tone.
+- [ ] **W05_altar_summon.ogg** (cel: ~2s) — A massive ceremonial thunderous boom marking a summoning ritual, a deep resonant low-end impact with a faint chanting choir undertone woven through the decay, powerful and dreadful, natural hall-like room tone appropriate to a large stone chamber.
 
 ## Priorytet 4c — UI (4 dźwięki)
 
-- [ ] `U01_phase_banner.ogg` — Short dramatic announcement sting, single low gong hit, 0.3s
-- [ ] `U02_taunt_chime.ogg` — Gentle notification chime, soft and brief, 0.2s
-- [ ] `U04_death_overlay_sting.ogg` — Short somber failure sting, low descending tone, 0.5s
-- [ ] `U07_menu_confirm.ogg` — Simple satisfying UI confirm sound, short and clean, 0.15s
+- [ ] **U01_phase_banner.ogg** (cel: ~0.3s) — A short, dramatic announcement sting, a single low gong strike with a clean immediate attack and a brief natural metallic decay, weighty and ceremonial, minimal natural room tone only.
+- [ ] **U02_taunt_chime.ogg** (cel: ~0.2s) — A gentle, brief notification chime, a soft clean tone with a quick natural decay, unobtrusive and pleasant, dry recording, no reverb.
+- [ ] **U04_death_overlay_sting.ogg** (cel: ~0.5s) — A short, somber failure sting, a low tone descending smoothly in pitch, heavy and final without being harsh, dry recording, no reverb.
+- [ ] **U07_menu_confirm.ogg** (cel: ~0.15s) — A simple, satisfying UI confirmation sound, short and clean with a crisp immediate attack and a quick pleasant decay, neutral and modern, dry recording, no reverb.
 
 ## Priorytet 5 — 🎵 Muzyka (11 utworów/stingerów)
 
-- [ ] `MUS_menu.ogg` — Dark ambient dungeon-synth menu theme, slow and ominous, deep sustained drone, distant faint choir whisper, sparse single piano notes echoing into silence, no percussion, unsettling but restrained, loopable, 60-90 BPM feel
-- [ ] `MUS_room_loop.ogg` — Tense looping dungeon exploration music, low pulsing bass drone, sparse metallic percussion hits at irregular intervals, building unease without a strong beat, dark fantasy boss-room atmosphere, seamless loop, no melody hooks, stays in the background
-- [ ] `MUS_altar.ogg` — Ritualistic dark fantasy music, low chanting drone building in intensity, deep resonant gong hits, growing dissonant choir as the track progresses, climactic and dreadful, designed to build tension toward a summoning, loopable middle section
-- [ ] `MUS_nemorax_battle.ogg` — Intense dark fantasy boss battle music, driving low percussion, aggressive distorted synth bass, orchestral hybrid, relentless but not chaotic, builds and releases in waves, seamless loop, no vocals
-- [ ] `MUS_phase_zwloka.ogg` — Short stuttering musical stinger, notes repeating like a skipping record, glitchy echo, dark fantasy, 10 seconds
-- [ ] `MUS_phase_ciezar.ogg` — Short heavy descending musical stinger, slowing pitch-down effect, crushing weight sensation, deep sub-bass, dark fantasy, 10 seconds
-- [ ] `MUS_phase_glod.ogg` — Short musical stinger with a low guttural growl texture woven in, hungry and predatory feel, dark fantasy, 10 seconds
-- [ ] `MUS_phase_zacmienie.ogg` — Short musical stinger that fades into near-total silence at the end, isolating and cold, dark fantasy, 10 seconds
-- [ ] `MUS_phase_final.ogg` — Short unsettling music box-like melody fragment, childlike but wrong, fading out, dark fantasy, 10 seconds
-- [ ] `MUS_victory.ogg` — Somber victory theme for a dark fantasy game, bittersweet and exhausted rather than triumphant, slow swelling strings, single distant bell, resolves into quiet, no percussion fanfare, 20-30 seconds, does not need to loop
-- [ ] `MUS_defeat.ogg` — Short dark defeat stinger, low dissonant chord hit, descending pitch, hollow reverb tail, 3-5 seconds, no melody
+- [ ] **MUS_menu.ogg** (cel: 25-30s, loop) — A dark ambient dungeon-synth menu theme, slow and deeply ominous, built around a sustained low drone that never fully resolves, a distant faint choir whisper drifting in and out, sparse single piano notes played rarely and left to echo into silence, no percussion and no strong rhythm, restrained and unsettling rather than dramatic, consistent atmosphere throughout with no clear beginning or end, seamlessly loopable.
+- [ ] **MUS_room_loop.ogg** (cel: 25-30s, loop) — Tense dungeon exploration music meant to loop in the background, a low pulsing bass drone that breathes slowly, sparse metallic percussion hits landing at irregular unpredictable intervals, building quiet unease without ever settling into a strong beat or clear melody, dark and atmospheric, consistent throughout with no clear beginning or end, seamlessly loopable.
+- [ ] **MUS_altar.ogg** (cel: 25-30s, loop) — Ritualistic dark fantasy music for a summoning scene, a low chanting drone that steadily builds in intensity, deep resonant gong hits marking key moments, a dissonant choir growing louder and more unsettling as the piece progresses, climactic and dreadful by the end, with a steady, consistent middle section suitable for looping.
+- [ ] **MUS_nemorax_battle.ogg** (cel: 25-30s, loop) — Intense dark fantasy boss battle music, driving low percussion carrying constant forward momentum, an aggressive distorted synth bass layered with hybrid orchestral elements, relentless energy that builds and releases in waves rather than staying flat, no vocals, consistent intensity throughout with no clear beginning or end, seamlessly loopable.
+- [ ] **MUS_phase_zwloka.ogg** (cel: ~10s) — A short musical stinger built around a stuttering, glitchy repetition, a single musical phrase that stumbles and repeats like a skipping record, dark fantasy tone throughout, unsettling and mechanical rather than smooth.
+- [ ] **MUS_phase_ciezar.ogg** (cel: ~10s) — A short, heavy musical stinger dominated by a descending pitch-down effect, deep sub-bass weight that feels like it is slowing and crushing everything beneath it, dark fantasy tone, oppressive and massive.
+- [ ] **MUS_phase_glod.ogg** (cel: ~10s) — A short musical stinger with a low guttural growl texture woven through the instrumentation, a hungry, predatory feel throughout, dark fantasy tone, tense and stalking rather than explosive.
+- [ ] **MUS_phase_zacmienie.ogg** (cel: ~10s) — A short musical stinger that gradually fades into near-total silence by its end, cold and isolating, dark fantasy tone, the sense of light and sound being slowly swallowed away.
+- [ ] **MUS_phase_final.ogg** (cel: ~10s) — A short, unsettling music-box-like melody fragment, simple and childlike on the surface but subtly wrong in its tuning or rhythm, fading out gently by the end, dark fantasy undertone.
+- [ ] **MUS_victory.ogg** (cel: 25-30s) — A somber victory theme for a dark fantasy game, bittersweet and exhausted rather than triumphant, slow swelling strings rising gently without ever becoming a fanfare, a single distant bell tolling once near the end, no percussion, resolving quietly and gently rather than ending abruptly.
+- [ ] **MUS_defeat.ogg** (cel: ~4s) — A short, dark defeat stinger, a single low dissonant chord struck once and left to descend in pitch, a hollow natural decay trailing off, no melody, heavy and final.
 
 ## Priorytet 6 — 🎵 Ambient per pokój (8 pętli)
 
-- [ ] `AMB_room1_vharnokh.ogg` — Deep space-like void ambience, distant echoing whispers, cold and empty, seamless loop
-- [ ] `AMB_room2_mordrath.ogg` — Near-silent muffled ambience, extremely quiet distant murmur, oppressive quiet, seamless loop
-- [ ] `AMB_room3_zharuun.ogg` — Distorted clock ticking ambience, irregular stutter, time feels broken, seamless loop
-- [ ] `AMB_room4_nekravor.ogg` — Heavy oppressive low rumble, crushing weight in the air, deep sub-bass drone, seamless loop
-- [ ] `AMB_room5_thalgor.ogg` — Distant guttural growling ambience, hungry organic undertone, unsettling, seamless loop
-- [ ] `AMB_room6_orryx.ogg` — Dark flickering ambience, occasional whispery fade in and out, cold void, seamless loop
-- [ ] `AMB_altar.ogg` — Ceremonial waiting ambience, faint distant chanting, anticipatory, seamless loop
-- [ ] `AMB_arena_nemorax.ogg` — Massive throne room ambience, deep cavernous reverb, distant ominous rumble, seamless loop
+- [ ] **AMB_room1_vharnokh.ogg** (cel: 25-30s, loop) — A deep, space-like void ambience, vast and cold with an oppressive sense of emptiness, distant echoing whispers drifting faintly in and out, no clear rhythm or melody, consistent throughout with no clear beginning or end, seamlessly loopable.
+- [ ] **AMB_room2_mordrath.ogg** (cel: 25-30s, loop) — A near-silent, heavily muffled ambience, an extremely quiet distant murmur barely audible beneath the silence, oppressive in its quietness rather than its volume, consistent throughout with no clear beginning or end, seamlessly loopable.
+- [ ] **AMB_room3_zharuun.ogg** (cel: 25-30s, loop) — A distorted, broken clock-ticking ambience, an irregular stuttering rhythm that never quite settles into a steady beat, as if time itself is malfunctioning, consistent unsettling texture throughout, seamlessly loopable.
+- [ ] **AMB_room4_nekravor.ogg** (cel: 25-30s, loop) — A heavy, oppressive low rumble, a deep sub-bass drone that feels like enormous crushing weight pressing down on the air itself, slow and unrelenting, consistent throughout with no clear beginning or end, seamlessly loopable.
+- [ ] **AMB_room5_thalgor.ogg** (cel: 25-30s, loop) — A distant, guttural growling ambience, a low organic undertone that sounds hungry and alive, unsettling and predatory without ever resolving into a clear creature sound, consistent throughout, seamlessly loopable.
+- [ ] **AMB_room6_orryx.ogg** (cel: 25-30s, loop) — A dark, flickering ambience with a cold void-like quality, occasional whispery textures fading in and out unpredictably, sparse and unsettling rather than constant, consistent overall throughout, seamlessly loopable.
+- [ ] **AMB_altar.ogg** (cel: 25-30s, loop) — A ceremonial waiting ambience, faint distant chanting drifting in and out just at the edge of hearing, anticipatory and still, consistent throughout with no clear beginning or end, seamlessly loopable.
+- [ ] **AMB_arena_nemorax.ogg** (cel: 25-30s, loop) — A massive throne room ambience, a deep cavernous natural reverb tail suggesting an enormous stone space, a distant ominous rumble underlying everything, consistent throughout with no clear beginning or end, seamlessly loopable.
 
 ---
 
 **Razem: 82 generacje.** Po ElevenLabs pamiętaj o Kroku 4 z `AUDIO_KATALOG.md`
-(przycięcie, pętla/crossfade, normalizacja) zanim wrzucisz do Godota.
+(przycięcie do "Cel", pętla/crossfade jeśli trzeba, normalizacja głośności)
+zanim wrzucisz do Godota.

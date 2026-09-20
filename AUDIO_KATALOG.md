@@ -10,6 +10,12 @@ dopiąć `AudioStreamPlayer`/`AudioStreamPlayer2D`.
 Status: pełny katalog gotowy, czeka na wygenerowanie/znalezienie plików i
 podpięcie w kodzie.
 
+**Do faktycznego wklejania w ElevenLabs używaj [ELEVENLABS_KOLEJKA.md](ELEVENLABS_KOLEJKA.md)**
+— ma dużo bardziej szczegółowe, dopracowane pod ten konkretny generator
+opisy (fizyka dźwięku zamiast ogólników, "dry/no reverb" tam gdzie trzeba,
+brak mylącej liczby sekund w tekście). Tabele poniżej to skrócony
+przegląd + lokalizacja w kodzie, nie kopiuj z nich promptów bezpośrednio.
+
 ---
 
 ## 0. Jak to wszystko skompletować — konkretny plan działania
