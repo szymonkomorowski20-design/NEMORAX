@@ -148,7 +148,8 @@ func _finish_victory() -> void:
 	# końcowy, bez pętli z powrotem do pokoju 1.
 	ui.show_overlay(
 		"Zwycięstwo\n\nPodejście: %d\nUkończeń: %d\nCzas walki: %s\n\nEscape, aby wyjść" %
-		[_attempts(), wins, _format_time(_battle_time)]
+		[_attempts(), wins, _format_time(_battle_time)],
+		"victory"
 	)
 	_game_over_kind = "victory"
 
@@ -195,4 +196,3 @@ func _save_progress() -> void:
 	var data := {"deaths": deaths, "attempts": _attempts(), "wins": wins}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(data))
-

@@ -9,11 +9,20 @@ class_name GameUI
 const ARENA_LEFT := 90.0
 const ARENA_WIDTH := 1100.0
 
-# Stamina/mana nie mają koloru w palecie z sekcji 2 (to zasoby, nie zagrożenia
-# ani ciało gracza) — świadomie nowe, osobne odcienie, żeby niczego nie mylić.
-const STAMINA_COLOR := Color("#E8A33D")
-const MANA_COLOR := Color("#4FA8E8")
-const HEAL_COLOR := Color("#6FCF7A")
+const TEX_PLAYER_BAR := preload("res://assets/sprites/ui/player_health_bar.png")
+const TEX_STAMINA_BAR := preload("res://assets/sprites/ui/stamina_bar.png")
+const TEX_MANA_BAR := preload("res://assets/sprites/ui/mana_bar.png")
+const TEX_BOSS_BAR := preload("res://assets/sprites/ui/boss_health_bar.png")
+const TEX_DASH_ICON := preload("res://assets/sprites/ui/dash_icon.png")
+const TEX_LOCK_CROSS := preload("res://assets/sprites/ui/lock_cross.png")
+const TEX_HEAL_ICON := preload("res://assets/sprites/ui/heal_icon.png")
+const TEX_DEATH_FRAME := preload("res://assets/sprites/end_screens/death_screen_frame.png")
+const TEX_VICTORY_FRAME := preload("res://assets/sprites/end_screens/victory_screen_frame.png")
+
+# Paski "under" (tło/tor) to ta sama grafika co "fill", tylko przyciemniona
+# modulate — jeden wygenerowany obrazek na pasek, nie osobna para pusty/pełny
+# (patrz PROMPTY_FINALNE_WSZYSTKO.md sekcja E).
+const UNDER_MODULATE := Color(1.0, 1.0, 1.0, 0.25)
 
 @export var player_bar_size: Vector2 = Vector2(200.0, 20.0)
 @export var resource_bar_size: Vector2 = Vector2(200.0, 8.0)
@@ -37,11 +46,83 @@ var _center_message_font_size: int = 32
 var _overlay_text: String = ""
 var _overlay_active: bool = false
 
+@onready var player_bar_under: TextureProgressBar = $PlayerBarUnder
+@onready var player_bar: TextureProgressBar = $PlayerBar
+@onready var stamina_bar_under: TextureProgressBar = $StaminaBarUnder
+@onready var stamina_bar: TextureProgressBar = $StaminaBar
+@onready var mana_bar_under: TextureProgressBar = $ManaBarUnder
+@onready var mana_bar: TextureProgressBar = $ManaBar
+@onready var boss_bar_under: TextureProgressBar = $BossBarUnder
+@onready var boss_bar: TextureProgressBar = $BossBar
+@onready var dash_icon: TextureRect = $DashIcon
+@onready var dash_lock_cross: TextureRect = $DashLockCross
+@onready var heal_icon_under: TextureProgressBar = $HealIconUnder
+@onready var heal_icon: TextureProgressBar = $HealIcon
+@onready var overlay_frame: TextureRect = $OverlayFrame
+
+func _ready() -> void:
+	# Białe modulate na fill = kolor bierze się WYŁĄCZNIE z samej grafiki (już
+	# wygenerowanej we właściwym kolorze) — poza paskiem bossa, który celowo
+	# powstał neutralny biało-złoty, żeby dało się go zabarwiać dynamicznie
+	# per faza (patrz PROMPTY_FINALNE_WSZYSTKO.md E2).
+	var player_pos := Vector2(30.0, size.y - 50.0)
+	_setup_bar(player_bar_under, player_bar, TEX_PLAYER_BAR, player_pos, player_bar_size, Color.WHITE)
+
+	var stamina_pos := player_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
+	_setup_bar(stamina_bar_under, stamina_bar, TEX_STAMINA_BAR, stamina_pos, resource_bar_size, Color.WHITE)
+
+	var mana_pos := stamina_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
+	_setup_bar(mana_bar_under, mana_bar, TEX_MANA_BAR, mana_pos, resource_bar_size, Color.WHITE)
+
+	var boss_pos := Vector2(ARENA_LEFT, 20.0)
+	_setup_bar(boss_bar_under, boss_bar, TEX_BOSS_BAR, boss_pos, Vector2(ARENA_WIDTH, boss_bar_height), Color.WHITE)
+
+	var dash_pos := Vector2(30.0 + player_bar_size.x + 16.0, size.y - 50.0)
+	dash_icon.texture = TEX_DASH_ICON
+	dash_icon.position = dash_pos
+	dash_icon.size = Vector2(dash_icon_size, dash_icon_size)
+	dash_lock_cross.texture = TEX_LOCK_CROSS
+	dash_lock_cross.position = dash_pos
+	dash_lock_cross.size = Vector2(dash_icon_size, dash_icon_size)
+
+	var heal_pos := dash_pos + Vector2(dash_icon_size + 10.0, 0.0)
+	_setup_radial_icon(heal_icon_under, TEX_HEAL_ICON, heal_pos, heal_icon_size, UNDER_MODULATE)
+	_setup_radial_icon(heal_icon, TEX_HEAL_ICON, heal_pos, heal_icon_size, Color.WHITE)
+	heal_icon_under.value = 100.0
+
+	overlay_frame.position = Vector2.ZERO
+	overlay_frame.size = size
+	overlay_frame.stretch_mode = TextureRect.STRETCH_SCALE
+	overlay_frame.visible = false
+
+func _setup_bar(under: TextureProgressBar, fill: TextureProgressBar, tex: Texture2D, pos: Vector2, bar_size: Vector2, tint: Color) -> void:
+	for bar in [under, fill]:
+		bar.texture_progress = tex
+		bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		bar.position = pos
+		bar.size = bar_size
+		bar.min_value = 0.0
+		bar.max_value = 100.0
+	under.modulate = UNDER_MODULATE
+	under.value = 100.0
+	fill.modulate = tint
+
+func _setup_radial_icon(bar: TextureProgressBar, tex: Texture2D, pos: Vector2, icon_size: float, tint: Color) -> void:
+	bar.texture_progress = tex
+	bar.fill_mode = TextureProgressBar.FILL_CLOCKWISE
+	bar.radial_initial_angle = -90.0
+	bar.position = pos
+	bar.size = Vector2(icon_size, icon_size)
+	bar.min_value = 0.0
+	bar.max_value = 100.0
+	bar.modulate = tint
+
 func _process(delta: float) -> void:
 	if _center_message_timer > 0.0:
 		_center_message_timer -= delta
 		if _center_message_timer <= 0.0:
 			_center_message = ""
+	_update_bars()
 	queue_redraw()
 
 func show_form_name(text: String) -> void:
@@ -54,89 +135,50 @@ func show_taunt(text: String, duration: float) -> void:
 	_center_message_timer = duration
 	_center_message_font_size = taunt_font_size
 
-func show_overlay(text: String) -> void:
+func show_overlay(text: String, kind: String = "death") -> void:
 	_overlay_text = text
 	_overlay_active = true
+	overlay_frame.texture = TEX_VICTORY_FRAME if kind == "victory" else TEX_DEATH_FRAME
+	overlay_frame.visible = true
 
 func hide_overlay() -> void:
 	_overlay_active = false
+	overlay_frame.visible = false
+
+## Zastępuje dawne _draw_player_bar/_draw_resource_bars/_draw_boss_bar/
+## _draw_dash_icon/_draw_heal_icon — teraz to prawdziwe TextureProgressBar/
+## TextureRect, więc tylko aktualizujemy value/visible/modulate co klatkę.
+func _update_bars() -> void:
+	var show_bars := not hide_all and not _overlay_active
+	for node in [player_bar_under, player_bar, stamina_bar_under, stamina_bar,
+			mana_bar_under, mana_bar, dash_icon, dash_lock_cross, heal_icon_under, heal_icon]:
+		node.visible = show_bars
+	boss_bar_under.visible = show_bars and boss != null
+	boss_bar.visible = show_bars and boss != null
+
+	if not show_bars:
+		return
+
+	if player != null:
+		player_bar.value = clamp(player.health / player.max_health, 0.0, 1.0) * 100.0
+		stamina_bar.value = clamp(player.stamina / player.max_stamina, 0.0, 1.0) * 100.0
+		mana_bar.value = clamp(player.mana / player.max_mana, 0.0, 1.0) * 100.0
+
+		dash_icon.modulate = Color(1.0, 1.0, 1.0, 0.35 if player.is_dash_on_cooldown() else 1.0)
+		dash_lock_cross.visible = player.is_dash_locked_by_void()
+
+		var heal_ratio: float = clamp(player.heal_charge_ratio(), 0.0, 1.0)
+		heal_icon.value = heal_ratio * 100.0
+		heal_icon.modulate = Color(1.0, 1.0, 1.0, 1.0 if player.is_heal_ready() else 0.7)
+
+	if boss != null:
+		boss_bar.value = clamp(boss.health / boss.max_health, 0.0, 1.0) * 100.0
+		boss_bar.modulate = boss.current_color
 
 func _draw() -> void:
 	if _overlay_active:
 		_draw_overlay()
-		return
-	# hide_all (faza finałowa) chowa paski i ikonę, ale NIE komunikat na środku —
-	# to nim właśnie pokazujemy 4-sekundowe pytanie finałowe (sekcja 8).
-	if not hide_all:
-		_draw_player_bar()
-		_draw_resource_bars()
-		_draw_boss_bar()
-		_draw_dash_icon()
-		_draw_heal_icon()
 	_draw_center_message()
-
-func _draw_player_bar() -> void:
-	if player == null:
-		return
-	var pos := Vector2(30.0, size.y - 50.0)
-	var ratio: float = clamp(player.health / player.max_health, 0.0, 1.0)
-	draw_rect(Rect2(pos, player_bar_size), Palette.ARENA_WALL, true)
-	draw_rect(Rect2(pos, Vector2(player_bar_size.x * ratio, player_bar_size.y)), Palette.PLAYER_BODY, true)
-	draw_rect(Rect2(pos, player_bar_size), Palette.ARENA_FLOOR, false, 2.0)
-
-func _draw_resource_bars() -> void:
-	if player == null:
-		return
-	var stamina_pos := Vector2(30.0, size.y - 50.0 - resource_bar_gap - resource_bar_size.y)
-	_draw_resource_bar(stamina_pos, player.stamina / player.max_stamina, STAMINA_COLOR)
-	var mana_pos := stamina_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
-	_draw_resource_bar(mana_pos, player.mana / player.max_mana, MANA_COLOR)
-
-func _draw_resource_bar(pos: Vector2, ratio: float, color: Color) -> void:
-	ratio = clamp(ratio, 0.0, 1.0)
-	draw_rect(Rect2(pos, resource_bar_size), Palette.ARENA_WALL, true)
-	draw_rect(Rect2(pos, Vector2(resource_bar_size.x * ratio, resource_bar_size.y)), color, true)
-	draw_rect(Rect2(pos, resource_bar_size), Palette.ARENA_FLOOR, false, 1.0)
-
-func _draw_boss_bar() -> void:
-	if boss == null:
-		return
-	var pos := Vector2(ARENA_LEFT, 20.0)
-	var boss_size := Vector2(ARENA_WIDTH, boss_bar_height)
-	var ratio: float = clamp(boss.health / boss.max_health, 0.0, 1.0)
-	draw_rect(Rect2(pos, boss_size), Palette.ARENA_WALL, true)
-	draw_rect(Rect2(pos, Vector2(boss_size.x * ratio, boss_size.y)), boss.current_color, true)
-	draw_rect(Rect2(pos, boss_size), Palette.ARENA_FLOOR, false, 2.0)
-
-func _draw_dash_icon() -> void:
-	if player == null:
-		return
-	var pos := Vector2(30.0 + player_bar_size.x + 16.0, size.y - 50.0)
-	var rect := Rect2(pos, Vector2(dash_icon_size, dash_icon_size))
-	var color := Palette.PLAYER_BODY
-	var alpha := 1.0
-	if player.is_dash_on_cooldown():
-		alpha = 0.35
-	draw_rect(rect, Color(color, alpha), true)
-	if player.is_dash_locked_by_void():
-		# Blokada Zęba Zera: ikona przekreślona (sekcja 5), inaczej niż zwykły cooldown.
-		draw_line(rect.position, rect.position + rect.size, Palette.HIT_FLASH, 3.0)
-		draw_line(rect.position + Vector2(rect.size.x, 0.0), rect.position + Vector2(0.0, rect.size.y), Palette.HIT_FLASH, 3.0)
-
-## Leczenie (E) — pierścień wypełnia się z każdym trafieniem wroga, w pełni
-## jasny i wypełniony, gdy gotowy do użycia (sekcja o leczeniu, poza dokumentem).
-func _draw_heal_icon() -> void:
-	if player == null:
-		return
-	var pos := Vector2(30.0 + player_bar_size.x + 16.0 + dash_icon_size + 10.0, size.y - 50.0)
-	var center := pos + Vector2(heal_icon_size, heal_icon_size) * 0.5
-	var r := heal_icon_size * 0.5
-	var ratio: float = clamp(player.heal_charge_ratio(), 0.0, 1.0)
-	draw_arc(center, r, 0.0, TAU, 20, Color(HEAL_COLOR, 0.3), 2.0)
-	if ratio > 0.0:
-		draw_arc(center, r, -PI * 0.5, -PI * 0.5 + TAU * ratio, 20, HEAL_COLOR, 3.0)
-	if player.is_heal_ready():
-		draw_circle(center, r * 0.5, HEAL_COLOR)
 
 func _draw_center_message() -> void:
 	if _center_message == "":
