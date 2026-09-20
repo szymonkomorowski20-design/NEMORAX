@@ -128,17 +128,18 @@ gracza z 50% przezroczystością i żółtym konturem, robione w silniku.)*
   > from deep fissures, thick low fog clinging near the base. No characters,
   > no text, no watermark, moody and oppressive.
 
-- [ ] **D3. Mordrath — podłoga**
+- [ ] **D3. Mordrath — podłoga** (POPRAWKA — stara wersja miała pomarańczowy
+  akcent, dostarczona grafika postaci jest fioletowa, patrz `autoload/palette.gd`)
   > Seamless tileable top-down dungeon floor texture: dark leathery padded
   > panels stitched together with thick visible black seams, slightly spongy
-  > and sound-deadening in appearance, faint orange (#FF8A3D) veins pulsing
+  > and sound-deadening in appearance, faint violet (#9B4DFF) veins pulsing
   > faintly beneath the surface like breathing skin. Viewed from directly
   > above, no characters, no text, no watermark, moody and oppressive.
 
-- [ ] **D4. Mordrath — ściana**
+- [ ] **D4. Mordrath — ściana** (POPRAWKA — jw.)
   > Seamless tileable dungeon wall texture: thick quilted black leather-like
   > padding covering the stone beneath, heavy stitched seams, faint pulsing
-  > orange (#FF8A3D) veins visible under the padding, utterly muffling and
+  > violet (#9B4DFF) veins visible under the padding, utterly muffling and
   > claustrophobic. No characters, no text, no watermark, moody and oppressive.
 
 - [ ] **D5. Zha'Ruun — podłoga**
@@ -169,18 +170,20 @@ gracza z 50% przezroczystością i żółtym konturem, robione w silniku.)*
   > (#6C63FF) light. No characters, no text, no watermark, moody and
   > oppressive.
 
-- [ ] **D9. Thal'Gor — podłoga**
+- [ ] **D9. Thal'Gor — podłoga** (POPRAWKA — stara wersja miała zielony
+  akcent, dostarczona grafika postaci wychodzi na czerwoną, patrz
+  `autoload/palette.gd`)
   > Seamless tileable top-down organic floor texture: fleshy, faintly
-  > pulsing membrane-like surface, thin sickly green (#7ED957) veins running
-  > just beneath a translucent skin layer, damp and unsettling. Viewed from
-  > directly above, no characters, no text, no watermark, moody and
-  > oppressive.
+  > pulsing membrane-like surface, thin veins of dark red (#E8524A) blood
+  > visible just beneath a translucent skin layer, damp and unsettling.
+  > Viewed from directly above, no characters, no text, no watermark, moody
+  > and oppressive.
 
-- [ ] **D10. Thal'Gor — ściana**
+- [ ] **D10. Thal'Gor — ściana** (POPRAWKA — jw.)
   > Seamless tileable organic wall texture: ribbed, muscular throat-like
   > walls gently pulsing, thin taut membrane stretched between rib-like
-  > support beams, glowing sickly green (#7ED957) veins tracing along the
-  > ridges. No characters, no text, no watermark, moody and oppressive.
+  > support beams, glowing dark red (#E8524A) veins of blood tracing along
+  > the ridges. No characters, no text, no watermark, moody and oppressive.
 
 - [ ] **D11. Orryx — podłoga**
   > Seamless tileable top-down floor texture: near-total matte black surface
@@ -189,18 +192,21 @@ gracza z 50% przezroczystością i żółtym konturem, robione w silniku.)*
   > darkness. Viewed from directly above, no characters, no text, no
   > watermark.
 
-- [ ] **D12. Orryx — ściana**
+- [ ] **D12. Orryx — ściana** (POPRAWKA — stara wersja miała ciepły beżowy
+  akcent, dostarczona grafika postaci wychodzi na chłodny błękit, patrz
+  `autoload/palette.gd`)
   > Seamless tileable wall texture: matte black stone that seems to swallow
   > light entirely, edges and corners barely distinguishable from one
-  > another, an extremely faint pale (#C9C2B4) outline hinting at the wall's
-  > shape. No characters, no text, no watermark.
+  > another, an extremely faint cool blue-gray (#8C9AC2) outline hinting at
+  > the wall's shape. No characters, no text, no watermark.
 
-- [ ] **D13. Ołtarz — podłoga**
+- [ ] **D13. Ołtarz — podłoga** (POPRAWKA — 3 z 6 kolorów się zmieniły,
+  patrz `autoload/palette.gd`)
   > Seamless tileable top-down floor texture: smooth ancient ritual stone
   > worn pale and glassy by centuries of use, thin carved channel-grooves
   > radiating from the center outward toward six hexagonal sockets, faint
-  > multicolored residual glow (#F0447A #FF8A3D #C44FD6 #6C63FF #7ED957
-  > #C9C2B4) in the grooves. Viewed from directly above, no characters, no
+  > multicolored residual glow (#F0447A #9B4DFF #C44FD6 #6C63FF #E8524A
+  > #8C9AC2) in the grooves. Viewed from directly above, no characters, no
   > text, no watermark, moody and oppressive.
 
 - [ ] **D14. Ołtarz — ściana**

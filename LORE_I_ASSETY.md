@@ -83,7 +83,7 @@ ryk, krótkie "ładowanie" przed potężnym ciosem.
 fragmenty geometrii wiszące w powietrzu, mgła. **Fragment duszy**: nieforemna,
 pulsująca kropla światła w kolorze `#F0447A`.
 
-### 2.2 MORDRATH BEZ-WYMIARU (`#FF8A3D`)
+### 2.2 MORDRATH BEZ-WYMIARU (`#9B4DFF` — poprawione po dostarczonej grafice, było `#FF8A3D`)
 
 **Sylwetka**: przeciwieństwo Vhar'Nokha — wysoki, chudy, nienaturalnie rozciągnięty.
 
@@ -105,7 +105,7 @@ wystarczy, nie trzeba komplikować.
 > single enormous eye in the center, extremely long arms with six-fingered
 > hands nearly touching the ground, a slightly hunched spine, thin legs ending
 > in three claws. Its body is not flesh but black warped matter wrapped around
-> a skeleton, faintly glowing orange (#FF8A3D) from within cracks. Leaves
+> a skeleton, faintly glowing violet (#9B4DFF) from within cracks. Leaves
 > faint translucent space-glitch particle trails behind its limbs when moving.
 > [+ przewodnik stylu z sekcji 0]
 
@@ -170,7 +170,7 @@ przypominająca kształtem miecz.
 jakby przyciągane do centrum. **Fragment duszy**: mały, bardzo "ciężki"
 wyglądający kamień, wokół niego unoszący się pył wciągany do środka.
 
-### 2.5 THAL’GOR, PĘKNIĘTY POMIĘDZY ŚWIATAMI (`#7ED957`)
+### 2.5 THAL’GOR, PĘKNIĘTY POMIĘDZY ŚWIATAMI (`#E8524A` — poprawione po dostarczonej grafice, było `#7ED957`)
 
 **Sylwetka**: najbardziej dynamiczny z szóstki — smukły humanoid z ogromnymi
 skrzydłami.
@@ -190,8 +190,8 @@ czteroramienny krzyż.
 > A slender (~2.5m) humanoid with an extremely narrow waist, long arms and
 > legs, a small head, and four wings that are each completely different: one
 > made of bone, one membranous like a bat's, one made of solidified black
-> energy, one that looks like a fragment of starry cosmos. Faint sickly green
-> (#7ED957) glowing veins run along its narrow torso. From directly above, the
+> energy, one that looks like a fragment of starry cosmos. Faint dark red
+> (#E8524A) glowing veins run along its narrow torso. From directly above, the
 > four spread wings should read as a large four-armed cross shape.
 > [+ przewodnik stylu z sekcji 0]
 
@@ -199,7 +199,7 @@ czteroramienny krzyż.
 otwory/usta w murach. **Fragment duszy**: mały, pulsujący jak serce fragment,
 otoczony drobnymi zębami.
 
-### 2.6 ORRYX, CIEŃ-NICOŚCI (`#C9C2B4`)
+### 2.6 ORRYX, CIEŃ-NICOŚCI (`#8C9AC2` — poprawione po dostarczonej grafice, było `#C9C2B4`)
 
 **Sylwetka**: najbardziej nietypowy z całej szóstki — bez normalnych nóg.
 
@@ -220,7 +220,7 @@ lekkim opóźnieniem/własną trajektorią.
 > its core, from which roughly eight long limbs extend and touch the ground —
 > each limb looking different, like a root, a tentacle, a bone, or pure
 > shadow. A tiny, almost fully hidden head shows only two small white dots as
-> eyes. Faintly rimmed in pale gray-white (#C9C2B4) light.
+> eyes. Faintly rimmed in cool blue-gray (#8C9AC2) light.
 > [+ przewodnik stylu z sekcji 0]
 
 **Pokój**: całkowicie ciemna komnata, jedyne źródło światła to sama istota
@@ -236,8 +236,8 @@ dysk z cienką jasną obwódką, jak miniaturowe zaćmienie.
 - **Prompt**:
   > A circular ancient altar chamber, six empty glowing sockets arranged in a
   > ring around a central pedestal, each socket faintly colored to match a
-  > different soul fragment (#F0447A, #FF8A3D, #C44FD6, #6C63FF, #7ED957,
-  > #C9C2B4), dark stone architecture, converging beams of light aiming at the
+  > different soul fragment (#F0447A, #9B4DFF, #C44FD6, #6C63FF, #E8524A,
+  > #8C9AC2), dark stone architecture, converging beams of light aiming at the
   > center from all six sockets.
   > [+ przewodnik stylu z sekcji 0]
 - **Rytuał**: gracz wrzuca 6 fragmentów w gniazda, światła się łączą w

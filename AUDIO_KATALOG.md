@@ -209,11 +209,11 @@ grających RÓWNOLEGLE z 1.4 przy zmianie fazy (`_on_boss_phase_changed`,
 
 | Faza | Kolor | Charakter warstwy | Prompt |
 |---|---|---|---|
-| Cisza | `#FF8A3D` | i tak wyciszona przez mute — pomiń | — |
+| Cisza | `#9B4DFF` | i tak wyciszona przez mute — pomiń | — |
 | Zwłoka | `#C44FD6` | stuttering, echo repeat | `Short stuttering musical stinger, notes repeating like a skipping record, glitchy echo, dark fantasy, 10 seconds` |
 | Ciężar | `#6C63FF` | ciężki, zwalniający | `Short heavy descending musical stinger, slowing pitch-down effect, crushing weight sensation, deep sub-bass, dark fantasy, 10 seconds` |
-| Głód | `#7ED957` | głodne, warczące | `Short musical stinger with a low guttural growl texture woven in, hungry and predatory feel, dark fantasy, 10 seconds` |
-| Zaćmienie | `#C9C2B4` | wybrzmiewające w ciszę | `Short musical stinger that fades into near-total silence at the end, isolating and cold, dark fantasy, 10 seconds` |
+| Głód | `#E8524A` | głodne, warczące | `Short musical stinger with a low guttural growl texture woven in, hungry and predatory feel, dark fantasy, 10 seconds` |
+| Zaćmienie | `#8C9AC2` | wybrzmiewające w ciszę | `Short musical stinger that fades into near-total silence at the end, isolating and cold, dark fantasy, 10 seconds` |
 | Finał (mała forma) | — | wybrzmienie do cichej, złowrogiej pointy | `Short unsettling music box-like melody fragment, childlike but wrong, fading out, dark fantasy, 10 seconds` |
 
 **Szukaj też**: "glitch stinger", "descending bass stinger", "growl music transition", "eerie music box".
@@ -293,7 +293,7 @@ per wcielenie zamiast nagrywać 6x to samo od zera.
   > Sharp teleport blink, quick displacement pop with a brief static crackle, 0.2s
   **Szukaj też**: "teleport blink sfx", "short static pop".
 
-### Mordrath (`cisza_incarnation.gd`, `#FF8A3D`, pokój 2 — "cisza")
+### Mordrath (`cisza_incarnation.gd`, `#9B4DFF`, pokój 2 — "cisza")
 - **Wariant tłumiony wszystkich dźwięków I1-I5** — ta istota tematycznie
   powinna brzmieć "przez watę"/przytłumiona nawet PRZED fazą ciszy Nemoraksa.
   > Muffled, underwater-like version of a magical burst, dampened high
@@ -311,12 +311,12 @@ per wcielenie zamiast nagrywać 6x to samo od zera.
   > Heavy crushing gravitational impact, deep sub-bass slam, oppressive weight, 0.4s
   **Szukaj też**: "gravity slam bass hit", "heavy crush impact".
 
-### Thal'Gor (`glod_incarnation.gd`, `#7ED957`, pokój 5 — "głód")
+### Thal'Gor (`glod_incarnation.gd`, `#E8524A`, pokój 5 — "głód")
 - **Ugryzienie/lifesteal** (`glod_incarnation.gd:33-44`, zysk zdrowia w linii 44) — jedyne wcielenie z leczeniem się kosztem gracza.
   > Wet visceral bite sound followed by a draining slurp, predatory, 0.3s
   **Szukaj też**: "creature bite sfx", "life drain sound".
 
-### Orryx (`zacmienie_incarnation.gd`, `#C9C2B4`, pokój 6 — "zaćmienie")
+### Orryx (`zacmienie_incarnation.gd`, `#8C9AC2`, pokój 6 — "zaćmienie")
 - **Zanik (vanish)** (`zacmienie_incarnation.gd:27-28`, `40`).
   > Fading vanish whoosh, dissolving into silence, ghostly, 0.3s
 - **Powrót (reappear)** (`zacmienie_incarnation.gd:34`, `42`).

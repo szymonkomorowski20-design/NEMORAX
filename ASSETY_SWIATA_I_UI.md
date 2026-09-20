@@ -28,7 +28,8 @@ Status: pełne opisy gotowe, czekają na wygenerowanie.
 
 Paleta: tło `#1A1026`, podłoga `#2A1B3D`, ściany `#3E2A57`, gracz `#5BE0C8`,
 obrażenia/zagrożenie `#FFC857`, błysk `#FFFFFF`. Kolory wcieleń: `#F0447A`
-`#FF8A3D` `#C44FD6` `#6C63FF` `#7ED957` `#C9C2B4`.
+`#9B4DFF` `#C44FD6` `#6C63FF` `#E8524A` `#8C9AC2` (Mordrath/Thal'Gor/Orryx
+poprawione po dostarczonej grafice — patrz `autoload/palette.gd`).
 
 ---
 
@@ -148,17 +149,19 @@ gdy coś wygnało Vhar'Nokha do tego wymiaru.
 
 ### 4.2 Pokój Mordratha — Komnata Bez Echa
 Całkowicie wyciszona komnata, jakby dźwięk sam bał się w niej istnieć.
+**POPRAWKA**: dostarczona grafika Mordratha jest fioletowa, nie pomarańczowa
+— zmienione w kodzie (`autoload/palette.gd`), poniższe prompty już zaktualizowane.
 
 **Podłoga**:
 > Seamless tileable top-down dungeon floor texture: dark leathery padded
 > panels stitched together with thick visible black seams, slightly spongy
-> and sound-deadening in appearance, faint orange (#FF8A3D) veins pulsing
+> and sound-deadening in appearance, faint violet (#9B4DFF) veins pulsing
 > faintly beneath the surface like breathing skin. [+ styl otoczenia]
 
 **Ściana**:
 > Seamless tileable dungeon wall texture: thick quilted black leather-like
 > padding covering the stone beneath, heavy stitched seams, faint pulsing
-> orange (#FF8A3D) veins visible under the padding, utterly muffling and
+> violet (#9B4DFF) veins visible under the padding, utterly muffling and
 > claustrophobic. [+ styl otoczenia]
 
 ### 4.3 Pokój Zha’Ruuna — Sala Złamanych Zegarów
@@ -195,21 +198,26 @@ ciężarem — dosłowne echo Nekravora.
 ### 4.5 Pokój Thal’Gora — Gardziel
 Organiczny tunel, jakby gracz wchodził w żywy, pulsujący przełyk czegoś
 ogromnego.
+**POPRAWKA**: dostarczona grafika Thal'Gora wychodzi na czerwoną, nie zieloną
+— zmienione w kodzie (`autoload/palette.gd`), poniższe prompty już zaktualizowane.
 
 **Podłoga**:
 > Seamless tileable top-down organic floor texture: fleshy, faintly pulsing
-> membrane-like surface, thin sickly green (#7ED957) veins running just
+> membrane-like surface, thin veins of dark red (#E8524A) blood visible just
 > beneath a translucent skin layer, damp and unsettling. [+ styl otoczenia]
 
 **Ściana**:
 > Seamless tileable organic wall texture: ribbed, muscular throat-like walls
 > gently pulsing, thin taut membrane stretched between rib-like support
-> beams, glowing sickly green (#7ED957) veins tracing along the ridges.
+> beams, glowing dark red (#E8524A) veins of blood tracing along the ridges.
 > [+ styl otoczenia]
 
 ### 4.6 Pokój Orryxa — Studnia Ciemności
 Brak własnego oświetlenia — jedynym źródłem światła w tym starciu jest sam
 Orryx.
+**POPRAWKA**: dostarczona grafika Orryxa wychodzi na chłodny błękit, nie
+ciepły beż — zmienione w kodzie (`autoload/palette.gd`), poniższy prompt
+ściany już zaktualizowany.
 
 **Podłoga**:
 > Seamless tileable top-down floor texture: near-total matte black surface
@@ -220,8 +228,8 @@ Orryx.
 **Ściana**:
 > Seamless tileable wall texture: matte black stone that seems to swallow
 > light entirely, edges and corners barely distinguishable from one another,
-> an extremely faint pale (#C9C2B4) outline hinting at the wall's shape.
-> [+ styl otoczenia]
+> an extremely faint cool blue-gray (#8C9AC2) outline hinting at the wall's
+> shape. [+ styl otoczenia]
 
 ### 4.7 Ołtarz — Sala Sześciu Gniazd
 Okrągła, wygładzona wiekami rytuału komnata — jedyny pokój bez wroga, tylko z
@@ -231,7 +239,7 @@ napięciem oczekiwania.
 > Seamless tileable top-down floor texture: smooth ancient ritual stone worn
 > pale and glassy by centuries of use, thin carved channel-grooves radiating
 > from the center outward toward six hexagonal sockets, faint multicolored
-> residual glow (#F0447A #FF8A3D #C44FD6 #6C63FF #7ED957 #C9C2B4) in the
+> residual glow (#F0447A #9B4DFF #C44FD6 #6C63FF #E8524A #8C9AC2) in the
 > grooves. [+ styl otoczenia]
 
 **Ściana**:
