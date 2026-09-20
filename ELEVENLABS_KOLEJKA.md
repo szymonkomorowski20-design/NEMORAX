@@ -31,26 +31,26 @@ Jeśli w interfejsie jest przełącznik **"Loop"** — włącz go przy WSZYSTKIC
 pozycjach 🎵, model sam postara się o zgodne zapętlenie.
 
 ## Status po przejrzeniu "400 Sounds Pack"
-17 pozycji oznaczonych **✅ ZNALEZIONE** — skopiowane i przemianowane wg
-konwencji w `C:\Users\gerwald\Desktop\dzwięki gra\NEMORAX_wybrane\`, gotowe
-do wrzucenia do Godota bez generowania. 8 pozycji oznaczonych **🔊 sprawdź
-kandydata** ma podobny plik w paczce w folderze `_do_przesluchania`, ale
-nazwa pliku nie daje pewności bez odsłuchu — przesłuchaj i albo przenieś do
-właściwego podfolderu z nazwą z konwencji, albo generuj normalnie, jeśli nie
-pasuje. Ten pakiet jest ogólny/casualowy (karty, retro 8-bit, match-3), więc
-NIE pokrywa niczego związanego z magią/potworami/atmosferą — cała reszta
-(Nemorax, unikalne umiejętności wcieleń, ambient, prawdziwa muzyka) i tak
-wymaga generowania.
+25 pozycji oznaczonych **✅ ZNALEZIONE** — skopiowane, przesłuchane,
+zatwierdzone i przemianowane wg konwencji w
+`C:\Users\gerwald\Desktop\dzwięki gra\NEMORAX_wybrane\`, gotowe do
+wrzucenia do Godota bez generowania. Zostały jeszcze **P20_player_hurt** i
+**P21_player_death** — w `_do_przesluchania` czeka 11 plików
+`man_0.wav`...`man_10.wav`, trzeba wybrać jeden na ból i jeden (inny) na
+śmierć, i przenieść do `02_player_sfx` pod właściwą nazwą. Ten pakiet jest
+ogólny/casualowy (karty, retro 8-bit, match-3), więc NIE pokrywa niczego
+związanego z magią/potworami/atmosferą — cała reszta (Nemorax, unikalne
+umiejętności wcieleń, ambient, prawdziwa muzyka) i tak wymaga generowania.
 
 ---
 
 ## Priorytet 1 — Gracz (20 dźwięków)
 
 - [x] **P01_dash_start.ogg** ✅ ZNALEZIONE (`Other/whoosh_1.wav` z 400 Sounds Pack) (cel: ~0.3s) — A very short, sharp whoosh of displaced air as a lightweight figure bursts forward at high speed, quick rising pitch sweep from low to high, crisp and energetic with almost no tail, dry recording with no reverb or room tone.
-- [ ] **P02_dash_denied.ogg** 🔊 sprawdź kandydata `UI/sci_fi_disallow.wav` w `_do_przesluchania` (cel: ~0.15s) — A very short, dull low-pitched electronic blip signaling a blocked action, flat and unresonant like a muted rubber tap, instant attack with no ring or sustain, dry and close, no reverb.
-- [ ] **P03_dash_void_locked.ogg** 🔊 sprawdź kandydata `UI/sci_fi_error.wav` w `_do_przesluchania` (cel: ~0.2s) — A short metallic clamp locking shut, a heavy latch or manacle snapping closed, cold and restrictive with a faint ominous low-end resonance underneath, dry recording, no reverb.
+- [x] **P02_dash_denied.ogg** ✅ ZNALEZIONE (`UI/sci_fi_disallow.wav`, zatwierdzone) (cel: ~0.15s) — A very short, dull low-pitched electronic blip signaling a blocked action, flat and unresonant like a muted rubber tap, instant attack with no ring or sustain, dry and close, no reverb.
+- [x] **P03_dash_void_locked.ogg** ✅ ZNALEZIONE (`UI/sci_fi_error.wav`, zatwierdzone) (cel: ~0.2s) — A short metallic clamp locking shut, a heavy latch or manacle snapping closed, cold and restrictive with a faint ominous low-end resonance underneath, dry recording, no reverb.
 - [x] **P04_weapon_switch.ogg** ✅ ZNALEZIONE (`Weapons/weapon_equip_short.wav`) (cel: ~0.15s) — A quick, precise mechanical click of a weapon holster or clasp switching position, subtle metallic slide followed by a firm snap, small-scale and tactile, dry and close-up with no reverb.
-- [ ] **P05_attack_denied.ogg** 🔊 sprawdź kandydata `Retro/undesired_effect.wav` w `_do_przesluchania` (cel: ~0.15s) — A soft, hollow thud representing an empty or exhausted resource, low muted knock with no ring or brightness, slightly disappointing and flat in tone, dry recording, no reverb.
+- [x] **P05_attack_denied.ogg** ✅ ZNALEZIONE (`Retro/undesired_effect.wav`, zatwierdzone) (cel: ~0.15s) — A soft, hollow thud representing an empty or exhausted resource, low muted knock with no ring or brightness, slightly disappointing and flat in tone, dry recording, no reverb.
 - [ ] **P06_sword_windup.ogg** (cel: ~0.2s) — A short rising swish of a blade being drawn back through the air in preparation to strike, thin and tense air-cutting sound with a quick upward pitch build, dry and close, no reverb.
 - [x] **P07_sword_swing.ogg** ✅ ZNALEZIONE (`Weapons/sword_slice.wav`) (cel: ~0.25s) — A fast, sharp metallic sword slash cutting through the air, aggressive whoosh with a thin high-frequency edge and a quick low-to-high pitch sweep, dry recording, no reverb or room tone.
 - [x] **P08_sword_hit.ogg** ✅ ZNALEZIONE (`Combat and Gore/crunch.wav`) (cel: ~0.2s) — A heavy, punchy sword impact striking flesh and bone, a sharp crunching hit layered with a brief metallic ring from the blade, immediate hard attack with a very short decay, dry and close-up.
@@ -58,10 +58,10 @@ wymaga generowania.
 - [ ] **P10_wand_charge.ogg** (cel: ~0.4s) — A rising magical energy charge-up, a smooth electric hum climbing steadily in pitch and intensity, glittering high-frequency sparkle woven through the buildup, tension increasing toward a peak, dry recording, no reverb.
 - [ ] **P11_wand_fire.ogg** (cel: ~0.25s) — A short, bright magical zap as an energy projectile launches forward, a crisp electric crackle with a quick forward pitch sweep and a clean tonal center, energetic and precise, dry and close, no reverb.
 - [ ] **P12_wand_impact.ogg** (cel: ~0.2s) — A magical projectile striking its target, a compact sparkly burst with a medium-weight punch at its core, bright crackling energy dissipating quickly outward, dry recording, no reverb.
-- [ ] **P13_block_raise.ogg** 🔊 sprawdź kandydata `Weapons/weapon_equip.wav` w `_do_przesluchania` (cel: ~0.2s) — A defensive shield or blade being raised into a guard position, a brief metallic resonance with a soft magical shimmer underneath, controlled and solid rather than aggressive, dry and close-up, no reverb.
+- [x] **P13_block_raise.ogg** ✅ ZNALEZIONE (`Weapons/weapon_equip.wav`, zatwierdzone) (cel: ~0.2s) — A defensive shield or blade being raised into a guard position, a brief metallic resonance with a soft magical shimmer underneath, controlled and solid rather than aggressive, dry and close-up, no reverb.
 - [x] **P14_block_push_hit.ogg** ✅ ZNALEZIONE (`Combat and Gore/punch_2.wav`) (cel: ~0.25s) — A blunt defensive shockwave pushing an attacker back, a deep low-end thud at the moment of contact immediately followed by a short forceful whoosh of displaced air, dry recording, no reverb.
 - [x] **P16_heal_use.ogg** ✅ ZNALEZIONE (`Musical Effects/vibraphone_chime_positive.wav`) (cel: ~0.5s) — A warm, gentle healing chime, a soft tone rising smoothly in pitch with a light magical shimmer trailing behind it, comforting and soothing rather than bright or sharp, dry recording with a natural soft decay, no reverb.
-- [ ] **P18_heal_charge_tick.ogg** 🔊 sprawdź kandydata `UI/pop_1.wav` w `_do_przesluchania` (cel: ~0.05s) — An extremely small, subtle electronic tick, a barely-there pip marking one increment of progress, soft and unobtrusive with no ring or sustain at all, dry and close, no reverb.
+- [x] **P18_heal_charge_tick.ogg** ✅ ZNALEZIONE (`UI/pop_1.wav`, zatwierdzone) (cel: ~0.05s) — An extremely small, subtle electronic tick, a barely-there pip marking one increment of progress, soft and unobtrusive with no ring or sustain at all, dry and close, no reverb.
 - [x] **P19_heal_ready.ogg** ✅ ZNALEZIONE (`Musical Effects/vibraphone_chime_quick.wav`) (cel: ~0.3s) — A single clear, bright bell-like ping notifying that something is fully ready, clean pure tone with a short natural decay, pleasant and satisfying, dry recording, no reverb.
 - [ ] **P20_player_hurt.ogg** 🔊 sprawdź 11 kandydatów `Human/man_0..10.wav` w `_do_przesluchania` — jeden z nich (cel: ~0.3s) — A short human pain grunt layered with a dull physical impact hit, visceral and immediate but restrained rather than graphic or gory, a single sharp exhale of effort and pain, dry recording, no reverb.
 - [ ] **P21_player_death.ogg** 🔊 sprawdź te same kandydaty `Human/man_0..10.wav` — inny z nich (cel: ~1s) — A defeated human groan with a descending pitch, breath fading and weakening as the body collapses, a slow exhausted exhale trailing off into silence, dry recording with a natural soft fade, no reverb.
@@ -72,7 +72,7 @@ wymaga generowania.
 - [ ] **N01_transform_roar.ogg** (cel: ~1.5s) — A massive monstrous roar during a violent bodily transformation, a long sustained guttural growl that rises steadily in pitch and intensity, deep chest-shaking low frequencies mixed with a raw straining upper register, powerful and sustained throughout, dry recording, no reverb.
 - [ ] **N02_attack_inhale.ogg** (cel: ~0.4s) — A short, menacing monstrous inhale as a creature draws breath before attacking, a deep rasping intake of air with an ominous low growl underneath, tension building toward the end, dry recording, no reverb.
 - [ ] **N03_seal_telegraph.ogg** (cel: ~0.6s) — A rising crackling arcane energy build-up warning of an impending explosion, sharp electrical crackle intensifying steadily in pitch and density, a thin warning tone woven through it, dry recording, no reverb.
-- [ ] **N04_seal_explosion.ogg** 🔊 sprawdź kandydata `Retro/explosion_medium.wav` w `_do_przesluchania` (styl retro/8-bit, może kolidować z resztą) (cel: ~0.3s) — A sharp magical rune explosion, a bright energetic crackling burst with a hard percussive attack at its center, quickly dissipating into fading electrical sparks, dry recording, no reverb.
+- [x] **N04_seal_explosion.ogg** ✅ ZNALEZIONE (`Retro/explosion_medium.wav`, zatwierdzone mimo retro-stylu) (cel: ~0.3s) — A sharp magical rune explosion, a bright energetic crackling burst with a hard percussive attack at its center, quickly dissipating into fading electrical sparks, dry recording, no reverb.
 - [ ] **N05_void_open.ogg** (cel: ~0.5s) — A reality-tearing rip as a void portal forcefully opens, a deep unsettling low drone underpinning a harsh tearing texture, cold and vast rather than explosive, dry recording, minimal natural room tone only.
 - [x] **N06_void_lock.ogg** ✅ ZNALEZIONE (`Materials/metal_clang.wav`) (cel: ~0.2s) — A heavy metallic clamp locking shut with finality, a solid mechanical snap with a short resonant metallic ring, restrictive and cold, dry recording, no reverb.
 - [ ] **N07_void_close.ogg** (cel: ~0.4s) — A void portal collapsing shut, a tearing texture that seems to play in reverse and rush inward toward a single point, ending in an abrupt cold silence, dry recording, minimal room tone.
@@ -120,7 +120,7 @@ wymaga generowania.
 
 ## Priorytet 4c — UI (4 dźwięki)
 
-- [ ] **U01_phase_banner.ogg** 🔊 sprawdź kandydata `Musical Effects/grand_piano_level_start.wav` w `_do_przesluchania` (słaby fit, brzmi bardziej "wesoło" niż gong) (cel: ~0.3s) — A short, dramatic announcement sting, a single low gong strike with a clean immediate attack and a brief natural metallic decay, weighty and ceremonial, minimal natural room tone only.
+- [x] **U01_phase_banner.ogg** ✅ ZNALEZIONE (`Musical Effects/grand_piano_level_start.wav`, zatwierdzone) (cel: ~0.3s) — A short, dramatic announcement sting, a single low gong strike with a clean immediate attack and a brief natural metallic decay, weighty and ceremonial, minimal natural room tone only.
 - [x] **U02_taunt_chime.ogg** ✅ ZNALEZIONE (`UI/select_2.wav`) (cel: ~0.2s) — A gentle, brief notification chime, a soft clean tone with a quick natural decay, unobtrusive and pleasant, dry recording, no reverb.
 - [x] **U04_death_overlay_sting.ogg** ✅ ZNALEZIONE (`Musical Effects/horror_sting.wav` — dosłownie tak się nazywa) (cel: ~0.5s) — A short, somber failure sting, a low tone descending smoothly in pitch, heavy and final without being harsh, dry recording, no reverb.
 - [x] **U07_menu_confirm.ogg** ✅ ZNALEZIONE (`UI/sci_fi_confirm.wav`) (cel: ~0.15s) — A simple, satisfying UI confirmation sound, short and clean with a crisp immediate attack and a quick pleasant decay, neutral and modern, dry recording, no reverb.
@@ -137,7 +137,7 @@ wymaga generowania.
 - [ ] **MUS_phase_zacmienie.ogg** (cel: ~10s) — A short musical stinger that gradually fades into near-total silence by its end, cold and isolating, dark fantasy tone, the sense of light and sound being slowly swallowed away.
 - [ ] **MUS_phase_final.ogg** (cel: ~10s) — A short, unsettling music-box-like melody fragment, simple and childlike on the surface but subtly wrong in its tuning or rhythm, fading out gently by the end, dark fantasy undertone.
 - [ ] **MUS_victory.ogg** (cel: 25-30s) — A somber victory theme for a dark fantasy game, bittersweet and exhausted rather than triumphant, slow swelling strings rising gently without ever becoming a fanfare, a single distant bell tolling once near the end, no percussion, resolving quietly and gently rather than ending abruptly.
-- [ ] **MUS_defeat.ogg** 🔊 sprawdź kandydata `Musical Effects/synth_bass_defeated.wav` w `_do_przesluchania` (cel: ~4s) — A short, dark defeat stinger, a single low dissonant chord struck once and left to descend in pitch, a hollow natural decay trailing off, no melody, heavy and final.
+- [x] **MUS_defeat.ogg** ✅ ZNALEZIONE (`Musical Effects/synth_bass_defeated.wav`, zatwierdzone) (cel: ~4s) — A short, dark defeat stinger, a single low dissonant chord struck once and left to descend in pitch, a hollow natural decay trailing off, no melody, heavy and final.
 
 ## Priorytet 6 — 🎵 Ambient per pokój (8 pętli)
 
@@ -152,8 +152,9 @@ wymaga generowania.
 
 ---
 
-**Razem: 82 pozycje — 17 już znalezionych, 8 do przesłuchania, 57 nadal do
-wygenerowania.** Po ElevenLabs pamiętaj o Kroku 4 z `AUDIO_KATALOG.md`
-(przycięcie do "Cel", pętla/crossfade jeśli trzeba, normalizacja głośności)
-zanim wrzucisz do Godota — dotyczy też plików znalezionych w paczce, jeśli
-mają np. za dużo ciszy na końcu.
+**Razem: 82 pozycje — 25 już znalezionych i zatwierdzonych, 2 czekają na
+wybór spośród 11 kandydatów (P20/P21), 55 nadal do wygenerowania.** Po
+ElevenLabs pamiętaj o Kroku 4 z `AUDIO_KATALOG.md` (przycięcie do "Cel",
+pętla/crossfade jeśli trzeba, normalizacja głośności) zanim wrzucisz do
+Godota — dotyczy też plików znalezionych w paczce, jeśli mają np. za dużo
+ciszy na końcu.
