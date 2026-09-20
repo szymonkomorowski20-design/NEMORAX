@@ -33,6 +33,22 @@ const ROOM_WALL_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/sprites/pokoje/tekstury/orryx_wall.png"),
 ]
 
+# Na życzenie autora: losowy utwór z tej puli przy KAŻDYM wejściu do pokoju
+# (nie stały przydział pokój->utwór) — scena się przeładowuje między
+# wcieleniami, więc losowanie w _ready() samo daje inny utwór za każdym razem.
+const ROOM_MUSIC_TRACKS: Array[AudioStream] = [
+	preload("res://assets/audio/music/MUS_room_synth_1.wav"),
+	preload("res://assets/audio/music/MUS_room_synth_2.wav"),
+	preload("res://assets/audio/music/MUS_room_synth_3.wav"),
+	preload("res://assets/audio/music/MUS_room_synth_4.wav"),
+	preload("res://assets/audio/music/MUS_room_chase_1.wav"),
+	preload("res://assets/audio/music/MUS_room_chase_2.wav"),
+	preload("res://assets/audio/music/MUS_room_melody_1.wav"),
+	preload("res://assets/audio/music/MUS_room_melody_2.wav"),
+	preload("res://assets/audio/music/MUS_room_melody_3.wav"),
+	preload("res://assets/audio/music/MUS_room_melody_4.wav"),
+]
+
 @export var player_start_offset: Vector2 = Vector2(0.0, 220.0) ## względem środka areny
 @export var start_door_offset: Vector2 = Vector2(0.0, 60.0)
 @export var incarnation_spawn_offset: Vector2 = Vector2(0.0, -150.0)
@@ -41,6 +57,7 @@ const ROOM_WALL_TEXTURES: Array[Texture2D] = [
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
+@onready var music: AudioStreamPlayer = $Music
 
 var incarnation: Incarnation
 var _game_over_kind: String = "" # "" albo "death"
@@ -49,6 +66,15 @@ func _ready() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
 	Walls.build_floor(self, ARENA_RECT, ROOM_FLOOR_TEXTURES[GameFlow.current_room_index])
 	Walls.build(self, ARENA_RECT, WALL_THICKNESS, ROOM_WALL_TEXTURES[GameFlow.current_room_index])
+
+	var track: AudioStreamWAV = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
+	# Ustawiane w kodzie, nie tylko w .import — headless `--import` (używane w
+	# tej sesji do generowania .import przy nowych plikach) niezawodnie nie
+	# zapisuje edit/loop_mode do faktycznego cache'owanego zasobu, sprawdzone
+	# bezpośrednim testem (loop_mode wychodził 0 mimo poprawnego .import).
+	track.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	music.stream = track
+	music.play()
 
 	var center := ARENA_RECT.get_center()
 	player.global_position = center + player_start_offset

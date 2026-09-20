@@ -17,3 +17,6 @@ current = true
 [node name="UILayer" parent="." instance=ExtResource("3")]
 
 [node name="PauseLayer" parent="." instance=ExtResource("4")]
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+bus = &"Music"
