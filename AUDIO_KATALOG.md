@@ -44,23 +44,61 @@ na dwa różne zadania z różnymi narzędziami:
      darmo, licencja **CC0** (zero atrybucji, zero pytań), gotowe zestawy
      typu "RPG Audio", "UI Audio", "Impact Sounds" — najszybszy strzał do
      generycznych rzeczy (kliki UI, uderzenia, kroki).
+     **Jak szukać**: wejdź na `kenney.nl` → **Assets** w górnym menu → po
+     lewej filtr kategorii, zaznacz **Audio**. Otwórz każdą paczkę, która
+     brzmi na pasującą — strona pokazuje listę plików, część ma podgląd
+     odtwarzania na miejscu. Pobierz cały ZIP (paczki są małe, kilka MB),
+     rozpakuj, i przeklikaj pliki w Eksploratorze Windows — zaznaczenie
+     pliku audio pokazuje mini-odtwarzacz, więc przesłuchujesz dziesiątki
+     plików bez otwierania każdego osobno.
   2. **itch.io** (zakładka assets → sound effects, filtr "free") — mnóstwo
      paczek zrobionych stricte pod gry, często tematyczne ("dark fantasy
      SFX pack", "RPG monster sounds", "horror ambience pack") — najbliższe
      klimatowi NEMORAXA, część darmowa, część za kilka dolarów.
+     **Jak szukać**: wejdź na `itch.io/game-assets`, w lewym panelu ustaw
+     **Type → Sound effects** (osobno jest **Soundtrack** do muzyki) i
+     **Price → Free**. W polu szukania wpisuj frazy z "Szukaj też" + słowo
+     "pack", np. "dark ambient pack", "monster growl pack". Większość
+     ofert ma odtwarzacz próbek wprost na stronie — przesłuchaj PRZED
+     pobraniem. Jeśli cena to "$0 lub więcej", przy pobieraniu jest link
+     "No thanks, just take me to the downloads" — nie trzeba nic płacić.
   3. **OpenGameArt.org** (sekcja Audio) — repozytorium assetów pod gry
      (CC0/CC-BY), starsze ale wciąż spore archiwum, dobre pod ambient/muzykę.
+     **Jak szukać**: `opengameart.org` → **Browse** → filtry po lewej:
+     **Art Type: Sound Effect** albo **Music**, i **License: CC0** (zero
+     ograniczeń). Wpisz frazę z "Szukaj też" w pole wyszukiwania, sortuj po
+     "score" (ocena społeczności), żeby najlepsze wyniki były na górze.
   4. **freesound.org** — pojedyncze dźwięki, świetne do uzupełniania
-     konkretnych braków; załóż darmowe konto, filtruj po licencji **CC0**.
+     konkretnych braków; załóż darmowe konto (samo szukanie/słuchanie nie
+     wymaga konta, dopiero pobieranie), filtruj po licencji **CC0**.
+     **Jak szukać**: wpisz frazę z "Szukaj też" w wyszukiwarkę, w panelu
+     filtrów po lewej zaznacz **License → Creative Commons 0**, opcjonalnie
+     zawęź suwakiem **Duration** (np. 0-1s do krótkich SFX, 15-30s do
+     pętli ambientu). Każdy wynik ma falkę do kliknięcia i odsłuchania na
+     miejscu. Warto też zajrzeć w zakładkę **Packs** — czasem ktoś wrzucił
+     już gotowy, dopasowany tematycznie zestaw zamiast pojedynczych plików.
   5. **Sonniss GDC Audio Bundle** — ogromna (kilka-kilkanaście GB), darmowa,
      profesjonalna paczka wydawana co roku na GDC, wolna do użytku w grach;
      warto po nią sięgnąć, jeśli sporo pozycji wciąż brakuje po 1-4.
+     **Jak szukać**: to NIE jest przeszukiwalna strona jak reszta — pobiera
+     się gotowe archiwa ZIP (posegregowane już w foldery typu "Creatures",
+     "Magic", "Impacts", "UI", "Ambience") ze strony `sonniss.com` (sekcja
+     GDC bundle, edycje z poprzednich lat też bywają dostępne). Pobierz
+     tylko foldery pasujące do Twoich kategorii (całość to sporo GB), potem
+     przeszukuj lokalnie tak jak paczkę z Kenney — Eksploratorem Windows
+     albo w Audacity/foobar2000.
 
   W każdym z nich szukaj fraz z kolumny **"Szukaj też"** w tabelach poniżej —
   są napisane specjalnie pod wyszukiwanie w bibliotekach, nie pod generator.
-  Co znajdziesz — odhacz i zapisz pod właściwą nazwą (Krok 3). Czego nie
-  znajdziesz (zwłaszcza unikalne umiejętności bossów i muzyczne stingery faz)
-  — dogeneruj w ElevenLabs z `ELEVENLABS_KOLEJKA.md`.
+  Efektywniej jest iść **frazą po frazie** niż pozycją po pozycji — jedno
+  wyszukanie ("dark ambient drone loop") często trafia w kilka pozycji
+  katalogu naraz (menu, pętla pokoju, kilka ambientów). Co znajdziesz —
+  pobierz, od razu zmień nazwę na tę z konwencji (Krok 3) i odhacz w
+  `ELEVENLABS_KOLEJKA.md`, żeby nie zgubić, co już jest załatwione. Nie
+  szukaj perfekcji — 80% pasujący gotowiec jest lepszy niż godzina
+  przeszukiwania dla jednego dźwięku. Czego nie znajdziesz (zwłaszcza
+  unikalne umiejętności bossów i muzyczne stingery faz Nemoraksa) —
+  dogeneruj w ElevenLabs z `ELEVENLABS_KOLEJKA.md`.
 
 ### Krok 2 — rób to w tej kolejności (żeby coś grało jak najszybciej)
 1. **Sekcja 2 (gracz)** — najczęściej słyszane dźwięki w grze, rób pierwsze.
