@@ -204,4 +204,77 @@ włącznie ze zmianą fazy i czyszczeniem `flip_h` przy przejściu na pozę bez
 wariantów. Smoke testy wszystkich scen czyste.
 
 - [ ] Realny playtest — ocena, czy efekt jest wart rozszerzenia na Fazy 3-5
-      (pozostałe ~126 obrazków, patrz sekcja 4). To jedyna otwarta decyzja.
+      (pozostałe obrazki, patrz sekcja 4 i pełna lista w sekcji 8). To jedyna
+      otwarta decyzja.
+
+---
+
+## 8. Fazy 3-5 — pełna lista plików do wygenerowania (decyzja: rozszerzamy)
+
+Na życzenie autora — pełny backlog, gotowy do odklikania jak
+`PROMPTY_FINALNE_WSZYSTKO.md`. Nie duplikuję tu treści opisów póz (już
+istnieją i są poprawne w `GRACZ_KOMPLETNY.md`/`POZY_ANIMACJI.md`) — każdy
+wiersz mówi, KTÓRY opis wstawić do szablonu z sekcji 6 tego dokumentu jako
+`[OPIS POZY]`, i z jakiego pliku wziąć referencję (zawsze aktualny plik `front`
+tej pozy, NIGDY plik back/side innej pozy — inaczej błąd się skumuluje).
+
+Dla każdego wiersza: **2 obrazki** (`_back`, `_side`), tym samym szablonem z
+sekcji 6, zmieniając tylko [BACK VIEW]/[SIDE VIEW].
+
+### 8.1 Gracz — 10 póz × 2 = 20 obrazków
+
+| Poza | Plik referencyjny (front) | Opis pozy z |
+|---|---|---|
+| Idle (stanie) | `player_base.png` | `GRACZ_KOMPLETNY.md` §1.1 |
+| Dash | `player_dash.png` | `GRACZ_KOMPLETNY.md` §4.2 |
+| Zamach mieczem — windup | `player_sword_windup.png` | `GRACZ_KOMPLETNY.md` §4.3 |
+| Zamach mieczem — active | `player_sword_active.png` | `GRACZ_KOMPLETNY.md` §4.4 |
+| Ładowanie różdżki | `player_wand_windup.png` | `GRACZ_KOMPLETNY.md` §4.5 |
+| Wystrzał różdżki | `player_wand_fire.png` | `GRACZ_KOMPLETNY.md` §4.6 |
+| Blok | `player_block.png` | `GRACZ_KOMPLETNY.md` §4.7 |
+| Leczenie | `player_heal.png` | `GRACZ_KOMPLETNY.md` §4.8 |
+| Trafiony | `player_hit.png` | `GRACZ_KOMPLETNY.md` §4.9 |
+| Śmierć | `player_death.png` | `GRACZ_KOMPLETNY.md` §4.10 |
+
+### 8.2 Sześć wcieleń — 43 pozy × 2 = 86 obrazków
+
+Uniwersalne 6 póz (opisy w `POZY_ANIMACJI.md` §3.2-3.7, ta sama treść dla
+wszystkich sześciu — referencja i tak wymusi właściwy wygląd) × 6 postaci =
+36, plus unikalne pozy umiejętności (§4.1-4.7) = 7 (Orryx ma DWIE unikalne:
+vanish + reappear). Razem 43.
+
+| Postać | Telegraph | Lunge | Cast-pulse | Pull | Hit | Death | Unikalna(e) |
+|---|---|---|---|---|---|---|---|
+| Vhar'Nokh | `vhar-nokh_telegraph.png` | `vhar-nokh_lunge.png` | `vhar-nokh_cast-pulse.png` | `vhar-nokh_pull.png` | `vhar-nokh_hit.png` | `vhar-nokh_death.png` | `vhar-nokh_teleport.png` — §4.1 |
+| Mordrath | `mordrath_telegraph.png` | `mordrath_lunge.png` | `mordrath_cast-pulse.png` | `mordrath_pull.png` | `mordrath_hit.png` | `mordrath_death.png` | `mordrath_silence-pulse.png` — §4.2 |
+| Zha'Ruun | `zha-ruun_telegraph.png` | `zha-ruun_lunge.png` | `zha-ruun_cast-pulse.png` | `zha-ruun_pull.png` | `zha-ruun_hit.png` | `zha-ruun_death.png` | `zha-ruun_echo-pulse.png` — §4.3 |
+| Nekravor | `nekravor_telegraph.png` | `nekravor_lunge.png` | `nekravor_cast-pulse.png` | `nekravor_pull.png` | `nekravor_hit.png` | `nekravor_death.png` | `nekravor_crush.png` — §4.4 |
+| Thal'Gor | `thal-gor_telegraph.png` | `thal-gor_lunge.png` | `thal-gor_cast-pulse.png` | `thal-gor_pull.png` | `thal-gor_hit.png` | `thal-gor_death.png` | `thal-gor_lifesteal-bite.png` — §4.5 |
+| Orryx | `orryx_telegraph.png` | `orryx_lunge.png` | `orryx_cast-pulse.png` | `orryx_pull.png` | `orryx_hit.png` | `orryx_death.png` | `orryx_reappear.png` — §4.6, `orryx_vanish.png` — §4.7 |
+
+(Uniwersalne opisy: Telegraph=§3.2, Lunge=§3.3, Cast-pulse=§3.4, Pull=§3.5,
+Hit=§3.6, Death=§3.7 — ta sama kolumna dla wszystkich sześciu wierszy.)
+
+### 8.3 Nemorax — 10 póz × 2 = 20 obrazków
+
+Uniwersalne 5 (bez "death" — Nemorax nie ma generycznej śmierci w kodzie,
+tylko dwa specyficzne stany niżej) + 5 unikalnych stanów finałowych.
+
+| Poza | Plik referencyjny (front) | Opis pozy z |
+|---|---|---|
+| Telegraph | `nemorax_telegraph.png` | `POZY_ANIMACJI.md` §3.2 |
+| Lunge | `nemorax_lunge.png` | `POZY_ANIMACJI.md` §3.3 |
+| Cast-pulse | `nemorax_cast-pulse.png` | `POZY_ANIMACJI.md` §3.4 |
+| Pull | `nemorax_pull.png` | `POZY_ANIMACJI.md` §3.5 |
+| Hit | `nemorax_hit.png` | `POZY_ANIMACJI.md` §3.6 |
+| Transformacja fazy | `nemorax_phase-transform.png` | `POZY_ANIMACJI.md` §5.1 |
+| Upadek dużej formy | `nemorax_large-form-collapse.png` | `POZY_ANIMACJI.md` §5.2 |
+| Odrodzenie małej formy | `nemorax_small-form-rebirth.png` | `POZY_ANIMACJI.md` §5.3 |
+| Kpina / pytanie finałowe | `nemorax_small-form-taunt.png` | `POZY_ANIMACJI.md` §5.4 |
+| Prawdziwa śmierć | `nemorax_small-form-true-death.png` | `POZY_ANIMACJI.md` §5.5 |
+
+### 8.4 Razem
+
+20 (gracz) + 86 (wcielenia) + 20 (Nemorax) = **126 obrazków**. Generować i
+integrować w tej samej kolejności co dotąd — partiami po jednej
+postaci/kategorii, testować headless po każdej partii, nie na raz.
