@@ -110,6 +110,7 @@ func total_room_count() -> int:
 ## Indeks rozdziału (0..CHAPTER_COUNT-1) obecnego pokoju — sensowny w OBU
 ## typach pokoju (losowy i wcielenie), bo rozdział obejmuje oba naraz.
 func current_chapter_index() -> int:
+	@warning_ignore("integer_division") # celowe dzielenie całkowite — indeks rozdziału to podłoga
 	return current_room_index / ROOMS_PER_CHAPTER
 
 ## true = obecny slot to jeden z 4 losowych przeciwników danego rozdziału,

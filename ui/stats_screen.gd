@@ -46,26 +46,26 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if not visible or player == null:
 		return
-	var size := get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, size), Color(Palette.BACKGROUND, 0.92), true)
+	var viewport_size := get_viewport_rect().size
+	draw_rect(Rect2(Vector2.ZERO, viewport_size), Color(Palette.BACKGROUND, 0.92), true)
 	var font := ThemeDB.fallback_font
 
 	var title := "Statystyki postaci — Level %d/%d" % [player.level, player.max_level]
 	var title_size := font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 30)
-	draw_string(font, Vector2((size.x - title_size.x) * 0.5, size.y * 0.1), title,
+	draw_string(font, Vector2((viewport_size.x - title_size.x) * 0.5, viewport_size.y * 0.1), title,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Palette.PLAYER_BODY)
 
 	var bar_width := 420.0
-	var bar_pos := Vector2((size.x - bar_width) * 0.5, size.y * 0.18)
+	var bar_pos := Vector2((viewport_size.x - bar_width) * 0.5, viewport_size.y * 0.18)
 	draw_rect(Rect2(bar_pos, Vector2(bar_width, 14.0)), Color(1.0, 1.0, 1.0, 0.2), true)
 	draw_rect(Rect2(bar_pos, Vector2(bar_width * player.xp_ratio(), 14.0)), Palette.PLAYER_BODY, true)
 
 	var points_text := "Niewydane punkty: %d" % player.unspent_stat_points
 	var points_size := font.get_string_size(points_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
-	draw_string(font, Vector2((size.x - points_size.x) * 0.5, size.y * 0.25), points_text,
+	draw_string(font, Vector2((viewport_size.x - points_size.x) * 0.5, viewport_size.y * 0.25), points_text,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
 
-	var start_y := size.y * 0.34
+	var start_y := viewport_size.y * 0.34
 	var line_height := 34.0
 	for i in range(Player.STAT_KEYS.size()):
 		var key: String = Player.STAT_KEYS[i]
@@ -74,10 +74,10 @@ func _draw() -> void:
 		var line := "%s — %d %s" % [label, points, ("punkt" if points == 1 else "punktów")]
 		var color := Palette.HIT_FLASH if i == _selected_index else Color.WHITE
 		var line_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, 22)
-		draw_string(font, Vector2((size.x - line_size.x) * 0.5, start_y + i * line_height), line,
+		draw_string(font, Vector2((viewport_size.x - line_size.x) * 0.5, start_y + i * line_height), line,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
 
 	var hint := "Strzałki: wybór — Enter: wydaj punkt — Tab/Escape: zamknij"
 	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 18)
-	draw_string(font, Vector2((size.x - hint_size.x) * 0.5, size.y * 0.92), hint,
+	draw_string(font, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.92), hint,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)

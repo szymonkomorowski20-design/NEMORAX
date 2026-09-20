@@ -38,16 +38,16 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if not visible:
 		return
-	var size := get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, size), Color(Palette.BACKGROUND, 0.75), true)
+	var viewport_size := get_viewport_rect().size
+	draw_rect(Rect2(Vector2.ZERO, viewport_size), Color(Palette.BACKGROUND, 0.75), true)
 	var font := ThemeDB.fallback_font
 
 	var title := "PAUZA"
 	var title_size := font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 32)
-	draw_string(font, Vector2((size.x - title_size.x) * 0.5, size.y * 0.4), title,
+	draw_string(font, Vector2((viewport_size.x - title_size.x) * 0.5, viewport_size.y * 0.4), title,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Palette.PLAYER_BODY)
 
 	var hint := "Escape / Enter — wznów        K — zmień klawisze"
 	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
-	draw_string(font, Vector2((size.x - hint_size.x) * 0.5, size.y * 0.5), hint,
+	draw_string(font, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.5), hint,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)

@@ -64,16 +64,16 @@ func _handle_listening_input(event: InputEvent) -> void:
 		_listening = false
 
 func _draw() -> void:
-	var size := get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, size), Color(Palette.BACKGROUND, 0.92), true)
+	var viewport_size := get_viewport_rect().size
+	draw_rect(Rect2(Vector2.ZERO, viewport_size), Color(Palette.BACKGROUND, 0.92), true)
 	var font := ThemeDB.fallback_font
 
 	var title := "Zmiana klawiszy"
 	var title_size := font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, title_font_size)
-	draw_string(font, Vector2((size.x - title_size.x) * 0.5, size.y * 0.15), title,
+	draw_string(font, Vector2((viewport_size.x - title_size.x) * 0.5, viewport_size.y * 0.15), title,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, title_font_size, Palette.PLAYER_BODY)
 
-	var start_y := size.y * 0.28
+	var start_y := viewport_size.y * 0.28
 	var line_height := font_size * 1.6
 	for i in range(Keybinds.REBINDABLE_ACTIONS.size()):
 		var action: String = Keybinds.REBINDABLE_ACTIONS[i]
@@ -82,10 +82,10 @@ func _draw() -> void:
 		var line := "%s:  %s" % [label, key_text]
 		var color := Palette.HIT_FLASH if i == _selected_index else Color.WHITE
 		var line_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-		draw_string(font, Vector2((size.x - line_size.x) * 0.5, start_y + i * line_height), line,
+		draw_string(font, Vector2((viewport_size.x - line_size.x) * 0.5, start_y + i * line_height), line,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 	var hint := "Strzałki: wybór — Enter: przypisz — Escape: powrót"
 	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 18)
-	draw_string(font, Vector2((size.x - hint_size.x) * 0.5, size.y * 0.92), hint,
+	draw_string(font, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.92), hint,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
