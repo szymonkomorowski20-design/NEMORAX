@@ -10,6 +10,19 @@ ElevenLabs może dać radę, ale jeśli wynik brzmi jak efekt dźwiękowy zamias
 utworu, to sygnał żeby ten JEDEN konkretny wiersz zrobić w Suno zamiast tu
 (patrz `AUDIO_KATALOG.md` Krok 1).
 
+**Ważne — twardy limit ElevenLabs: minimum 0.5 sekundy na generację**
+(potwierdzone w dokumentacji API: `duration_seconds` musi być ≥0.5). Sporo
+wierszy poniżej ma w opisie krótszy czas (0.05-0.4s) — to niemożliwe do
+uzyskania wprost. Liczba sekund w tekście promptu to tylko sugestia
+"jak krótki ma brzmieć charakter dźwięku", nie realny parametr. Rób tak:
+1. Ustaw długość generacji na **0.5s** (minimum) dla każdego takiego wiersza.
+2. W Audacity **przytnij** wynik do docelowej długości z opisu — model zwykle
+   i tak daje "trzask"/transient na samym początku, resztę po prostu odetnij.
+
+Jeśli w interfejsie widzisz przełącznik **"Loop"** przy generowaniu — włącz
+go dla wszystkiego z sekcji 🎵 (muzyka/ambient), to model sam postara się o
+bezszwową pętlę, bez ręcznego crossfade'u w Audacity.
+
 ---
 
 ## Priorytet 1 — Gracz (20 dźwięków)

@@ -60,14 +60,21 @@ Surowy plik z generatora prawie nigdy nie jest gotowy 1:1:
    tam, i zrób krótki (50-200 ms) crossfade końca z początkiem (`Effect →
    Crossfade Tracks` albo ręcznie dwie kopie na dwóch ścieżkach). Sprawdź,
    odtwarzając w pętli — jeśli słychać "kliknięcie" albo skok głośności w
-   miejscu złączenia, popraw crossfade.
-3. **Znormalizuj głośność** (`Effect → Normalize` w Audacity) do ok. -16 LUFS
+   miejscu złączenia, popraw crossfade. Jeśli ElevenLabs pokazuje przełącznik
+   "Loop" przy generowaniu — włącz go, to często załatwia sprawę bez ręcznej
+   pracy w Audacity.
+3. **Limit minimalnej długości w ElevenLabs: 0.5s** (twardy limit API,
+   `duration_seconds` ≥0.5) — sporo krótkich SFX w katalogu (0.05-0.4s) trzeba
+   wygenerować na 0.5s i DOPIERO przyciąć w Audacity do docelowej długości;
+   liczba sekund w treści promptu to tylko sugestia charakteru, nie realny
+   parametr czasu.
+4. **Znormalizuj głośność** (`Effect → Normalize` w Audacity) do ok. -16 LUFS
    (SFX) / -20 LUFS (muzyka) — inaczej różne pliki będą różnie głośne.
-4. **Eksportuj jako `.ogg` (Vorbis)** — Audacity robi to natywnie
+5. **Eksportuj jako `.ogg` (Vorbis)** — Audacity robi to natywnie
    (`File → Export → Export as OGG`). Godot 4 równie dobrze importuje `.wav`
    i `.mp3`, więc jeśli coś już masz w tych formatach, nie musisz konwertować
    na siłę — `.ogg` jest tylko lżejszy na dłuższych pętlach muzyki.
-5. W Godocie, po imporcie, w zakładce **Import** pliku audio ustaw **Loop =
+6. W Godocie, po imporcie, w zakładce **Import** pliku audio ustaw **Loop =
    On** dla wszystkiego z sekcji 1 i 7 (muzyka/ambient) — bez tego Godot
    zagra plik raz i się zatrzyma, nawet jeśli plik sam w sobie już się ładnie
    zapętla.
