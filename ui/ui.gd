@@ -5,6 +5,12 @@ class_name GameUI
 ## Minimalny: pasek gracza, pasek bossa, ikona dasha, nazwa formy na 2 s.
 ## W fazie finałowej znika w całości (sekcja 8).
 ## CanvasLayer-rodzic sprawia, że to nie drży razem z trzęsieniem ekranu.
+##
+## Paski są Sprite2D z region_rect przycinanym wg wartości, NIE
+## TextureProgressBar — ten drugi liczy swój minimalny rozmiar z natywnych
+## wymiarów przypisanej tekstury (u nas 1536x1024) i .size jest do tego
+## dociskane w górę bez względu na to, co się mu każe, nawet po nadpisaniu
+## _get_minimum_size() w skrypcie. Sprite2D nie ma tego problemu w ogóle.
 
 const ARENA_LEFT := 90.0
 const ARENA_WIDTH := 1100.0
@@ -46,18 +52,17 @@ var _center_message_font_size: int = 32
 var _overlay_text: String = ""
 var _overlay_active: bool = false
 
-@onready var player_bar_under: TextureProgressBar = $PlayerBarUnder
-@onready var player_bar: TextureProgressBar = $PlayerBar
-@onready var stamina_bar_under: TextureProgressBar = $StaminaBarUnder
-@onready var stamina_bar: TextureProgressBar = $StaminaBar
-@onready var mana_bar_under: TextureProgressBar = $ManaBarUnder
-@onready var mana_bar: TextureProgressBar = $ManaBar
-@onready var boss_bar_under: TextureProgressBar = $BossBarUnder
-@onready var boss_bar: TextureProgressBar = $BossBar
+@onready var player_bar_under: Sprite2D = $PlayerBarUnder
+@onready var player_bar: Sprite2D = $PlayerBar
+@onready var stamina_bar_under: Sprite2D = $StaminaBarUnder
+@onready var stamina_bar: Sprite2D = $StaminaBar
+@onready var mana_bar_under: Sprite2D = $ManaBarUnder
+@onready var mana_bar: Sprite2D = $ManaBar
+@onready var boss_bar_under: Sprite2D = $BossBarUnder
+@onready var boss_bar: Sprite2D = $BossBar
 @onready var dash_icon: TextureRect = $DashIcon
 @onready var dash_lock_cross: TextureRect = $DashLockCross
-@onready var heal_icon_under: TextureProgressBar = $HealIconUnder
-@onready var heal_icon: TextureProgressBar = $HealIcon
+@onready var heal_icon: Sprite2D = $HealIcon
 @onready var overlay_frame: TextureRect = $OverlayFrame
 
 func _ready() -> void:
@@ -90,9 +95,10 @@ func _ready() -> void:
 	dash_lock_cross.size = Vector2(dash_icon_size, dash_icon_size)
 
 	var heal_pos := dash_pos + Vector2(dash_icon_size + 10.0, 0.0)
-	_setup_radial_icon(heal_icon_under, TEX_HEAL_ICON, heal_pos, heal_icon_size, UNDER_MODULATE)
-	_setup_radial_icon(heal_icon, TEX_HEAL_ICON, heal_pos, heal_icon_size, Color.WHITE)
-	heal_icon_under.value = 100.0
+	heal_icon.texture = TEX_HEAL_ICON
+	heal_icon.centered = false
+	heal_icon.position = heal_pos
+	heal_icon.scale = Vector2(heal_icon_size, heal_icon_size) / _tex_size(TEX_HEAL_ICON)
 
 	overlay_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	overlay_frame.stretch_mode = TextureRect.STRETCH_SCALE
@@ -100,27 +106,31 @@ func _ready() -> void:
 	overlay_frame.size = size
 	overlay_frame.visible = false
 
-func _setup_bar(under: TextureProgressBar, fill: TextureProgressBar, tex: Texture2D, pos: Vector2, bar_size: Vector2, tint: Color) -> void:
+func _tex_size(tex: Texture2D) -> Vector2:
+	return Vector2(tex.get_width(), tex.get_height())
+
+## Para under/fill: oba Sprite2D pokazują tę samą teksturę w tej samej skali
+## (tak, żeby cała tekstura zmieściłaby się dokładnie w bar_size), ale "fill"
+## dostaje region_rect przycinany co klatkę w _update_bars() do lewej części
+## odpowiadającej wartości 0-1 — stąd pasek "pustoszeje" od prawej, z lewą
+## krawędzią zawsze na miejscu, tak jak dawny FILL_LEFT_TO_RIGHT.
+func _setup_bar(under: Sprite2D, fill: Sprite2D, tex: Texture2D, pos: Vector2, bar_size: Vector2, tint: Color) -> void:
+	var tex_size := _tex_size(tex)
+	var bar_scale := bar_size / tex_size
 	for bar in [under, fill]:
-		bar.texture_progress = tex
-		bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		bar.texture = tex
+		bar.centered = false
 		bar.position = pos
-		bar.size = bar_size
-		bar.min_value = 0.0
-		bar.max_value = 100.0
+		bar.scale = bar_scale
+		bar.region_enabled = true
+	under.region_rect = Rect2(Vector2.ZERO, tex_size)
 	under.modulate = UNDER_MODULATE
-	under.value = 100.0
+	fill.region_rect = Rect2(Vector2.ZERO, tex_size)
 	fill.modulate = tint
 
-func _setup_radial_icon(bar: TextureProgressBar, tex: Texture2D, pos: Vector2, icon_size: float, tint: Color) -> void:
-	bar.texture_progress = tex
-	bar.fill_mode = TextureProgressBar.FILL_CLOCKWISE
-	bar.radial_initial_angle = -90.0
-	bar.position = pos
-	bar.size = Vector2(icon_size, icon_size)
-	bar.min_value = 0.0
-	bar.max_value = 100.0
-	bar.modulate = tint
+func _update_bar_fill(fill: Sprite2D, ratio: float) -> void:
+	var tex_size := _tex_size(fill.texture)
+	fill.region_rect = Rect2(0.0, 0.0, tex_size.x * clamp(ratio, 0.0, 1.0), tex_size.y)
 
 func _process(delta: float) -> void:
 	if _center_message_timer > 0.0:
@@ -151,12 +161,12 @@ func hide_overlay() -> void:
 	overlay_frame.visible = false
 
 ## Zastępuje dawne _draw_player_bar/_draw_resource_bars/_draw_boss_bar/
-## _draw_dash_icon/_draw_heal_icon — teraz to prawdziwe TextureProgressBar/
-## TextureRect, więc tylko aktualizujemy value/visible/modulate co klatkę.
+## _draw_dash_icon/_draw_heal_icon — teraz to prawdziwe sprite'y/TextureRect,
+## więc tylko aktualizujemy region_rect/visible/modulate co klatkę.
 func _update_bars() -> void:
 	var show_bars := not hide_all and not _overlay_active
 	for node in [player_bar_under, player_bar, stamina_bar_under, stamina_bar,
-			mana_bar_under, mana_bar, dash_icon, dash_lock_cross, heal_icon_under, heal_icon]:
+			mana_bar_under, mana_bar, dash_icon, dash_lock_cross, heal_icon]:
 		node.visible = show_bars
 	boss_bar_under.visible = show_bars and boss != null
 	boss_bar.visible = show_bars and boss != null
@@ -165,19 +175,17 @@ func _update_bars() -> void:
 		return
 
 	if player != null:
-		player_bar.value = clamp(player.health / player.max_health, 0.0, 1.0) * 100.0
-		stamina_bar.value = clamp(player.stamina / player.max_stamina, 0.0, 1.0) * 100.0
-		mana_bar.value = clamp(player.mana / player.max_mana, 0.0, 1.0) * 100.0
+		_update_bar_fill(player_bar, player.health / player.max_health)
+		_update_bar_fill(stamina_bar, player.stamina / player.max_stamina)
+		_update_bar_fill(mana_bar, player.mana / player.max_mana)
 
 		dash_icon.modulate = Color(1.0, 1.0, 1.0, 0.35 if player.is_dash_on_cooldown() else 1.0)
 		dash_lock_cross.visible = player.is_dash_locked_by_void()
 
-		var heal_ratio: float = clamp(player.heal_charge_ratio(), 0.0, 1.0)
-		heal_icon.value = heal_ratio * 100.0
-		heal_icon.modulate = Color(1.0, 1.0, 1.0, 1.0 if player.is_heal_ready() else 0.7)
+		heal_icon.modulate = Color(1.0, 1.0, 1.0, 1.0 if player.is_heal_ready() else 0.4 + 0.3 * player.heal_charge_ratio())
 
 	if boss != null:
-		boss_bar.value = clamp(boss.health / boss.max_health, 0.0, 1.0) * 100.0
+		_update_bar_fill(boss_bar, boss.health / boss.max_health)
 		boss_bar.modulate = boss.current_color
 
 func _draw() -> void:

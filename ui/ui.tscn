@@ -14,29 +14,21 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1")
 
-[node name="PlayerBarUnder" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="PlayerBarUnder" type="Sprite2D" parent="UI"]
 
-[node name="PlayerBar" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="PlayerBar" type="Sprite2D" parent="UI"]
 
-[node name="StaminaBarUnder" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="StaminaBarUnder" type="Sprite2D" parent="UI"]
 
-[node name="StaminaBar" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="StaminaBar" type="Sprite2D" parent="UI"]
 
-[node name="ManaBarUnder" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="ManaBarUnder" type="Sprite2D" parent="UI"]
 
-[node name="ManaBar" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="ManaBar" type="Sprite2D" parent="UI"]
 
-[node name="BossBarUnder" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="BossBarUnder" type="Sprite2D" parent="UI"]
 
-[node name="BossBar" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="BossBar" type="Sprite2D" parent="UI"]
 
 [node name="DashIcon" type="TextureRect" parent="UI"]
 mouse_filter = 2
@@ -44,11 +36,7 @@ mouse_filter = 2
 [node name="DashLockCross" type="TextureRect" parent="UI"]
 mouse_filter = 2
 
-[node name="HealIconUnder" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
-
-[node name="HealIcon" type="TextureProgressBar" parent="UI"]
-mouse_filter = 2
+[node name="HealIcon" type="Sprite2D" parent="UI"]
 
 [node name="OverlayFrame" type="TextureRect" parent="UI"]
 mouse_filter = 2

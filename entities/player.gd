@@ -59,7 +59,7 @@ const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockbac
 
 # --- Wygląd (dostrojenie sprite'ów wobec oryginalnych plików 1024-1254px) ---
 @export var sprite_scale: float = 0.08 ## postać gracza
-@export var slash_arc_scale: float = 0.14 ## wycinek ataku mieczem
+@export var slash_arc_scale: float = 0.09 ## wycinek ataku mieczem
 @export var wand_charge_scale: float = 0.05 ## kula ładowania różdżki
 @export var trail_ghost_scale: float = 0.08 ## kopie śladu dasha
 

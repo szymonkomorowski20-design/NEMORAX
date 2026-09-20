@@ -14,7 +14,7 @@ class_name Incarnation
 signal died(fragment_name: String)
 
 @export var max_health: float = 160.0
-@export var radius: float = 36.0
+@export var radius: float = 95.0 ## dopasowane do widocznej sylwetki sprite'a (~250-270px), nie starego kółka-placeholdera
 @export var drift_speed: float = 90.0
 @export var contact_damage: float = 8.0
 @export var contact_knockback: float = 300.0 ## px/s, odepchnięcie gracza przy dotyku
