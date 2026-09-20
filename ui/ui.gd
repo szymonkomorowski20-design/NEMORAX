@@ -14,6 +14,12 @@ class_name GameUI
 
 const ARENA_LEFT := 90.0
 const ARENA_WIDTH := 1100.0
+# Okno gry jest na sztywno 1280x720, nierozciągalne (project.godot [display])
+# — używane zamiast `size` (Control liczony z zakotwiczeń) w _ready(), bo
+# to drugie może nie być jeszcze rozstrzygnięte w momencie, gdy _ready()
+# liczy i NA STAŁE zapamiętuje pozycje pasków (dawny _draw() był bezpieczny,
+# bo przeliczał size na nowo co klatkę zamiast tylko raz przy starcie).
+const VIEWPORT_SIZE := Vector2(1280.0, 720.0)
 
 const TEX_PLAYER_BAR := preload("res://assets/sprites/ui/player_health_bar.png")
 const TEX_STAMINA_BAR := preload("res://assets/sprites/ui/stamina_bar.png")
@@ -70,7 +76,7 @@ func _ready() -> void:
 	# wygenerowanej we właściwym kolorze) — poza paskiem bossa, który celowo
 	# powstał neutralny biało-złoty, żeby dało się go zabarwiać dynamicznie
 	# per faza (patrz PROMPTY_FINALNE_WSZYSTKO.md E2).
-	var player_pos := Vector2(30.0, size.y - 50.0)
+	var player_pos := Vector2(30.0, VIEWPORT_SIZE.y - 50.0)
 	_setup_bar(player_bar_under, player_bar, TEX_PLAYER_BAR, player_pos, player_bar_size, Color.WHITE)
 
 	var stamina_pos := player_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
@@ -82,7 +88,7 @@ func _ready() -> void:
 	var boss_pos := Vector2(ARENA_LEFT, 20.0)
 	_setup_bar(boss_bar_under, boss_bar, TEX_BOSS_BAR, boss_pos, Vector2(ARENA_WIDTH, boss_bar_height), Color.WHITE)
 
-	var dash_pos := Vector2(30.0 + player_bar_size.x + 16.0, size.y - 50.0)
+	var dash_pos := Vector2(30.0 + player_bar_size.x + 16.0, VIEWPORT_SIZE.y - 50.0)
 	dash_icon.texture = TEX_DASH_ICON
 	dash_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	dash_icon.stretch_mode = TextureRect.STRETCH_SCALE
@@ -103,7 +109,7 @@ func _ready() -> void:
 	overlay_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	overlay_frame.stretch_mode = TextureRect.STRETCH_SCALE
 	overlay_frame.position = Vector2.ZERO
-	overlay_frame.size = size
+	overlay_frame.size = VIEWPORT_SIZE
 	overlay_frame.visible = false
 
 func _tex_size(tex: Texture2D) -> Vector2:
