@@ -6,7 +6,7 @@ extends Node2D
 
 const ARENA_RECT := Rect2(90, 60, 1100, 600) # wyśrodkowana 1100x600 w oknie 1280x720
 const WALL_THICKNESS := 20.0
-const SAVE_PATH := "user://progress.json"
+var SAVE_PATH := "user://progress.json" ## var (nie const) tylko po to, żeby test mógł podmienić ścieżkę na tymczasową
 
 const BossScene := preload("res://entities/boss.tscn")
 
@@ -189,12 +189,18 @@ func _load_progress() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):
 		return
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if file == null:
+		push_warning("Arena: nie udało się otworzyć zapisu do odczytu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
+		return
 	var data = JSON.parse_string(file.get_as_text())
 	if typeof(data) == TYPE_DICTIONARY:
 		deaths = int(data.get("deaths", 0))
 		wins = int(data.get("wins", 0))
 
 func _save_progress() -> void:
-	var data := {"deaths": deaths, "attempts": _attempts(), "wins": wins}
+	var data := {"deaths": deaths, "wins": wins}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_warning("Arena: nie udało się zapisać postępu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
+		return
 	file.store_string(JSON.stringify(data))

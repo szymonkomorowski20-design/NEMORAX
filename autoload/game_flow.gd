@@ -5,7 +5,7 @@ extends Node
 ## Zapisywane na dysk (na życzenie autora), żeby zamknięcie gry w trakcie
 ## gauntletu nie cofało do pokoju 1.
 
-const SAVE_PATH := "user://gauntlet_progress.json"
+var SAVE_PATH := "user://gauntlet_progress.json" ## var (nie const) tylko po to, żeby test mógł podmienić ścieżkę na tymczasową
 
 const ROOM_SCENE := "res://rooms/room.tscn"
 const ALTAR_SCENE := "res://rooms/altar.tscn"
@@ -103,6 +103,12 @@ func _load_progress() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):
 		return
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if file == null:
+		# open() zwraca null zamiast rzucać wyjątek (Godot 4) — bez tej kontroli
+		# get_as_text() poniżej wywaliłoby się na null-referencji. Zostają
+		# domyślne wartości ustawione wyżej (current_room_index=0 itd.).
+		push_warning("GameFlow: nie udało się otworzyć zapisu do odczytu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
+		return
 	var data = JSON.parse_string(file.get_as_text())
 	if typeof(data) != TYPE_DICTIONARY:
 		return
@@ -118,4 +124,9 @@ func _save_progress() -> void:
 		"saved_player_state": saved_player_state,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		# Dysk pełny / user:// tylko do odczytu itp. — stan w pamięci już jest
+		# zaktualizowany, po prostu nie zostanie tym razem zapisany na dysk.
+		push_warning("GameFlow: nie udało się zapisać postępu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
+		return
 	file.store_string(JSON.stringify(data))
