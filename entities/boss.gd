@@ -47,13 +47,13 @@ const SND_SMALLFORM_RESURRECT := preload("res://assets/audio/sfx/nemorax/N18_sma
 ## Ile HP trzeba zdjąć, żeby przejść do kolejnej fazy — KAŻDA faza ma pełny pasek
 ## od nowa (na życzenie autora), a nie jeden wspólny pasek 600 HP na całą walkę.
 @export var phase_max_health: float = 100.0
-@export var radius: float = 44.0
+@export var radius: float = 120.0 ## dopasowane do widocznej sylwetki sprite'a (~340px), nie starego kółka-placeholdera
 @export var boss_drift_speed: float = 100.0 ## px/s, powolne dryfowanie w stronę gracza
 @export var attack_interval: float = 0.9 ## s, odstęp między losowaniem ataków
 @export var final_attack_interval: float = 0.6 ## s, odstęp ataków w fazie finałowej
 @export var phase_transform_invuln: float = 1.5 ## s nietykalności podczas przemiany
 @export var final_health: float = 150.0 ## HP małej formy w fazie finałowej
-@export var final_radius: float = 20.0 ## promień małej formy w fazie finałowej
+@export var final_radius: float = 58.0 ## promień małej formy w fazie finałowej — ta sama proporcja pokrycia co radius/duża forma
 
 # Faza Ciężar (sekcja 7): stała siła przyciągania gracza, przekazywana graczowi
 # bezpośrednio (patrz player.gd — gracz sam dolicza to do swojej prędkości).
