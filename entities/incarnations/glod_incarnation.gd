@@ -12,6 +12,8 @@ class_name GlodIncarnation
 @export var pull_strength: float = 350.0
 
 const TEX_WALK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk.png")
+const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk_back.png")
+const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk_side.png")
 const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_telegraph.png")
 const TEX_LUNGE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_lunge.png")
 const TEX_PULSE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_cast-pulse.png")
@@ -26,7 +28,8 @@ func _ready() -> void:
 	fragment_name = "Thal’Gor, Pęknięty Pomiędzy Światami" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_bite, _skill_ravenous_pulse, _skill_pull_and_bite]
 	_sprite_textures = {
-		"walk": TEX_WALK, "telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
+		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
+		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
 		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
 		"lifesteal_bite": TEX_BITE,
 	}

@@ -14,13 +14,16 @@ const ShadowScene := preload("res://entities/shadow.tscn")
 # Sześć baz wyglądu, jedna na fazę (kolejność = phase_index 0..5) — zamiast
 # jednego generycznego "walk" na cały pojedynek, każda faza ma własny portret,
 # tak jak sugerują nazwy plików (PROMPTY_FINALNE_WSZYSTKO.md sekcja A2).
-const PHASE_BASE_TEXTURES: Array[Texture2D] = [
-	preload("res://assets/sprites/nemorax/nemorax_phase-1_base.png"),
-	preload("res://assets/sprites/nemorax/nemorax_phase-2_silence.png"),
-	preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown.png"),
-	preload("res://assets/sprites/nemorax/nemorax_phase-4_pull.png"),
-	preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration.png"),
-	preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision.png"),
+# Każda faza ma dziś też warianty kierunkowe (pilotaż 360°, PLAN_ANIMACJE_KIERUNKOWE.md)
+# — Dictionary {"front","back","side"} zamiast pojedynczej tekstury, rozstrzygane
+# przez Facing.resolve() wg _facing_direction (kierunek do gracza).
+const PHASE_BASE_TEXTURES: Array[Dictionary] = [
+	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-1_base.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-1_base_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-1_base_side.png")},
+	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-2_silence.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_side.png")},
+	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_side.png")},
+	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-4_pull.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_side.png")},
+	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_side.png")},
+	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_side.png")},
 ]
 const TEX_TELEGRAPH := preload("res://assets/sprites/nemorax/nemorax_telegraph.png")
 const TEX_LUNGE := preload("res://assets/sprites/nemorax/nemorax_lunge.png")
@@ -94,6 +97,7 @@ const SND_SMALLFORM_RESURRECT := preload("res://assets/audio/sfx/nemorax/N18_sma
 @onready var lunge_warning: Sprite2D = $LungeWarning
 @onready var sfx: AudioStreamPlayer2D = $Sfx
 
+var _facing_direction: Vector2 = Vector2.ZERO ## kierunek do gracza — pilotaż 360° (patrz Facing.resolve)
 var _cast_pose_texture: Texture2D = null
 var _cast_pose_timer: float = 0.0
 var _taunt_pose_active: bool = false
@@ -261,6 +265,7 @@ func _get_history_snapshot(delay_seconds: float) -> PackedVector2Array:
 func _drift_towards_player(delta: float) -> void:
 	var to_player: Vector2 = player.global_position - global_position
 	if to_player.length() > 1.0:
+		_facing_direction = to_player
 		global_position += to_player.normalized() * boss_drift_speed * delta
 
 func _handle_hunger_regen(delta: float) -> void:
@@ -436,27 +441,29 @@ func _play_sfx(stream: AudioStream) -> void:
 ## "kolaps dużej formy" mają najwyższy priorytet i muszą działać także gdy
 ## is_dead=true, stąd wywołanie także z _physics_process w ścieżce is_dead.
 func _update_sprite_state() -> void:
-	var tex: Texture2D
+	var entry # Texture2D (bez wariantów) albo Dictionary front/back/side (pozy z pilotażu 360°)
 	if is_dead:
-		tex = TEX_SMALL_FORM_TRUE_DEATH if is_final_phase else TEX_LARGE_FORM_COLLAPSE
+		entry = TEX_SMALL_FORM_TRUE_DEATH if is_final_phase else TEX_LARGE_FORM_COLLAPSE
 	elif _rebirth_pose_timer > 0.0:
-		tex = TEX_SMALL_FORM_REBIRTH
+		entry = TEX_SMALL_FORM_REBIRTH
 	elif _taunt_pose_active:
-		tex = TEX_SMALL_FORM_TAUNT
+		entry = TEX_SMALL_FORM_TAUNT
 	elif _invulnerable:
-		tex = TEX_PHASE_TRANSFORM
+		entry = TEX_PHASE_TRANSFORM
 	elif _flash_frames > 0:
-		tex = TEX_HIT
+		entry = TEX_HIT
 	elif _cast_pose_timer > 0.0:
-		tex = _cast_pose_texture
+		entry = _cast_pose_texture
 	elif _lunge_state == "telegraph":
-		tex = TEX_TELEGRAPH
+		entry = TEX_TELEGRAPH
 	elif _lunge_state == "active":
-		tex = TEX_LUNGE
+		entry = TEX_LUNGE
 	else:
-		tex = PHASE_BASE_TEXTURES[phase_index]
-	if tex != null:
-		sprite.texture = tex
+		entry = PHASE_BASE_TEXTURES[phase_index]
+	if entry != null:
+		var facing := Facing.resolve(entry, _facing_direction)
+		sprite.texture = facing["texture"]
+		sprite.flip_h = facing["flip_h"]
 
 func _draw() -> void:
 	# Kontakt z ciałem zawsze rani (dodane na życzenie autora) — stały żółty kontur

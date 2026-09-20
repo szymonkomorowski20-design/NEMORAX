@@ -14,6 +14,8 @@ class_name CiezarIncarnation
 @export var lunge_duration: float = 0.3
 
 const TEX_WALK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk.png")
+const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back.png")
+const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_side.png")
 const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_telegraph.png")
 const TEX_LUNGE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_lunge.png")
 const TEX_PULSE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_cast-pulse.png")
@@ -28,7 +30,8 @@ func _ready() -> void:
 	fragment_name = "Nekravor, Ten Którego Odrzucono" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_gravity_pull, _skill_crush_pulse, _skill_gravity_lunge]
 	_sprite_textures = {
-		"walk": TEX_WALK, "telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
+		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
+		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
 		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
 		"crush": TEX_CRUSH,
 	}

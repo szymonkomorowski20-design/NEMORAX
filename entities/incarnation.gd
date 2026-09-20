@@ -37,6 +37,7 @@ const SND_DEATH := preload("res://assets/audio/sfx/wcielenia/I08_incarnation_dea
 var current_color: Color = Color.WHITE ## ustawiane przez podklasę
 var fragment_name: String = "" ## ustawiane przez podklasę — nazwa fragmentu duszy
 var _sprite_textures: Dictionary = {} ## wypełniane przez podklasę w _ready()
+var _facing_direction: Vector2 = Vector2.ZERO ## kierunek do gracza — pilotaż 360° (patrz Facing.resolve)
 var _skill_pose_name: String = "walk"
 var _skill_pose_timer: float = 0.0
 
@@ -106,6 +107,7 @@ func apply_knockback(impulse: Vector2) -> void:
 func _drift_towards_player(delta: float) -> void:
 	var to_player: Vector2 = player.global_position - global_position
 	if to_player.length() > 1.0:
+		_facing_direction = to_player
 		global_position += to_player.normalized() * drift_speed * delta
 
 ## Dotyk ciała zawsze rani (ta sama konwencja co Nemorax) — throttlowane przez
@@ -222,6 +224,8 @@ func _update_sprite_state() -> void:
 		pose = _skill_pose_name
 	elif _lunge_active:
 		pose = "lunge"
-	var tex: Texture2D = _sprite_textures.get(pose, _sprite_textures.get("walk"))
-	if tex != null:
-		sprite.texture = tex
+	var entry = _sprite_textures.get(pose, _sprite_textures.get("walk"))
+	if entry != null:
+		var facing := Facing.resolve(entry, _facing_direction)
+		sprite.texture = facing["texture"]
+		sprite.flip_h = facing["flip_h"]

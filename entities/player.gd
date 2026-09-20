@@ -15,6 +15,12 @@ const ProjectileScene := preload("res://entities/projectile.tscn")
 # --- Sprite'y (zamiast dawnego _draw()) ---
 const TEX_BASE := preload("res://assets/sprites/gracz/player_base.png")
 const TEX_WALK := preload("res://assets/sprites/gracz/player_walk.png")
+const TEX_WALK_BACK := preload("res://assets/sprites/gracz/player_walk_back.png")
+const TEX_WALK_SIDE := preload("res://assets/sprites/gracz/player_walk_side.png")
+# Pilotaż 360° (PLAN_ANIMACJE_KIERUNKOWE.md) — na razie tylko chód ma warianty
+# kierunkowe; "front" to dawny, jedyny plik. Facing.resolve() rozstrzyga
+# front/back/side (+flip_h dla lewej strony) na podstawie kierunku ruchu.
+const WALK_VARIANTS := {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE}
 const TEX_DASH := preload("res://assets/sprites/gracz/player_dash.png")
 const TEX_SWORD_WINDUP := preload("res://assets/sprites/gracz/player_sword_windup.png")
 const TEX_SWORD_ACTIVE := preload("res://assets/sprites/gracz/player_sword_active.png")
@@ -526,6 +532,10 @@ func _play_sfx(stream: AudioStream) -> void:
 ## Zastępuje dawny _draw() — wybiera właściwą teksturę wg priorytetu stanu i
 ## ustawia VFX ataku (wycinek miecza / kula różdżki) w miejsce dawnych rysowanych kształtów.
 func _update_visuals() -> void:
+	# Tylko chód ma dziś warianty kierunkowe (pilotaż 360°) — reset na początku,
+	# żeby flip_h z poprzedniej klatki chodu nie zostawał "przyklejony" do pozy
+	# bez wariantów (np. atak), która zawsze pokazuje front.
+	sprite.flip_h = false
 	if state == State.DEAD:
 		sprite.texture = TEX_DEATH
 	elif _flash_frames > 0:
@@ -541,7 +551,9 @@ func _update_visuals() -> void:
 	elif _attack_phase == "active" or _attack_phase == "recovery":
 		sprite.texture = TEX_SWORD_ACTIVE if _swing_weapon == "sword" else TEX_WAND_FIRE
 	elif velocity.length() > 5.0:
-		sprite.texture = TEX_WALK
+		var walk_facing := Facing.resolve(WALK_VARIANTS, velocity)
+		sprite.texture = walk_facing["texture"]
+		sprite.flip_h = walk_facing["flip_h"]
 	else:
 		sprite.texture = TEX_BASE
 
