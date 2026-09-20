@@ -11,6 +11,39 @@ const SealScene := preload("res://entities/seal.tscn")
 const VoidZoneScene := preload("res://entities/void_zone.tscn")
 const ShadowScene := preload("res://entities/shadow.tscn")
 
+# Sześć baz wyglądu, jedna na fazę (kolejność = phase_index 0..5) — zamiast
+# jednego generycznego "walk" na cały pojedynek, każda faza ma własny portret,
+# tak jak sugerują nazwy plików (PROMPTY_FINALNE_WSZYSTKO.md sekcja A2).
+const PHASE_BASE_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/sprites/nemorax/nemorax_phase-1_base.png"),
+	preload("res://assets/sprites/nemorax/nemorax_phase-2_silence.png"),
+	preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown.png"),
+	preload("res://assets/sprites/nemorax/nemorax_phase-4_pull.png"),
+	preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration.png"),
+	preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision.png"),
+]
+const TEX_TELEGRAPH := preload("res://assets/sprites/nemorax/nemorax_telegraph.png")
+const TEX_LUNGE := preload("res://assets/sprites/nemorax/nemorax_lunge.png")
+const TEX_CAST_PULSE := preload("res://assets/sprites/nemorax/nemorax_cast-pulse.png") # Szósty Rytm
+const TEX_PULL := preload("res://assets/sprites/nemorax/nemorax_pull.png") # Kradzież Intencji
+const TEX_HIT := preload("res://assets/sprites/nemorax/nemorax_hit.png")
+const TEX_PHASE_TRANSFORM := preload("res://assets/sprites/nemorax/nemorax_phase-transform.png")
+const TEX_LARGE_FORM_COLLAPSE := preload("res://assets/sprites/nemorax/nemorax_large-form-collapse.png")
+const TEX_SMALL_FORM_REBIRTH := preload("res://assets/sprites/nemorax/nemorax_small-form-rebirth.png")
+const TEX_SMALL_FORM_TAUNT := preload("res://assets/sprites/nemorax/nemorax_small-form-taunt.png")
+const TEX_SMALL_FORM_TRUE_DEATH := preload("res://assets/sprites/nemorax/nemorax_small-form-true-death.png")
+const TEX_LUNGE_WARNING := preload("res://assets/sprites/ataki_bossa/claw_dash_warning.png")
+const LUNGE_WARNING_CONTENT_HEIGHT := 891.0 ## zmierzona wysokość samej grafiki na płótnie 1024, resztę zajmuje przezroczysty margines
+
+const SND_TRANSFORM_ROAR := preload("res://assets/audio/sfx/nemorax/N01_transform_roar.wav")
+const SND_ATTACK_INHALE := preload("res://assets/audio/sfx/nemorax/N02_attack_inhale.wav")
+const SND_LUNGE_TELEGRAPH := preload("res://assets/audio/sfx/nemorax/N11_lunge_telegraph.wav")
+const SND_LUNGE_CHARGE := preload("res://assets/audio/sfx/nemorax/N12_lunge_charge.wav")
+const SND_BODY_CONTACT := preload("res://assets/audio/sfx/nemorax/N14_body_contact.wav")
+const SND_HURT := preload("res://assets/audio/sfx/nemorax/N16_nemorax_hurt.wav")
+const SND_BIGFORM_COLLAPSE := preload("res://assets/audio/sfx/nemorax/N17_bigform_collapse.wav")
+const SND_SMALLFORM_RESURRECT := preload("res://assets/audio/sfx/nemorax/N18_smallform_resurrect.wav")
+
 ## Ile HP trzeba zdjąć, żeby przejść do kolejnej fazy — KAŻDA faza ma pełny pasek
 ## od nowa (na życzenie autora), a nie jeden wspólny pasek 600 HP na całą walkę.
 @export var phase_max_health: float = 100.0
@@ -52,6 +85,20 @@ const ShadowScene := preload("res://entities/shadow.tscn")
 @export var knockback_strength: float = 400.0 ## px/s, siła odepchnięcia gracza dotykiem/wypadem
 @export var knockback_friction: float = 2000.0 ## px/s^2, jak szybko wytraca się odepchnięcie bossa
 
+@export var sprite_scale: float = 0.28 ## duża forma wobec oryginalnych plików ~1230-1250px (cel: ~340px)
+@export var final_sprite_scale: float = 0.13 ## mała forma finałowa — proporcja final_radius/radius (20/44) razy sprite_scale
+@export var cast_pose_duration: float = 0.4 ## s, jak długo trzyma się poza rzucenia pieczęci/cienia po jej użyciu
+@export var rebirth_pose_duration: float = 0.6 ## s, poza odrodzenia małej formy po start_final_phase()
+
+@onready var sprite: Sprite2D = $Sprite
+@onready var lunge_warning: Sprite2D = $LungeWarning
+@onready var sfx: AudioStreamPlayer2D = $Sfx
+
+var _cast_pose_texture: Texture2D = null
+var _cast_pose_timer: float = 0.0
+var _taunt_pose_active: bool = false
+var _rebirth_pose_timer: float = 0.0
+
 var health: float
 var max_health: float ## mianownik do paska HP w UI — phase_max_health w fazach 0-5, final_health w finale
 var phase_index: int = 0 ## 0..5, indeks w Palette.PHASE_COLORS / PHASE_NAMES
@@ -88,6 +135,16 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player") as Player
 	_attack_timer = attack_interval
 	_init_position_history()
+	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	lunge_warning.texture = TEX_LUNGE_WARNING
+	# claw_dash_warning.png ma grot skierowany "w górę" na płótnie — offset centruje
+	# go tak, żeby jego DÓŁ (nasada) siedział na bossie, a grot wskazywał kierunek wypadu.
+	lunge_warning.centered = true
+	lunge_warning.offset = Vector2(0.0, -lunge_warning.texture.get_height() * 0.5)
+	var lunge_reach := lunge_speed * lunge_duration
+	var lunge_warning_scale := lunge_reach / LUNGE_WARNING_CONTENT_HEIGHT
+	lunge_warning.scale = Vector2(lunge_warning_scale, lunge_warning_scale)
+	_update_sprite_state()
 
 func _init_position_history() -> void:
 	var frame_count: int = max(1, int(shadow_delay * Engine.physics_ticks_per_second))
@@ -97,7 +154,11 @@ func _init_position_history() -> void:
 		_position_history[i] = start_pos
 
 func _physics_process(delta: float) -> void:
-	if is_dead or player == null:
+	if player == null:
+		return
+	if is_dead:
+		_update_sprite_state() # inaczej poza kolapsu/prawdziwej śmierci nigdy by się nie pokazała
+		queue_redraw()
 		return
 
 	_record_player_position()
@@ -121,7 +182,16 @@ func _physics_process(delta: float) -> void:
 
 	if _flash_frames > 0:
 		_flash_frames -= 1
+	if _cast_pose_timer > 0.0:
+		_cast_pose_timer -= delta
+	if _rebirth_pose_timer > 0.0:
+		_rebirth_pose_timer -= delta
 
+	lunge_warning.visible = _lunge_state == "telegraph"
+	if _lunge_state == "telegraph":
+		lunge_warning.rotation = (_lunge_target - global_position).angle() + PI * 0.5
+
+	_update_sprite_state()
 	queue_redraw()
 
 ## Kontakt z ciałem bossa zawsze rani (na życzenie autora) i odpycha gracza —
@@ -136,6 +206,7 @@ func _check_body_contact() -> void:
 	player.take_damage(damage)
 	var dir := to_player.normalized() if to_player.length() > 0.01 else Vector2.RIGHT
 	player.apply_knockback(dir * knockback_strength)
+	_play_sfx(SND_BODY_CONTACT)
 
 ## Wywoływane z zewnątrz (blok gracza pod PPM) — odpycha bossa na chwilę.
 func apply_knockback(impulse: Vector2) -> void:
@@ -149,6 +220,7 @@ func _process_lunge(delta: float) -> void:
 			_lunge_timer = lunge_duration
 			var to_target: Vector2 = _lunge_target - global_position
 			_lunge_direction = to_target.normalized() if to_target.length() > 0.01 else Vector2.RIGHT
+			_play_sfx(SND_LUNGE_CHARGE)
 	else: # "active"
 		global_position = _clamp_to_arena(global_position + _lunge_direction * lunge_speed * delta)
 		if _lunge_timer <= 0.0:
@@ -159,6 +231,7 @@ func _process_lunge(delta: float) -> void:
 				_lunge_state = "telegraph"
 				_lunge_timer = lunge_telegraph
 				_lunge_target = player.global_position
+				_play_sfx(SND_LUNGE_TELEGRAPH)
 			else:
 				_lunge_state = ""
 
@@ -222,8 +295,15 @@ func _launch_lunge_attack() -> void:
 	_lunge_state = "telegraph"
 	_lunge_timer = lunge_telegraph
 	_lunge_target = player.global_position
+	_play_sfx(SND_LUNGE_TELEGRAPH)
+
+func _set_cast_pose(tex: Texture2D) -> void:
+	_cast_pose_texture = tex
+	_cast_pose_timer = cast_pose_duration
+	_play_sfx(SND_ATTACK_INHALE)
 
 func _launch_seal_attack() -> void:
+	_set_cast_pose(TEX_CAST_PULSE)
 	# Instancjonujemy jedną pieczęć wcześniej tylko po to, żeby odczytać jej promień
 	# (własność seal.gd) i użyć go jako marginesu od ścian — inaczej duże promienie
 	# mogłyby wizualnie wychodzić poza granicę areny.
@@ -253,6 +333,7 @@ func _launch_seal_attack() -> void:
 		get_parent().add_child(seal)
 
 func _launch_void_attack() -> void:
+	_set_cast_pose(TEX_CAST_PULSE)
 	var zone = VoidZoneScene.instantiate()
 	zone.player = player
 	zone.boss = self
@@ -260,6 +341,7 @@ func _launch_void_attack() -> void:
 	get_parent().add_child(zone)
 
 func _launch_shadow_attack() -> void:
+	_set_cast_pose(TEX_PULL)
 	_spawn_shadow(shadow_delay)
 	# "Od fazy 4 mogą istnieć dwa cienie naraz" (sekcja 5) — w tabeli sekcji 7 to Ciężar
 	# (phase_index == 3, licząc od 0). Drugi cień to echo bliższe teraźniejszości,
@@ -288,6 +370,7 @@ func take_damage(amount: float) -> void:
 	health -= amount
 	_time_since_hit = 0.0
 	if health > 0.0:
+		_play_sfx(SND_HURT)
 		return
 
 	health = 0.0
@@ -296,6 +379,7 @@ func take_damage(amount: float) -> void:
 		# Zaćmienie (albo już mała forma z finału) doszło do zera — to prawdziwy koniec
 		# tej formy, nie kolejna przemiana. Sekcja 8 przejmuje dalej przez sygnał `died`.
 		is_dead = true
+		_play_sfx(SND_TRANSFORM_ROAR if is_final_phase else SND_BIGFORM_COLLAPSE)
 		died.emit(is_final_phase)
 	else:
 		# Każda z 6 faz ma pełne, osobne życie do zdjęcia (na życzenie autora) —
@@ -313,6 +397,7 @@ func _enter_phase(new_index: int) -> void:
 func _start_transform_invulnerability() -> void:
 	_invulnerable = true
 	Juice.screen_shake()
+	_play_sfx(SND_TRANSFORM_ROAR)
 	await get_tree().create_timer(phase_transform_invuln).timeout
 	_invulnerable = false
 
@@ -332,21 +417,51 @@ func start_final_phase() -> void:
 	max_health = final_health
 	current_color = Palette.PHASE_COLORS[5] # Zaćmienie — ta sama forma, ciąg dalszy
 	_attack_timer = final_attack_interval
+	sprite.scale = Vector2(final_sprite_scale, final_sprite_scale)
+	_rebirth_pose_timer = rebirth_pose_duration
+	_play_sfx(SND_SMALLFORM_RESURRECT)
+
+## Wywoływane przez arenę na czas pytania finałowego (ui.show_taunt) — mała forma
+## przybiera pozę "taunt" zamiast normalnego idle, dopóki drwina wisi na ekranie.
+func show_taunt_pose(duration: float) -> void:
+	_taunt_pose_active = true
+	get_tree().create_timer(duration).timeout.connect(func(): _taunt_pose_active = false)
+
+func _play_sfx(stream: AudioStream) -> void:
+	sfx.stream = stream
+	sfx.play()
+
+## Zastępuje dawny draw_circle(color)+draw_line — wybiera teksturę wg priorytetu
+## stanu, tak jak _update_sprite_state() w incarnation.gd. "Prawdziwa śmierć" i
+## "kolaps dużej formy" mają najwyższy priorytet i muszą działać także gdy
+## is_dead=true, stąd wywołanie także z _physics_process w ścieżce is_dead.
+func _update_sprite_state() -> void:
+	var tex: Texture2D
+	if is_dead:
+		tex = TEX_SMALL_FORM_TRUE_DEATH if is_final_phase else TEX_LARGE_FORM_COLLAPSE
+	elif _rebirth_pose_timer > 0.0:
+		tex = TEX_SMALL_FORM_REBIRTH
+	elif _taunt_pose_active:
+		tex = TEX_SMALL_FORM_TAUNT
+	elif _invulnerable:
+		tex = TEX_PHASE_TRANSFORM
+	elif _flash_frames > 0:
+		tex = TEX_HIT
+	elif _cast_pose_timer > 0.0:
+		tex = _cast_pose_texture
+	elif _lunge_state == "telegraph":
+		tex = TEX_TELEGRAPH
+	elif _lunge_state == "active":
+		tex = TEX_LUNGE
+	else:
+		tex = PHASE_BASE_TEXTURES[phase_index]
+	if tex != null:
+		sprite.texture = tex
 
 func _draw() -> void:
-	var color := current_color
-	if _flash_frames > 0:
-		color = Palette.HIT_FLASH
-	draw_circle(Vector2.ZERO, radius, color)
-
 	# Kontakt z ciałem zawsze rani (dodane na życzenie autora) — stały żółty kontur
 	# to zapowiedź obowiązująca bez przerwy, żeby nie złamać zasady "żadne trafienie
 	# bez zapowiedzi" (sekcja 4), skoro to zagrożenie nie ma osobnej fazy "przed".
-	draw_arc(Vector2.ZERO, radius + 4.0, 0.0, TAU, 32, Color(Palette.DANGER, 0.9), 3.0)
-
-	if _lunge_state == "telegraph":
-		var to_target: Vector2 = _lunge_target - global_position
-		var dir := to_target.normalized() if to_target.length() > 0.01 else Vector2.RIGHT
-		var reach := lunge_speed * lunge_duration
-		draw_line(Vector2.ZERO, dir * reach, Color(Palette.DANGER, 0.6), 4.0)
-		draw_arc(Vector2.ZERO, radius + 4.0, 0.0, TAU, 32, Color(Palette.DANGER, 1.0), 5.0)
+	if not is_dead:
+		var ring_width := 5.0 if _lunge_state == "telegraph" else 3.0
+		draw_arc(Vector2.ZERO, radius + 4.0, 0.0, TAU, 32, Color(Palette.DANGER, 0.9), ring_width)

@@ -4,9 +4,14 @@ extends Node2D
 ## Dashe "odtwarzają się" same, bo w trasie są po prostu gwałtownymi skokami pozycji.
 ## Nie ma własnego ataku ani hitboksu — rani wyłącznie kontaktem z ciałem.
 
+const TEX_SHADOW := preload("res://assets/sprites/gracz/player_base.png") # to kopia gracza — ten sam sprite
+const SHADOW_SPRITE_SCALE := 0.08 # ta sama skala co player.gd, żeby kopia wyglądała identycznie z rozmiaru
+
 @export var shadow_lifetime: float = 6.0 ## s, jak długo cień istnieje i się odtwarza
 @export var shadow_contact_damage: float = 15.0
 @export var radius: float = 14.0 ## px, ten sam rozmiar co gracz — to jego kopia
+
+@onready var sprite: Sprite2D = $Sprite
 
 var player: Player = null
 var trace: PackedVector2Array = PackedVector2Array() ## ustawiane przez boss.gd przed add_child
@@ -19,6 +24,11 @@ func _ready() -> void:
 	_max_frames = min(trace.size(), int(shadow_lifetime * Engine.physics_ticks_per_second))
 	if trace.size() > 0:
 		global_position = trace[0]
+	sprite.texture = TEX_SHADOW
+	sprite.scale = Vector2(SHADOW_SPRITE_SCALE, SHADOW_SPRITE_SCALE)
+	# Cyjan mówi "to jesteś ty" (sekcja 2, punkt 1) — sam modulate na kopii sprite'a
+	# gracza, zamiast płaskiego koła jak dawniej.
+	sprite.modulate = Color(Palette.PLAYER_BODY, 0.75)
 
 func _physics_process(delta: float) -> void:
 	_life_timer += delta
@@ -37,7 +47,6 @@ func _check_contact() -> void:
 		player.take_damage(shadow_contact_damage)
 
 func _draw() -> void:
-	# Cyjan mówi "to jesteś ty", żółty kontur mówi "to zada obrażenia" — obie reguły
-	# z sekcji 2 są tu prawdziwe naraz. CELOWE (sekcja 2, punkt 1).
-	draw_circle(Vector2.ZERO, radius, Color(Palette.PLAYER_BODY, 0.5))
+	# Żółty kontur mówi "to zada obrażenia" (sekcja 2, punkt 2) — obie reguły
+	# z sekcji 2 są tu prawdziwe naraz (kontur + cyjan sprite'a). CELOWE.
 	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 24, Palette.DANGER, 2.0)

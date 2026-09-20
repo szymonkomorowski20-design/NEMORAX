@@ -124,13 +124,15 @@ func _on_boss_died(is_final: bool) -> void:
 ## Duża forma spadła do 0 HP — to jeszcze nie koniec (sekcja 8): ciało "znika",
 ## po 2 s wraca mała forma z pytaniem finałowym, zanim zdąży zaatakować.
 func _play_big_form_death() -> void:
-	boss.visible = false
+	# Duża forma jest is_dead=true w tym oknie — boss.gd sam pokazuje pozę
+	# "kolaps" (nemorax_large-form-collapse.png) przez _update_sprite_state(),
+	# więc nie trzeba już chować sprite'a na ślepo.
 	await get_tree().create_timer(body_fade_duration).timeout
 
 	boss.start_final_phase()
 	boss.global_position = ARENA_RECT.get_center()
-	boss.visible = true
 	boss.delay_next_attack(finale_taunt_duration)
+	boss.show_taunt_pose(finale_taunt_duration)
 
 	player.input_reversed = true # reguła siódma: Odwrócenie
 	ui.hide_all = true # interfejs znika w całości w fazie finałowej
