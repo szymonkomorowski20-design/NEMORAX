@@ -108,7 +108,7 @@ const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockbac
 @export var block_visual_duration: float = 0.15 ## s, jak długo pokazuje się poza bloku
 
 # --- Leczenie (E) — dodane na życzenie autora, poza dokumentem ---
-@export var heal_hits_required: int = 40 ## ile celnych trafień wroga ładuje jedno leczenie
+@export var heal_hits_required: int = 20 ## ile celnych trafień wroga ładuje jedno leczenie
 @export var heal_amount_fraction: float = 0.5 ## ułamek MAX zdrowia odzyskiwany leczeniem
 @export var heal_visual_duration: float = 0.4 ## s, jak długo pokazuje się poza leczenia
 
@@ -326,8 +326,8 @@ func _perform_block_push() -> void:
 	if pushed_something:
 		_play_sfx(SND_BLOCK_PUSH_HIT)
 
-## Leczenie (E) — ładuje się samo za 40 celnych trafień wroga (patrz
-## register_hit_on_enemy), zużywa cały ładunek i oddaje połowę MAX zdrowia.
+## Leczenie (E) — ładuje się samo za heal_hits_required celnych trafień wroga
+## (patrz register_hit_on_enemy), zużywa cały ładunek i oddaje połowę MAX zdrowia.
 func _handle_heal_input() -> void:
 	if state == State.DEAD:
 		return
@@ -413,7 +413,7 @@ func _fire_projectile() -> void:
 	get_parent().add_child(projectile)
 
 ## Wywoływane za KAŻDE celne trafienie wroga, niezależnie jaką bronią — jedyny
-## sposób odzyskania many, a co 40. takie trafienie ładuje leczenie (E).
+## sposób odzyskania many, a co heal_hits_required-te takie trafienie ładuje leczenie (E).
 func register_hit_on_enemy() -> void:
 	mana = min(max_mana, mana + mana_regen_per_hit)
 	var was_ready := is_heal_ready()

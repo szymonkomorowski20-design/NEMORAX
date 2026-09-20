@@ -41,6 +41,10 @@ const PLAYER_BAR_CONTENT := Rect2(64.0, 326.0, 1408.0, 354.0)
 const STAMINA_BAR_CONTENT := Rect2(76.0, 438.0, 1382.0, 138.0)
 const MANA_BAR_CONTENT := Rect2(106.0, 420.0, 1332.0, 172.0)
 const BOSS_BAR_CONTENT := Rect2(0.0, 318.0, 1536.0, 394.0)
+# Ta sama sztuczka co przy paskach — sama grafika ikonki leczenia to tylko
+# ~67% płótna 1024x1024, więc dzielenie przez pełne płótno robiło ikonkę
+# widocznie mniejszą (~13px) niż zamierzony heal_icon_size (20px).
+const HEAL_ICON_CONTENT := Rect2(158.0, 150.0, 706.0, 698.0)
 
 # Paski "under" (tło/tor) to ta sama grafika co "fill", tylko przyciemniona
 # modulate — jeden wygenerowany obrazek na pasek, nie osobna para pusty/pełny
@@ -115,7 +119,9 @@ func _ready() -> void:
 	heal_icon.texture = TEX_HEAL_ICON
 	heal_icon.centered = false
 	heal_icon.position = heal_pos
-	heal_icon.scale = Vector2(heal_icon_size, heal_icon_size) / _tex_size(TEX_HEAL_ICON)
+	heal_icon.scale = Vector2(heal_icon_size, heal_icon_size) / HEAL_ICON_CONTENT.size
+	heal_icon.region_enabled = true
+	heal_icon.region_rect = HEAL_ICON_CONTENT
 
 	overlay_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	overlay_frame.stretch_mode = TextureRect.STRETCH_SCALE
