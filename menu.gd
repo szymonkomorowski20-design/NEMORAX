@@ -13,15 +13,20 @@ const LOGO_SIZE := Vector2(480.0, 320.0) ## zachowuje proporcje źródłowego pl
 
 func _ready() -> void:
 	var vp_size := get_viewport_rect().size
+	# expand_mode domyślnie każe kontrolce rosnąć do natywnego rozmiaru
+	# tekstury (1536x1024) niezależnie od .size — IGNORE_SIZE to wyłącza,
+	# inaczej logo/tło wystają poza ekran zamiast trzymać się zadanych wymiarów.
 	background.texture = TEX_BACKGROUND
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_SCALE
 	background.position = Vector2.ZERO
 	background.size = vp_size
-	background.stretch_mode = TextureRect.STRETCH_SCALE
 
 	logo.texture = TEX_LOGO
+	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo.stretch_mode = TextureRect.STRETCH_SCALE
 	logo.size = LOGO_SIZE
 	logo.position = Vector2((vp_size.x - LOGO_SIZE.x) * 0.5, vp_size.y * 0.28)
-	logo.stretch_mode = TextureRect.STRETCH_SCALE
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("ui_accept"):

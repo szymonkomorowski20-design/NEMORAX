@@ -79,9 +79,13 @@ func _ready() -> void:
 
 	var dash_pos := Vector2(30.0 + player_bar_size.x + 16.0, size.y - 50.0)
 	dash_icon.texture = TEX_DASH_ICON
+	dash_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	dash_icon.stretch_mode = TextureRect.STRETCH_SCALE
 	dash_icon.position = dash_pos
 	dash_icon.size = Vector2(dash_icon_size, dash_icon_size)
 	dash_lock_cross.texture = TEX_LOCK_CROSS
+	dash_lock_cross.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	dash_lock_cross.stretch_mode = TextureRect.STRETCH_SCALE
 	dash_lock_cross.position = dash_pos
 	dash_lock_cross.size = Vector2(dash_icon_size, dash_icon_size)
 
@@ -90,9 +94,10 @@ func _ready() -> void:
 	_setup_radial_icon(heal_icon, TEX_HEAL_ICON, heal_pos, heal_icon_size, Color.WHITE)
 	heal_icon_under.value = 100.0
 
+	overlay_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	overlay_frame.stretch_mode = TextureRect.STRETCH_SCALE
 	overlay_frame.position = Vector2.ZERO
 	overlay_frame.size = size
-	overlay_frame.stretch_mode = TextureRect.STRETCH_SCALE
 	overlay_frame.visible = false
 
 func _setup_bar(under: TextureProgressBar, fill: TextureProgressBar, tex: Texture2D, pos: Vector2, bar_size: Vector2, tint: Color) -> void:
