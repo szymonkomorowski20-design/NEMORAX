@@ -12,24 +12,70 @@ podpięcie w kodzie.
 
 ---
 
-## 0. Jak z tego korzystać — generator vs biblioteka
+## 0. Jak to wszystko skompletować — konkretny plan działania
 
-Każda pozycja ma:
-- **Opis** (co ma się dziać w dźwięku),
-- **Prompt** gotowy do wklejenia w generator tekst→dźwięk (np. ElevenLabs
-  Sound Effects, Stable Audio, Suno dla muzyki) — po angielsku, bo te
-  narzędzia najlepiej rozumieją angielskie opisy,
-- **Szukaj też** — słowa kluczowe do wyszukania gotowej próbki w bibliotece
-  (freesound.org, Pixabay Audio, Sonniss GDC bundles) jako alternatywa/
-  uzupełnienie generatora.
+### Krok 1 — wybierz narzędzie per kategoria
+Nie ma jednego bota na wszystko (inaczej niż przy grafice) — audio dzieli się
+na dwa różne zadania z różnymi narzędziami:
 
-### Format techniczny
-- SFX: `.ogg` lub `.wav`, mono, 0.1–1.5 s (chyba że zaznaczono inaczej).
-- Muzyka/ambient: `.ogg`, stereo, **musi się bezszwowo zapętlać** (loop point
-  na starcie/końcu pliku bez kliknięcia) — w Godot ustawia się to we
-  właściwościach importu (`Loop` = on w `.import`).
-- Głośność: normalizuj wszystko do ok. -16 LUFS (SFX) / -20 LUFS (muzyka), bo
-  inaczej wygenerowane/pobrane próbki będą miały losowo różną głośność.
+- **SFX (krótkie efekty, ~80% tej listy)** → **ElevenLabs** (zakładka "Sound
+  Effects" na elevenlabs.io) — wklejasz prompt z tabeli, dostajesz gotowy
+  plik w kilka sekund. Ma darmowy limit generacji miesięcznie, wystarczy na
+  tę listę rozłożoną w czasie. Alternatywa: **Stable Audio**
+  (stableaudio.com) — też text-to-audio, też ma darmowy tier.
+- **Muzyka/ambient w pętli (sekcja 1 i 7, ~15 pozycji)** → też ElevenLabs
+  albo Stable Audio dają radę na krótkie pętle (10-30 s), ale do dłuższych,
+  bardziej "kompozycyjnych" utworów (1.1-1.4) lepiej sprawdzi się **Suno**
+  (suno.com) — w trybie instrumentalnym (wyłącz wokal/tekst), dłuższe i
+  bardziej rozwinięte utwory.
+- **Zamiast generować — szukaj gotowego** → **freesound.org** (załóż darmowe
+  konto), filtruj po licencji **CC0** (żadnej atrybucji, zero problemów
+  prawnych) i wklej frazę z kolumny "Szukaj też". Szybsze niż generowanie,
+  jeśli coś podobnego już istnieje.
+
+### Krok 2 — rób to w tej kolejności (żeby coś grało jak najszybciej)
+1. **Sekcja 2 (gracz)** — najczęściej słyszane dźwięki w grze, rób pierwsze.
+2. **Sekcja 4 (Nemorax)** — finałowa walka, drugi najważniejszy blok.
+3. **Sekcja 3 (wcielenia, wspólny "core")** — 8 dźwięków pokrywa WSZYSTKIE 6 pokoi na raz.
+4. **Sekcja 3.1 (unikalne warianty wcieleń) + sekcja 5 (świat) + sekcja 6 (UI)**.
+5. **Sekcja 1 (muzyka) + sekcja 7 (ambient)** na koniec — najbardziej czasochłonne (pętle, miksowanie), a gra działa i bez nich (po prostu cicho w tle).
+
+### Krok 3 — nazywaj pliki wg kodu z tabeli
+Każdy wiersz w tabelach ma już krótki kod (P1, P2... I1... N1... W1... U1...) —
+używaj go jako prefiksu pliku, np. `P07_sword_hit.ogg`,
+`N04_seal_explosion.ogg`, `W03_soul_pickup.ogg`. Dla muzyki/ambientu użyj
+`MUS_` / `AMB_` + skrót nazwy (`MUS_menu.ogg`, `AMB_room2_mordrath.ogg`).
+Dzięki temu w kodzie/w Godocie od razu wiadomo, co jest czym, bez zgadywania.
+Trzymaj wszystko w strukturze folderów równoległej do `grafiki do gry`, np.
+`dzwieki do gry/01_music`, `02_player_sfx`, `03_incarnations_sfx`,
+`04_nemorax_sfx`, `05_world_sfx`, `06_ui_sfx`, `07_ambient` — łatwo wtedy
+zrobić `MANIFEST.md` tak jak przy grafice.
+
+### Krok 4 — wykończenie PRZED wrzuceniem do Godota
+Surowy plik z generatora prawie nigdy nie jest gotowy 1:1:
+1. **Przytnij ciszę** na początku/końcu (Audacity — darmowy, `Effect →
+   Truncate Silence` albo ręcznie zaznacz i wytnij).
+2. **Pętle (muzyka/ambient)**: generator NIE gwarantuje bezszwowej pętli —
+   w Audacji znajdź moment, gdzie fala pasuje rytmicznie do początku, przytnij
+   tam, i zrób krótki (50-200 ms) crossfade końca z początkiem (`Effect →
+   Crossfade Tracks` albo ręcznie dwie kopie na dwóch ścieżkach). Sprawdź,
+   odtwarzając w pętli — jeśli słychać "kliknięcie" albo skok głośności w
+   miejscu złączenia, popraw crossfade.
+3. **Znormalizuj głośność** (`Effect → Normalize` w Audacity) do ok. -16 LUFS
+   (SFX) / -20 LUFS (muzyka) — inaczej różne pliki będą różnie głośne.
+4. **Eksportuj jako `.ogg` (Vorbis)** — Audacity robi to natywnie
+   (`File → Export → Export as OGG`). Godot 4 równie dobrze importuje `.wav`
+   i `.mp3`, więc jeśli coś już masz w tych formatach, nie musisz konwertować
+   na siłę — `.ogg` jest tylko lżejszy na dłuższych pętlach muzyki.
+5. W Godocie, po imporcie, w zakładce **Import** pliku audio ustaw **Loop =
+   On** dla wszystkiego z sekcji 1 i 7 (muzyka/ambient) — bez tego Godot
+   zagra plik raz i się zatrzyma, nawet jeśli plik sam w sobie już się ładnie
+   zapętla.
+
+### Format techniczny (podsumowanie)
+- SFX: mono, 0.1–1.5 s (chyba że zaznaczono inaczej).
+- Muzyka/ambient: stereo, zapętlone jak w Kroku 4.2, `Loop = On` w imporcie.
+- Głośność: -16 LUFS (SFX) / -20 LUFS (muzyka).
 
 ### Proponowany układ busów audio (dziś nie istnieje, trzeba założyć)
 Obecnie `arena.gd:35` i `arena.gd:98` wyciszają CAŁY bus "Master" na fazę
