@@ -3,9 +3,9 @@
 Gra akcji 2D z widokiem z góry. Godot 4, GDScript. Sześć pomieszczeń z sześcioma
 wcieleniami hybrydy Nemorax, każde zostawia fragment duszy — po zebraniu
 wszystkich sześciu, ołtarz przywołuje finałowego bossa. Kod gry jest kompletny
-i przetestowany; wizualnie sceny są dziś nadal rysowane kodem (`_draw()`),
-docelowo podmieniane na wygenerowane sprite'y i dźwięk — patrz sekcja
-[Assety](#assety-grafika-i-dźwięk) niżej.
+i przetestowany; grafika i dźwięk są w pełni podpięte (sprite'y, nie
+`_draw()`) — jedyny znany brak to dedykowana tekstura finałowej areny, patrz
+sekcja [Assety](#assety-grafika-i-dźwięk) niżej.
 
 ## Wymagania
 
@@ -14,8 +14,11 @@ docelowo podmieniane na wygenerowane sprite'y i dźwięk — patrz sekcja
 ## Uruchomienie
 
 1. Otwórz folder projektu w Godot (`project.godot`).
-2. Uruchom scenę główną (F5) — `rooms/room.tscn` jest ustawiona jako main scene
-   i startuje od pierwszego wcielenia.
+2. Uruchom scenę główną (F5) — main scene to `menu.tscn` (prawdziwy ekran
+   startowy). Spacja na ekranie startowym woła `GameFlow.resume_scene_path()`,
+   który wznawia dokładnie tam, gdzie gracz skończył: `rooms/room.tscn`
+   (pierwsze wcielenie albo zapisany postęp w trakcie sześciu pokoi) lub
+   `arena.tscn`, jeśli ołtarz został już ukończony.
 
 ## Sterowanie
 
@@ -27,7 +30,7 @@ docelowo podmieniane na wygenerowane sprite'y i dźwięk — patrz sekcja
 | PPM | Blok — odpycha wroga w zasięgu, koszt 3/4 max staminy |
 | 1 | Miecz (atak z bliska) |
 | 2 | Różdżka (atak na dystans, pocisk) |
-| E | Leczenie — aktywne po 40 celnych trafieniach wroga, oddaje 50% max zdrowia |
+| E | Leczenie — aktywne po 20 celnych trafieniach wroga, oddaje 50% max zdrowia |
 | F | Podniesienie duszy pokonanego wcielenia |
 
 ## Sześć wcieleń → ołtarz → Nemorax
@@ -87,10 +90,17 @@ wcieleń + Nemorax + gracz/miecz/różdżka), [ASSETY_SWIATA_I_UI.md](ASSETY_SWI
 (wszystko poza postaciami: VFX, otoczenie, UI, menu), [PROMPTY_FINALNE_WSZYSTKO.md](PROMPTY_FINALNE_WSZYSTKO.md)
 (scalona, gotowa do odklikania checklista), [POZY_ANIMACJI.md](POZY_ANIMACJI.md)
 (pełny zestaw póz animacji per postać) i [GRACZ_KOMPLETNY.md](GRACZ_KOMPLETNY.md)
-(baza + 10 póz gracza + ekwipunek). Stan: 123/123 wygenerowanych plików, ale
-2 znane usterki czekają na poprawkę — nieprzezroczyste tło `death_screen_frame.png`
-i 3 tekstury pokoi (Mordrath/Thal'Gor/Orryx) wciąż w starych kolorach, niezgodne
-z paletą w `autoload/palette.gd` (gotowe prompty poprawek w `PROMPTY_FINALNE_WSZYSTKO.md`).
+(baza + 10 póz gracza + ekwipunek). Stan: 149/149 wygenerowanych plików
+podpiętych (123 bazowych + 26 z pilotażu kierunków 360°, patrz
+[PLAN_ANIMACJE_KIERUNKOWE.md](PLAN_ANIMACJE_KIERUNKOWE.md)); dawne dwie
+usterki (przezroczystość `death_screen_frame.png`, kolory podłóg/ścian
+Mordrath/Thal'Gor/Orryx) są już naprawione w podpiętych plikach.
+
+**Znany brak** — finałowa arena (`arena.gd`) reużywa wygląd ołtarza (podłoga/
+ściana/tło) jako zastępstwo, bo katalog D1-D15 w `PROMPTY_FINALNE_WSZYSTKO.md`
+nie ma osobnego wpisu na wygląd samej areny Nemoraksa — brakujące D16-D18
+(podłoga/ściana/tło areny, wygląd odróżniający się od ołtarza) to gotowy do
+dopisania wpis do tego katalogu, nie wygenerowana jeszcze grafika.
 
 **Dźwięk** — pełny katalog (muzyka, SFX, ambient, ~82 pozycje) w
 [AUDIO_KATALOG.md](AUDIO_KATALOG.md), płaska kolejka gotowych promptów pod

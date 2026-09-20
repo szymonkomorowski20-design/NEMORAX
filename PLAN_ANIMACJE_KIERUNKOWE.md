@@ -191,19 +191,17 @@ kilku kątów w jednym zapytaniu kończy się tak samo źle jak łączenie póz.
 
 ## 7. Lista brakujących rzeczy przed startem (checklist)
 
-- [ ] Decyzja: czy robimy od razu Fazę 0 (`flip_h` wszędzie) — 0 kosztu, można
-      zrobić niezależnie od reszty w każdej chwili.
-- [ ] Decyzja: czy pilotaż (Faza 1) ogranicza się do samego "chodu" (16
-      obrazków), czy od razu włączyć też pozy bojowe wybranej jednej postaci
-      (np. tylko gracza) jako drugi pilotaż.
-- [ ] Wygenerować 16 obrazków pilotażu (8 póz × back + side) promptem z
-      sekcji 6, z referencją = aktualny plik danej pozy.
-- [ ] Odrzucić/wygenerować ponownie te, w których kreatura "popłynęła"
-      (inne proporcje/kolory/detale) — realistycznie spodziewać się
-      poprawek przy widokach z tyłu (najwyższe ryzyko niespójności).
-- [ ] Zaimplementować strukturę danych + bucket kierunku (sekcja 5) — mała
-      zmiana kodu, można zrobić RÓWNOLEGLE z generowaniem grafiki (na
-      placeholderach albo na starych plikach jako tymczasowy "front" wszędzie).
-- [ ] Podpiąć nowe pliki, przetestować headless (ten sam wzorzec
-      `NEMORAX_TEST_*` co przy każdej innej zmianie w tej sesji).
-- [ ] Realny playtest — ocena, czy efekt jest wart rozszerzenia na Fazy 3-5.
+**Faza 1 (pilotaż chodu) — ZROBIONE (2026-09-20).** Wygenerowano i podpięto
+wszystkie 26 obrazków (player + 6 wcieleń + 6 faz Nemoraksa × back/side), bez
+żadnej z nich "popłynięcia" wymagającego regeneracji. Kod: `facing.gd`
+(root, nie `entities/`) + `Facing.resolve(tex_or_variants, direction) ->
+{"texture","flip_h"}`, wołane z `player.gd` (`_update_visuals`),
+`incarnation.gd` (`_update_sprite_state`, wspólne dla wszystkich 6 podklas —
+kierunek trzymany w nowym polu `_facing_direction`) i `boss.gd` (analogicznie,
+`PHASE_BASE_TEXTURES` jest teraz `Array[Dictionary]`). Zweryfikowane headless
+testem czterech kierunków kardynalnych dla gracza/wcielenia/Nemoraksa,
+włącznie ze zmianą fazy i czyszczeniem `flip_h` przy przejściu na pozę bez
+wariantów. Smoke testy wszystkich scen czyste.
+
+- [ ] Realny playtest — ocena, czy efekt jest wart rozszerzenia na Fazy 3-5
+      (pozostałe ~126 obrazków, patrz sekcja 4). To jedyna otwarta decyzja.
