@@ -6,11 +6,21 @@ class_name Door
 
 signal entered
 
+const TEX_DOOR := preload("res://assets/sprites/pokoje/obiekty/rift_doorway.png")
+const SPRITE_SCALE := 0.12
+
 @export var trigger_range: float = 40.0
 @export var door_color: Color = Color("#C9C2B4")
 
 var player: Player = null
 var _triggered: bool = false
+
+@onready var sprite: Sprite2D = $Sprite
+
+func _ready() -> void:
+	sprite.texture = TEX_DOOR
+	sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+	sprite.modulate = door_color
 
 func _physics_process(_delta: float) -> void:
 	if _triggered or player == null:
@@ -19,7 +29,3 @@ func _physics_process(_delta: float) -> void:
 		_triggered = true
 		entered.emit()
 		queue_free()
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2(-16.0, -28.0), Vector2(32.0, 56.0)), Color(door_color, 0.3), true)
-	draw_rect(Rect2(Vector2(-16.0, -28.0), Vector2(32.0, 56.0)), door_color, false, 4.0)

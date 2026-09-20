@@ -14,6 +14,25 @@ const WALL_THICKNESS := 20.0
 const DoorScene := preload("res://rooms/door.tscn")
 const SoulScene := preload("res://rooms/soul.tscn")
 
+const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
+# W kolejności GameFlow.INCARNATION_SCENES (Vhar'Nokh...Orryx) — indeksowane przez current_room_index.
+const ROOM_FLOOR_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/sprites/pokoje/tekstury/vhar_nokh_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/mordrath_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/zha_ruun_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/nekravor_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/thal_gor_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/orryx_floor.png"),
+]
+const ROOM_WALL_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/sprites/pokoje/tekstury/vhar_nokh_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/mordrath_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/zha_ruun_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/nekravor_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/thal_gor_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/orryx_wall.png"),
+]
+
 @export var player_start_offset: Vector2 = Vector2(0.0, 220.0) ## względem środka areny
 @export var start_door_offset: Vector2 = Vector2(0.0, 60.0)
 @export var incarnation_spawn_offset: Vector2 = Vector2(0.0, -150.0)
@@ -26,7 +45,9 @@ var incarnation: Incarnation
 var _game_over_kind: String = "" # "" albo "death"
 
 func _ready() -> void:
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS)
+	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
+	Walls.build_floor(self, ARENA_RECT, ROOM_FLOOR_TEXTURES[GameFlow.current_room_index])
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, ROOM_WALL_TEXTURES[GameFlow.current_room_index])
 
 	var center := ARENA_RECT.get_center()
 	player.global_position = center + player_start_offset
@@ -80,9 +101,3 @@ func _on_player_died() -> void:
 func _handle_game_over_input() -> void:
 	if _game_over_kind == "death" and Input.is_action_just_pressed("ui_accept"):
 		get_tree().reload_current_scene()
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Palette.BACKGROUND, true)
-	draw_rect(ARENA_RECT, Palette.ARENA_FLOOR, true)
-	var r := ARENA_RECT.grow(WALL_THICKNESS * 0.5)
-	draw_rect(r, Palette.ARENA_WALL, false, WALL_THICKNESS)

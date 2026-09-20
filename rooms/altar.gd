@@ -12,6 +12,12 @@ const SOCKET_COLORS := [
 	Color("#6C63FF"), Color("#E8524A"), Color("#8C9AC2"),
 ]
 
+const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
+const FLOOR_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_floor.png")
+const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_wall.png")
+const SOCKET_TEXTURE := preload("res://assets/sprites/pokoje/obiekty/altar_socket.png")
+const SOCKET_SPRITE_SCALE := 0.054
+
 @export var summon_trigger_radius: float = 50.0 ## px, jak blisko środka musi podejść gracz
 @export var summon_delay: float = 2.0 ## s, opóźnienie między dotarciem do ołtarza a przejściem do walki
 
@@ -21,13 +27,30 @@ const SOCKET_COLORS := [
 var _triggered: bool = false
 
 func _ready() -> void:
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS)
+	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
+	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE)
+	_spawn_sockets()
 	player.global_position = ARENA_RECT.get_center() + Vector2(0, 200)
 	ui.player = player
 	ui.show_taunt(
 		"Wszystkie fragmenty duszy zebrane.\nPodejdź do ołtarza, aby przywołać Nemoraxa.",
 		4.0
 	)
+
+## Sześć gniazd w kręgu wokół pedestału — sam obrazek jest neutralny, więc
+## każde gniazdo dostaje kolor swojego wcielenia przez modulate (patrz
+## PROMPTY_FINALNE_WSZYSTKO.md C2/C3 — jedna grafika, tintowana w silniku).
+func _spawn_sockets() -> void:
+	var center := ARENA_RECT.get_center()
+	for i in range(SOCKET_COLORS.size()):
+		var angle := TAU * float(i) / float(SOCKET_COLORS.size())
+		var socket := Sprite2D.new()
+		socket.texture = SOCKET_TEXTURE
+		socket.scale = Vector2(SOCKET_SPRITE_SCALE, SOCKET_SPRITE_SCALE)
+		socket.modulate = SOCKET_COLORS[i]
+		socket.position = center + Vector2(cos(angle), sin(angle)) * (ALTAR_RADIUS + 40.0)
+		add_child(socket)
 
 func _physics_process(_delta: float) -> void:
 	if _triggered:
@@ -41,15 +64,7 @@ func _summon_nemorax() -> void:
 	await get_tree().create_timer(summon_delay).timeout
 	GameFlow.complete_altar()
 
+## Sam centralny pedestał nie ma dedykowanej grafiki w katalogu (tylko gniazda
+## dookoła) — zostaje rysowany kodem.
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Palette.BACKGROUND, true)
-	draw_rect(ARENA_RECT, Palette.ARENA_FLOOR, true)
-	var r := ARENA_RECT.grow(WALL_THICKNESS * 0.5)
-	draw_rect(r, Palette.ARENA_WALL, false, WALL_THICKNESS)
-
-	var center := ARENA_RECT.get_center()
-	draw_circle(center, ALTAR_RADIUS, Palette.ARENA_WALL)
-	for i in range(SOCKET_COLORS.size()):
-		var angle := TAU * float(i) / float(SOCKET_COLORS.size())
-		var socket_pos := center + Vector2(cos(angle), sin(angle)) * (ALTAR_RADIUS + 40.0)
-		draw_circle(socket_pos, 14.0, SOCKET_COLORS[i])
+	draw_circle(ARENA_RECT.get_center(), ALTAR_RADIUS, Palette.ARENA_WALL)

@@ -10,6 +10,14 @@ const SAVE_PATH := "user://progress.json"
 
 const BossScene := preload("res://entities/boss.tscn")
 
+# Brak dedykowanej tekstury dla areny Nemoraxa w katalogu (PROMPTY_FINALNE_WSZYSTKO.md
+# ma D1-D15 na sześć pokoi + ołtarz + tło, ale nie na samą arenę finałową) —
+# tymczasowo reużywam wygląd ołtarza (spójny tematycznie, "sala rytualna"),
+# do podmiany jeśli/gdy powstanie dedykowana grafika.
+const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
+const FLOOR_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_floor.png")
+const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_wall.png")
+
 @export var body_fade_duration: float = 2.0 ## s, ekran gaśnie po "śmierci" dużej formy (sekcja 8)
 @export var finale_taunt_duration: float = 4.0 ## s, jak długo wisi pytanie finałowe
 @export var eclipse_radius: float = 160.0 ## px, promień widoczności wokół gracza w Zaćmieniu
@@ -60,7 +68,9 @@ func _process(delta: float) -> void:
 		_handle_game_over_input()
 
 func _build_walls() -> void:
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS)
+	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
+	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE)
 
 ## Zaćmienie (faza 6, sekcja 7): ekran ciemnieje poza kręgiem wokół gracza. Godot 2D
 ## nie ma wbudowanego "otworu" w wypełnieniu, więc prościej jest o mały shader niż
@@ -186,8 +196,3 @@ func _save_progress() -> void:
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(data))
 
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Palette.BACKGROUND, true)
-	draw_rect(ARENA_RECT, Palette.ARENA_FLOOR, true)
-	var r := ARENA_RECT.grow(WALL_THICKNESS * 0.5)
-	draw_rect(r, Palette.ARENA_WALL, false, WALL_THICKNESS)
