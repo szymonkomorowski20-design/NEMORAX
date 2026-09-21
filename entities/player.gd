@@ -30,6 +30,21 @@ const TEX_BLOCK := preload("res://assets/sprites/gracz/player_block.png")
 const TEX_HEAL := preload("res://assets/sprites/gracz/player_heal.png")
 const TEX_HIT := preload("res://assets/sprites/gracz/player_hit.png")
 const TEX_DEATH := preload("res://assets/sprites/gracz/player_death.png")
+
+# Fazy 3-5 (PLAN_ANIMACJE_KIERUNKOWE.md) — na razie każda ma tylko "front"
+# (jedyny plik, jaki istnieje), ale już przechodzi przez Facing.resolve(), więc
+# dowiezienie side/front_diagonal/back_diagonal/back kiedyś wystarczy dopisać
+# jako nowe klucze tutaj, bez dalszych zmian w _update_visuals().
+const TEX_BASE_VARIANTS := {"front": TEX_BASE}
+const TEX_DASH_VARIANTS := {"front": TEX_DASH}
+const TEX_SWORD_WINDUP_VARIANTS := {"front": TEX_SWORD_WINDUP}
+const TEX_SWORD_ACTIVE_VARIANTS := {"front": TEX_SWORD_ACTIVE}
+const TEX_WAND_WINDUP_VARIANTS := {"front": TEX_WAND_WINDUP}
+const TEX_WAND_FIRE_VARIANTS := {"front": TEX_WAND_FIRE}
+const TEX_BLOCK_VARIANTS := {"front": TEX_BLOCK}
+const TEX_HEAL_VARIANTS := {"front": TEX_HEAL}
+const TEX_HIT_VARIANTS := {"front": TEX_HIT}
+const TEX_DEATH_VARIANTS := {"front": TEX_DEATH}
 const TEX_SLASH_ARC := preload("res://assets/sprites/ekwipunek/sword_slash_arc.png")
 const TEX_WAND_CHARGE := preload("res://assets/sprites/ekwipunek/wand_charge.png")
 const TEX_DASH_TRAIL := preload("res://assets/sprites/ekwipunek/player_dash_trail.png")
@@ -985,31 +1000,36 @@ func _play_sfx(stream: AudioStream) -> void:
 
 ## Zastępuje dawny _draw() — wybiera właściwą teksturę wg priorytetu stanu i
 ## ustawia VFX ataku (wycinek miecza / kula różdżki) w miejsce dawnych rysowanych kształtów.
+func _apply_facing(variants: Dictionary, direction: Vector2, frame: int = 0) -> void:
+	var facing := Facing.resolve(variants, direction, frame)
+	sprite.texture = facing["texture"]
+	sprite.flip_h = facing["flip_h"]
+
+## Każda poza przechodzi przez Facing.resolve() z WŁAŚCIWYM dla siebie
+## źródłem kierunku (dokument, sekcja 2: mysz dla akcji bojowych, WASD dla
+## chodu/dasha) — dziś każdy słownik ma tylko klucz "front", więc wizualnie
+## nic się nie zmienia dopóki nie dowiezie się grafiki na resztę kątów
+## (Facing.resolve() sam degraduje do "front" i NIE odbija fallbacku, patrz
+## facing.gd), ale caly kod jest już gotowy na Fazy 3-5.
 func _update_visuals() -> void:
-	# Tylko chód ma dziś warianty kierunkowe (pilotaż 360°) — reset na początku,
-	# żeby flip_h z poprzedniej klatki chodu nie zostawał "przyklejony" do pozy
-	# bez wariantów (np. atak), która zawsze pokazuje front.
-	sprite.flip_h = false
 	if state == State.DEAD:
-		sprite.texture = TEX_DEATH
+		_apply_facing(TEX_DEATH_VARIANTS, _last_move_direction)
 	elif _flash_frames > 0:
-		sprite.texture = TEX_HIT
+		_apply_facing(TEX_HIT_VARIANTS, _last_move_direction)
 	elif _block_visual_timer > 0.0:
-		sprite.texture = TEX_BLOCK
+		_apply_facing(TEX_BLOCK_VARIANTS, _attack_direction)
 	elif _heal_visual_timer > 0.0:
-		sprite.texture = TEX_HEAL
+		_apply_facing(TEX_HEAL_VARIANTS, _attack_direction)
 	elif state == State.DASHING:
-		sprite.texture = TEX_DASH
+		_apply_facing(TEX_DASH_VARIANTS, _dash_direction)
 	elif _attack_phase == "windup":
-		sprite.texture = TEX_SWORD_WINDUP if _swing_weapon == "sword" else TEX_WAND_WINDUP
+		_apply_facing(TEX_SWORD_WINDUP_VARIANTS if _swing_weapon == "sword" else TEX_WAND_WINDUP_VARIANTS, _attack_direction)
 	elif _attack_phase == "active" or _attack_phase == "recovery":
-		sprite.texture = TEX_SWORD_ACTIVE if _swing_weapon == "sword" else TEX_WAND_FIRE
+		_apply_facing(TEX_SWORD_ACTIVE_VARIANTS if _swing_weapon == "sword" else TEX_WAND_FIRE_VARIANTS, _attack_direction)
 	elif velocity.length() > 5.0:
-		var walk_facing := Facing.resolve(WALK_VARIANTS, velocity, _walk_cycle_frame())
-		sprite.texture = walk_facing["texture"]
-		sprite.flip_h = walk_facing["flip_h"]
+		_apply_facing(WALK_VARIANTS, velocity, _walk_cycle_frame())
 	else:
-		sprite.texture = TEX_BASE
+		_apply_facing(TEX_BASE_VARIANTS, _last_move_direction)
 
 	var blinking_hidden := _invuln_timer > 0.0 and int(_invuln_timer * 20.0) % 2 == 0
 	sprite.visible = not blinking_hidden

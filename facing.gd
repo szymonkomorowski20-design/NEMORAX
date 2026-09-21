@@ -28,20 +28,26 @@ const FLIPPED_BUCKETS := ["side", "front_diagonal", "back_diagonal"]
 static func resolve(tex_or_variants, direction: Vector2, frame: int = 0) -> Dictionary:
 	if tex_or_variants is Dictionary:
 		var key := _bucket(direction)
-		var entry = _lookup_with_fallback(tex_or_variants, key)
+		var resolved_key := _resolve_key(tex_or_variants, key)
+		var entry = tex_or_variants[resolved_key] if tex_or_variants.has(resolved_key) else tex_or_variants.get("front")
 		var tex: Texture2D = entry[frame % entry.size()] if entry is Array else entry
-		return {"texture": tex, "flip_h": key in FLIPPED_BUCKETS and direction.x > 0.0}
+		# flip_h zależy od klucza, który FAKTYCZNIE dostarczył grafikę (po
+		# fallbacku), nie od pierwotnie wyliczonego bucketu — inaczej poza
+		# mająca dziś TYLKO "front" (większość, przed dowiezieniem grafiki
+		# Fazy 3-5) migałaby losowo odbita/nieodbita zależnie od kierunku
+		# myszy/ruchu, mimo że cały czas pokazuje ten sam, jedyny obrazek.
+		return {"texture": tex, "flip_h": resolved_key in FLIPPED_BUCKETS and direction.x > 0.0}
 	return {"texture": tex_or_variants, "flip_h": false}
 
 ## Pierwszy klucz z BUCKET_FALLBACKS[key], jaki faktycznie istnieje w
 ## `variants` — dzięki temu poza bez wariantów front_diagonal/back_diagonal
 ## (czyli dziś WSZYSTKO poza chodem, a nawet chód przed dowiezieniem nowej
 ## grafiki) dostaje najbliższe grubsze przybliżenie zamiast wyjątku.
-static func _lookup_with_fallback(variants: Dictionary, key: String):
+static func _resolve_key(variants: Dictionary, key: String) -> String:
 	for candidate in BUCKET_FALLBACKS.get(key, ["front"]):
 		if variants.has(candidate):
-			return variants[candidate]
-	return variants.get("front")
+			return candidate
+	return "front"
 
 ## Dzieli pełne koło na 8 wycinków po 45° (granice co 22.5° od czystego
 ## przodu), zwinięte do 5 nazw przez odbicie lewo/prawo w resolve(). Y w

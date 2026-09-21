@@ -58,6 +58,18 @@ func test_dedicated_diagonal_texture_is_used_when_present(_root: Node) -> void:
 	var result := Facing.resolve(variants_with_diagonal, Vector2(1.0, 1.0))
 	NemoraxTest.assert_eq(result["texture"], TEX_BACK, "własna grafika front_diagonal powinna mieć pierwszeństwo przed fallbackiem")
 
+## Faza 3-5 (przyszłe pozy bojowe): "front only" dict — dopóki dana poza nie
+## dostanie własnej grafiki kierunkowej — NIE MOŻE się migać odbita/nieodbita
+## zależnie od kierunku myszy/ruchu, mimo że cały czas pokazuje ten sam obrazek.
+func test_front_only_dict_never_flips_regardless_of_direction(_root: Node) -> void:
+	var front_only := {"front": TEX_FRONT}
+	var right := Facing.resolve(front_only, Vector2(200.0, 0.0)) # bucket "side", ale brak własnej grafiki
+	NemoraxTest.assert_eq(right["texture"], TEX_FRONT, "bez side/diagonal grafiki powinien zostać pokazany front")
+	NemoraxTest.assert_eq(right["flip_h"], false, "pokazując front (fallback), NIE wolno go odbijać mimo bucketu 'side'")
+
+	var diagonal := Facing.resolve(front_only, Vector2(1.0, 1.0)) # bucket "front_diagonal"
+	NemoraxTest.assert_eq(diagonal["flip_h"], false, "to samo dla fallbacku z front_diagonal")
+
 func test_walk_cycle_frame_picks_from_array_and_wraps(_root: Node) -> void:
 	var neutral := TEX_FRONT
 	var stride := TEX_BACK
