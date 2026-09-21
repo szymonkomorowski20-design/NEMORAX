@@ -91,6 +91,7 @@ const ROOM_MUSIC_TRACKS: Array[AudioStream] = [
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
 @onready var music: AudioStreamPlayer = $Music
+@onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
 var incarnation: Incarnation
 var _game_over_kind: String = "" # "" albo "death"
@@ -161,6 +162,8 @@ func _ready() -> void:
 				_spawn_enemy(GameFlow.current_incarnation_scene_path(), false)
 		_: # START — pusty, bezpieczny pokój, drzwi od razu otwarte
 			_spawn_doors_for_open_directions()
+			if not GameFlow.has_seen_prolog():
+				_play_prolog()
 
 ## Pokój startowy (entry_direction == ZERO) nie ma "kierunku, z którego
 ## przyszliśmy", więc gracz staje po prostu na środku. W każdym innym pokoju
@@ -177,6 +180,24 @@ func _player_spawn_position(center: Vector2) -> Vector2:
 func _process(_delta: float) -> void:
 	if _game_over_kind != "":
 		_handle_game_over_input()
+
+## Prolog (PLAN_CUTSCENEK.md sekcja 2.1) — raz na zapis, przy pierwszym
+## wejściu do pokoju startowego. Ekran całkiem czarny, bez portretu (głos bez
+## twarzy), 3 beaty. Wołane fire-and-forget (bez await w _ready()) — reszta
+## setupu pokoju nie musi na to czekać, cutscenka i tak przykrywa cały ekran.
+func _play_prolog() -> void:
+	GameFlow.mark_prolog_seen()
+	var beats: Array[DialogueBeat] = []
+	for line in [
+		"Nie pamiętasz, jak tu trafiłeś.",
+		"To normalne. Nikt z nas nie pamięta.",
+		"Zbierz sześć fragmentów. Idź do ołtarza. Zrób to, co robisz zawsze.",
+	]:
+		var beat := DialogueBeat.new()
+		beat.text = line
+		beat.fallback_seconds = 2.0
+		beats.append(beat)
+	await cutscene.play(beats)
 
 func _add_room_atmosphere() -> void:
 	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere

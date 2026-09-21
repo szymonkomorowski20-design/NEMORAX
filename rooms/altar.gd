@@ -36,12 +36,26 @@ const SOCKET_TEXTURE := preload("res://assets/sprites/pokoje/obiekty/altar_socke
 const SOCKET_SPRITE_SCALE := 0.054
 const SOCKET_FILLED_BRIGHTNESS := 1.6 ## mnożnik modulate przy aktywacji — "ten sam obrazek z dodanym blaskiem" (brak dedykowanej grafiki "zapełnione")
 
+## Rytuał (PLAN_CUTSCENEK.md 2.2) — portret/imię każdego wcielenia w rytm
+## zapalania jego gniazda. Ta sama kolejność co SOCKET_COLORS/GameFlow.INCARNATION_NAMES
+## (chapter 0..5): Vhar'Nokh/Mordrath/Zha'Ruun/Nekravor/Thal'Gor/Orryx.
+const RITUAL_PORTRAITS: Array[Texture2D] = [
+	preload("res://assets/sprites/wcielenia/vhar_nokh/vhar-nokh_walk.png"),
+	preload("res://assets/sprites/wcielenia/mordrath/mordrath_walk.png"),
+	preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk.png"),
+	preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk.png"),
+	preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk.png"),
+	preload("res://assets/sprites/wcielenia/orryx/orryx_walk.png"),
+]
+const RITUAL_NAMES := ["Vhar’Nokh", "Mordrath", "Zha’Ruun", "Nekravor", "Thal’Gor", "Orryx"]
+
 @export var summon_trigger_radius: float = 50.0 ## px, jak blisko środka musi podejść gracz
 @export var slot_activation_interval: float = 0.45 ## s, odstęp między aktywacją kolejnych gniazd (dokument, sekcja 12)
 @export var summon_delay: float = 2.0 ## s, opóźnienie między ostatnim gniazdem a przejściem do walki
 
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
+@onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
 var state: AltarState = AltarState.LOCKED
 var _sockets: Array[Sprite2D] = []
@@ -119,9 +133,18 @@ func _begin_activation() -> void:
 	_run_activation_sequence()
 
 func _run_activation_sequence() -> void:
-	for socket in _sockets:
-		socket.modulate = socket.modulate * SOCKET_FILLED_BRIGHTNESS
-		await get_tree().create_timer(slot_activation_interval).timeout
+	var beats: Array[DialogueBeat] = []
+	for i in range(_sockets.size()):
+		var beat := DialogueBeat.new()
+		beat.speaker_name = RITUAL_NAMES[i]
+		beat.portrait = RITUAL_PORTRAITS[i]
+		beat.fallback_seconds = slot_activation_interval
+		beats.append(beat)
+	# Gniazda zapalają się RÓWNOLEGLE z beatami, nie po nich — cutscene.play()
+	# nie ma haka "w trakcie beatu N zrób X", więc jadą własnym, tym samym
+	# timerem obok siebie (oba PROCESS_MODE_ALWAYS, oba niezależne od pauzy).
+	_light_sockets_in_rhythm()
+	await cutscene.play(beats)
 	ui.show_taunt("Nemorax powstaje...", summon_delay)
 	await get_tree().create_timer(summon_delay).timeout
 	get_tree().paused = false
@@ -130,6 +153,11 @@ func _run_activation_sequence() -> void:
 	# klatce przed zmianą sceny (change_scene_to_file nie jest natychmiastowe).
 	state = AltarState.BOSS_ACTIVE
 	GameFlow.complete_altar()
+
+func _light_sockets_in_rhythm() -> void:
+	for socket in _sockets:
+		socket.modulate = socket.modulate * SOCKET_FILLED_BRIGHTNESS
+		await get_tree().create_timer(slot_activation_interval).timeout
 
 ## Sam centralny pedestał nie ma dedykowanej grafiki w katalogu (tylko gniazda
 ## dookoła) — zostaje rysowany kodem.

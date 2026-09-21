@@ -26,6 +26,11 @@ const EAST := Vector2i(1, 0)
 const DIRECTIONS: Array[Vector2i] = [NORTH, SOUTH, WEST, EAST]
 
 var SAVE_PATH := "user://gauntlet_progress.json" ## var (nie const) tylko po to, żeby test mógł podmienić ścieżkę na tymczasową
+## Dzielony z arena.gd (deaths/wins) — CELOWO osobna ścieżka/mechanizm od
+## SAVE_PATH powyżej: to ostatnie to stan BIEŻĄCEGO przebiegu, kasowany przez
+## reset_run() po przegranej, a "widział prolog" ma przetrwać całe zapisy
+## (PLAN_CUTSCENEK.md 2.1 — "nigdy więcej się nie powtarza w tym zapisie").
+var PERSISTENT_SAVE_PATH := "user://progress.json" ## var jak wyżej, żeby test mógł podmienić
 
 const ROOM_SCENE := "res://rooms/room.tscn"
 const ALTAR_SCENE := "res://rooms/altar.tscn"
@@ -395,6 +400,37 @@ func complete_altar() -> void:
 ## Do restartu całego przebiegu od zera — po PRZEGRANEJ z Nemoraksem (patrz
 ## arena.gd) wraca się tu, do świeżo wygenerowanej mapy od pokoju startowego.
 ## Zwycięstwo NIE resetuje przebiegu — to prawdziwy koniec (ekran endgame).
+## Odczyt/zapis TYLKO klucza "seen_prolog" w pliku dzielonym z arena.gd —
+## read-modify-write całego JSON-a, żeby nie nadpisać deaths/wins zapisanych
+## przez arena.gd (i odwrotnie: arena.gd robi to samo, więc kolejność wołań
+## między nimi nie ma znaczenia).
+func has_seen_prolog() -> bool:
+	if not FileAccess.file_exists(PERSISTENT_SAVE_PATH):
+		return false
+	var file := FileAccess.open(PERSISTENT_SAVE_PATH, FileAccess.READ)
+	if file == null:
+		return false
+	var data = JSON.parse_string(file.get_as_text())
+	if typeof(data) != TYPE_DICTIONARY:
+		return false
+	return bool(data.get("seen_prolog", false))
+
+func mark_prolog_seen() -> void:
+	var data: Dictionary = {}
+	if FileAccess.file_exists(PERSISTENT_SAVE_PATH):
+		var existing := FileAccess.open(PERSISTENT_SAVE_PATH, FileAccess.READ)
+		if existing != null:
+			var parsed = JSON.parse_string(existing.get_as_text())
+			if typeof(parsed) == TYPE_DICTIONARY:
+				data = parsed
+	data["seen_prolog"] = true
+	var out := FileAccess.open(PERSISTENT_SAVE_PATH, FileAccess.WRITE)
+	if out == null:
+		push_warning("GameFlow: nie udało się zapisać seen_prolog (%s), błąd %d" % [PERSISTENT_SAVE_PATH, FileAccess.get_open_error()])
+		return
+	out.store_string(JSON.stringify(data))
+	out.close()
+
 func reset_run() -> void:
 	rooms_cleared_count = 0
 	fragments_collected.clear()

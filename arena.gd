@@ -31,6 +31,7 @@ const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 @onready var eclipse_rect: ColorRect = $EclipseLayer/EclipseRect
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
+@onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
 var boss: Boss
 
@@ -164,23 +165,57 @@ func _on_boss_died(is_final: bool) -> void:
 	else:
 		_play_big_form_death()
 
-## Duża forma spadła do 0 HP — to jeszcze nie koniec (sekcja 8): ciało "znika",
-## po 2 s wraca mała forma z pytaniem finałowym, zanim zdąży zaatakować.
+## Duża forma spadła do 0 HP — to jeszcze nie koniec (sekcja 8), i to NAJWAŻNIEJSZA
+## scena całej gry (PLAN_CUTSCENEK.md 2.3, gdzie żyje cały twist): ciało "znika",
+## chwila ciszy, wraca mała forma z pytaniem finałowym, zanim zdąży zaatakować.
 func _play_big_form_death() -> void:
 	# Duża forma jest is_dead=true w tym oknie — boss.gd sam pokazuje pozę
 	# "kolaps" (nemorax_large-form-collapse.png) przez _update_sprite_state(),
 	# więc nie trzeba już chować sprite'a na ślepo.
 	await get_tree().create_timer(body_fade_duration).timeout
 
+	var beats: Array[DialogueBeat] = []
+	# Tło mieni się kolejno przez wszystkie 6 kolorów faz — "to wszystko, czym
+	# właśnie było, w jednej chwili", bez potrzeby dodatkowego tekstu.
+	for phase_color in Palette.PHASE_COLORS:
+		var flash := DialogueBeat.new()
+		flash.background_tint = phase_color
+		flash.fallback_seconds = 0.3
+		beats.append(flash)
+
+	var beat1 := DialogueBeat.new()
+	beat1.speaker_name = "Nemorax"
+	beat1.portrait = Boss.TEX_LARGE_FORM_COLLAPSE
+	beat1.text = "Pamiętam. Pamiętam WAS. Ilu was było?"
+	beat1.fallback_seconds = 2.5
+	beats.append(beat1)
+
+	var beat2 := DialogueBeat.new()
+	beat2.text = "Nie pierwszy raz to robisz. Coś w tobie o tym wie."
+	beat2.fallback_seconds = 2.5
+	beat2.silence_before = 0.8 # celowy oddech, nie na tekst
+	beats.append(beat2)
+
+	await cutscene.play(beats)
+
+	# Mała forma się wyłania — mechanika bez zmian (start_final_phase itd.),
+	# tylko teraz w środku sceny zamiast przed nią.
 	boss.start_final_phase()
 	boss.global_position = ARENA_RECT.get_center()
+
+	var beat3 := DialogueBeat.new()
+	beat3.speaker_name = "Nemorax"
+	beat3.portrait = Boss.TEX_SMALL_FORM_REBIRTH
+	beat3.text = _finale_taunt_text()
+	beat3.fallback_seconds = finale_taunt_duration
+	await cutscene.play([beat3])
+
+	# Cięcie na taunt-pytanie finałowe — jak dziś, ale teraz naturalna
+	# kontynuacja sceny, nie osobny byt.
 	boss.delay_next_attack(finale_taunt_duration)
 	boss.show_taunt_pose(finale_taunt_duration)
-
 	player.input_reversed = true # reguła siódma: Odwrócenie
 	ui.hide_all = true # interfejs znika w całości w fazie finałowej
-
-	ui.show_taunt(_finale_taunt_text(), finale_taunt_duration)
 
 ## Drwina przed finałową formą, coraz bardziej wprost o pętli w miarę
 ## kolejnych porażek Strażnika w tym zapisie (FABULA_I_DIALOGI.md sekcja 3.5).
@@ -199,20 +234,36 @@ func _finish_victory() -> void:
 	_save_progress()
 	_play_victory_epilogue(is_first_win)
 
-## Epilog PRZED istniejącym ekranem statystyk (FABULA_I_DIALOGI.md sekcja 3.6)
-## — linia 3.7 tylko przy PIERWSZYM prawdziwym zwycięstwie w tym zapisie,
-## znika bez śladu przy każdym kolejnym.
+## Epilog PRZED istniejącym ekranem statystyk (PLAN_CUTSCENEK.md 2.4) — pełny
+## czarny ekran spinający klamrą całą rozgrywkę (jak prolog). Ukryty pierwszy
+## beat TYLKO przy PIERWSZYM prawdziwym zwycięstwie w tym zapisie, znika bez
+## śladu przy każdym kolejnym — celowo niewyjaśniony haczyk fabularny.
 func _play_victory_epilogue(is_first_win: bool) -> void:
+	var beats: Array[DialogueBeat] = []
 	if is_first_win:
-		ui.show_taunt("...to twoja twarz.", 1.0)
-		await get_tree().create_timer(1.0).timeout
-	ui.show_taunt("Rozpada się. Fragmenty już szukają, gdzie zasnąć.", 3.0)
-	await get_tree().create_timer(3.0).timeout
-	ui.show_taunt(
-		"Ktoś je znowu zbierze. Ty, albo ktoś bardzo do ciebie podobny.\nTo nie było ocalenie. To było odłożenie na później.",
-		4.0
-	)
-	await get_tree().create_timer(4.0).timeout
+		var hidden := DialogueBeat.new()
+		hidden.text = "...to twoja twarz."
+		hidden.fallback_seconds = 1.0
+		beats.append(hidden)
+
+	var b1 := DialogueBeat.new()
+	b1.text = "Rozpada się. Fragmenty już szukają, gdzie zasnąć."
+	b1.fallback_seconds = 2.5
+	beats.append(b1)
+
+	var b2 := DialogueBeat.new()
+	b2.text = "Ktoś je znowu zbierze. Ty, albo ktoś bardzo do ciebie podobny."
+	b2.fallback_seconds = 2.5
+	b2.silence_before = 0.5
+	beats.append(b2)
+
+	var b3 := DialogueBeat.new()
+	b3.text = "To nie było ocalenie. To było odłożenie na później."
+	b3.fallback_seconds = 2.5
+	beats.append(b3)
+
+	await cutscene.play(beats)
+
 	# Wygrana to prawdziwy koniec przebiegu (endgame) — zostaje jako ekran
 	# końcowy, bez pętli z powrotem do pokoju 1.
 	ui.show_overlay(

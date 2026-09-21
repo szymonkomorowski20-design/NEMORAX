@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://rooms/altar.gd" id="1"]
 [ext_resource type="PackedScene" path="res://entities/player.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://ui/ui.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://ui/cutscene_player.tscn" id="4"]
 
 [node name="Altar" type="Node2D"]
 script = ExtResource("1")
@@ -14,3 +15,5 @@ current = true
 [node name="Player" parent="." instance=ExtResource("2")]
 
 [node name="UILayer" parent="." instance=ExtResource("3")]
+
+[node name="CutsceneLayer" parent="." instance=ExtResource("4")]

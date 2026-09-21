@@ -15,6 +15,21 @@ extends SceneTree
 
 func _initialize() -> void:
 	await process_frame
+	# room.tscn odpala prolog (GameFlow.has_seen_prolog()) samo z siebie w
+	# _ready() dla pokoju typu START — bez tej izolacji KAŻDY test ładujący
+	# świeży room.tscn (dziesiątki w tym zestawie) ryzykowałby przypadkowe
+	# odpalenie cutscenki i spauzowanie drzewa jako efekt uboczny, niezależnie
+	# od tego, czego dany test faktycznie dotyczy. Osobna, tymczasowa ścieżka
+	# (nie realny zapis użytkownika) + od razu oznaczone jako "widziany".
+	# get_node("/root/GameFlow"), NIE identyfikator `GameFlow` wprost — ten
+	# plik jest samym argumentem --script, więc kompiluje się PRZED
+	# zarejestrowaniem autoloadów jako globalnych identyfikatorów (ten sam,
+	# ustalony wcześniej w tej sesji problem co bezpośrednie odwołania do
+	# Juice/GameFlow w innych plikach --script; load()-owane pliki testowe
+	# wewnątrz _initialize() nie mają tego problemu, bo kompilują się później).
+	var game_flow: Node = root.get_node("GameFlow")
+	game_flow.PERSISTENT_SAVE_PATH = "user://test_persistent_progress.json"
+	game_flow.mark_prolog_seen()
 	var passed := 0
 	var failed := 0
 	var dir := DirAccess.open("res://tests")

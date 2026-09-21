@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" path="res://ui/ui.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://ui/stats_screen.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://ui/cutscene_player.tscn" id="6"]
 
 [node name="Arena" type="Node2D" unique_id=522250192]
 script = ExtResource("1")
@@ -35,3 +36,5 @@ color = Color(0, 0, 0, 0)
 [node name="PauseLayer" parent="." instance=ExtResource("4")]
 
 [node name="StatsLayer" parent="." instance=ExtResource("5")]
+
+[node name="CutsceneLayer" parent="." instance=ExtResource("6")]
