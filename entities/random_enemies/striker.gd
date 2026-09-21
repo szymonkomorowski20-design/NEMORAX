@@ -5,6 +5,8 @@ class_name Striker
 ## (jeden statyczny obraz na wszystkie pozy na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/striker/striker_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/striker_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/striker_skill.png")
 
 @export var lunge_speed: float = 400.0
 @export var lunge_distance: float = 85.0 ## dokument: "lunge 85"
@@ -28,4 +30,9 @@ func _ready() -> void:
 	}
 
 func _skill_lunge_strike() -> void:
+	var dir: Vector2 = player.global_position - global_position
+	var angle := dir.angle() if dir.length() > 0.01 else 0.0
+	# Znacznik wypadu (skill) w miejscu docelowym, cios (attack) przy sobie.
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position + dir.normalized() * lunge_distance, 0.3, 0.28)
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.25, 0.28, angle)
 	_lunge_toward_player(lunge_speed, lunge_distance / lunge_speed)

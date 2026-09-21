@@ -14,8 +14,15 @@ class_name CiezarIncarnation
 @export var lunge_duration: float = 0.3
 
 const TEX_WALK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back.png")
+const TEX_WALK_FRONT_STRIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_front_stride.png")
+const TEX_WALK_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_front_diagonal.png")
+const TEX_WALK_FRONT_DIAGONAL_STRIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_front_diagonal_stride.png")
 const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_side.png")
+const TEX_WALK_SIDE_STRIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_side_stride.png")
+const TEX_WALK_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back_diagonal.png")
+const TEX_WALK_BACK_DIAGONAL_STRIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back_diagonal_stride.png")
+const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back.png")
+const TEX_WALK_BACK_STRIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back_stride.png")
 const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_telegraph.png")
 const TEX_LUNGE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_lunge.png")
 const TEX_PULSE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_cast-pulse.png")
@@ -30,7 +37,13 @@ func _ready() -> void:
 	fragment_name = "Nekravor, Ten Którego Odrzucono" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_gravity_pull, _skill_crush_pulse, _skill_gravity_lunge, _pattern_lunge_and_crush]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
+		"walk": {
+			"front": [TEX_WALK, TEX_WALK_FRONT_STRIDE],
+			"front_diagonal": [TEX_WALK_FRONT_DIAGONAL, TEX_WALK_FRONT_DIAGONAL_STRIDE],
+			"side": [TEX_WALK_SIDE, TEX_WALK_SIDE_STRIDE],
+			"back_diagonal": [TEX_WALK_BACK_DIAGONAL, TEX_WALK_BACK_DIAGONAL_STRIDE],
+			"back": [TEX_WALK_BACK, TEX_WALK_BACK_STRIDE],
+		},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
 		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
 		"crush": TEX_CRUSH,

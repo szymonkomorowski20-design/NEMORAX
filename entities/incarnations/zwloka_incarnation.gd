@@ -13,8 +13,15 @@ class_name ZwlokaIncarnation
 @export var rewind_pull_strength: float = 450.0
 
 const TEX_WALK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back.png")
+const TEX_WALK_FRONT_STRIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_front_stride.png")
+const TEX_WALK_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_front_diagonal.png")
+const TEX_WALK_FRONT_DIAGONAL_STRIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_front_diagonal_stride.png")
 const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_side.png")
+const TEX_WALK_SIDE_STRIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_side_stride.png")
+const TEX_WALK_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back_diagonal.png")
+const TEX_WALK_BACK_DIAGONAL_STRIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back_diagonal_stride.png")
+const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back.png")
+const TEX_WALK_BACK_STRIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back_stride.png")
 const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph.png")
 const TEX_LUNGE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_lunge.png")
 const TEX_PULSE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse.png")
@@ -29,7 +36,13 @@ func _ready() -> void:
 	fragment_name = "Zha’Ruun, Pożeracz Granic" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_echo_pulse, _skill_stutter_lunge, _skill_rewind_pull, _pattern_pull_and_stutter]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
+		"walk": {
+			"front": [TEX_WALK, TEX_WALK_FRONT_STRIDE],
+			"front_diagonal": [TEX_WALK_FRONT_DIAGONAL, TEX_WALK_FRONT_DIAGONAL_STRIDE],
+			"side": [TEX_WALK_SIDE, TEX_WALK_SIDE_STRIDE],
+			"back_diagonal": [TEX_WALK_BACK_DIAGONAL, TEX_WALK_BACK_DIAGONAL_STRIDE],
+			"back": [TEX_WALK_BACK, TEX_WALK_BACK_STRIDE],
+		},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
 		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
 		"echo_pulse": TEX_ECHO_PULSE,

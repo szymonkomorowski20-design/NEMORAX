@@ -10,6 +10,8 @@ class_name Summoner
 ## base art z GPT (jeden statyczny obraz na wszystkie pozy na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/summoner/summoner_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/summoner_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/summoner_skill.png")
 
 const ChaserScene := preload("res://entities/random_enemies/chaser.tscn")
 
@@ -36,10 +38,14 @@ func _ready() -> void:
 
 func _skill_summon() -> void:
 	_set_skill_pose("pulse")
+	# Blask kanałowania (skill) na sobie, portal (attack) pod każdym nowym dodatkiem.
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position, telegraph_duration, 0.4)
 	for i in range(summon_count):
 		var add: Incarnation = ChaserScene.instantiate()
 		var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized() * 60.0
+		var spawn_pos := _clamp_to_arena(global_position + offset)
+		AttackVfx.spawn(get_parent(), VFX_ATTACK, spawn_pos, 0.35, 0.3)
 		get_parent().add_child(add)
 		add.arena_rect = arena_rect
-		add.global_position = _clamp_to_arena(global_position + offset)
+		add.global_position = spawn_pos
 		add.apply_difficulty_scale(summon_strength_fraction)

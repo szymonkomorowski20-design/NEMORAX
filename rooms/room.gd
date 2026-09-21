@@ -244,13 +244,15 @@ func _spawn_doors_for_open_directions() -> void:
 		var pos := Walls.wall_point(ARENA_RECT, wall_side)
 		var neighbor := GameFlow.neighbor_data(direction)
 		var callback := _on_altar_door_entered if neighbor.get("type") == GameFlow.RoomType.ALTAR else _on_move_door_entered.bind(direction)
-		# Stabilny wariant, dopóki nie dostarczymy osobnych assetów poziomych i
-		# pionowych przejść: drzwi stoją tuż wewnątrz pokoju.
-		_spawn_door(pos - Vector2(direction) * 26.0, callback)
+		# Drzwi są osadzane DOKŁADNIE na linii ściany — rift_doorway_rotatable_v3
+		# jest symetryczny na wszystkie 4 strony, więc obrót pod wall_side
+		# wygląda poprawnie z każdej strony (patrz rooms/door.gd).
+		_spawn_door(pos, callback, wall_side)
 
-func _spawn_door(pos: Vector2, on_entered: Callable) -> void:
+func _spawn_door(pos: Vector2, on_entered: Callable, wall_side: String) -> void:
 	var door: Door = DoorScene.instantiate()
 	door.player = player
+	door.wall_side = wall_side
 	door.global_position = pos
 	door.entered.connect(on_entered)
 	add_child(door)

@@ -177,7 +177,8 @@ func test_summoner_spawns_weaker_adds_not_connected_to_room_clear(root: Node) ->
 	summoner._skill_summon()
 	var after := root.get_children().size()
 
-	NemoraxTest.assert_eq(after, before + summoner.summon_count, "_skill_summon() powinno zespawnować dokładnie summon_count dodatków")
+	# +summon_count dodatków, +1 VFX kanałowania (skill) na sobie, +summon_count VFX portalu (attack) pod każdym dodatkiem.
+	NemoraxTest.assert_eq(after, before + summoner.summon_count * 2 + 1, "_skill_summon() powinno zespawnować dokładnie summon_count dodatków")
 	for child in root.get_children():
 		if child is Chaser:
 			NemoraxTest.assert_almost_eq(child.max_health, 30.0 * summoner.summon_strength_fraction, 0.01, "dodatek powinien być osłabiony o summon_strength_fraction")

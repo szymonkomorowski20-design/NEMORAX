@@ -29,12 +29,48 @@ const ChaserScene := preload("res://entities/random_enemies/chaser.tscn") ## Dom
 # Sześć baz wyglądu, jedna na fazę (kolejność = phase_index 0..5) — TYMCZASOWE
 # przypisanie pozycyjne, patrz komentarz na górze pliku.
 const PHASE_BASE_TEXTURES: Array[Dictionary] = [
-	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-1_base.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-1_base_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-1_base_side.png")},
-	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-2_silence.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_side.png")},
-	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_side.png")},
-	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-4_pull.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_side.png")},
-	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_side.png")},
-	{"front": preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision.png"), "back": preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_back.png"), "side": preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_side.png")},
+	{
+		"front": [preload("res://assets/sprites/nemorax/nemorax_phase-1_base.png"), preload("res://assets/sprites/nemorax/nemorax_phase-1_walk_front_stride.png")],
+		"front_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-1_walk_front_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-1_walk_front_diagonal_stride.png")],
+		"side": [preload("res://assets/sprites/nemorax/nemorax_phase-1_base_side.png"), preload("res://assets/sprites/nemorax/nemorax_phase-1_walk_side_stride.png")],
+		"back_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-1_walk_back_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-1_walk_back_diagonal_stride.png")],
+		"back": [preload("res://assets/sprites/nemorax/nemorax_phase-1_base_back.png"), preload("res://assets/sprites/nemorax/nemorax_phase-1_walk_back_stride.png")],
+	},
+	{
+		"front": [preload("res://assets/sprites/nemorax/nemorax_phase-2_silence.png"), preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_walk_front_stride.png")],
+		"front_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_walk_front_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_walk_front_diagonal_stride.png")],
+		"side": [preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_side.png"), preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_walk_side_stride.png")],
+		"back_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_walk_back_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_walk_back_diagonal_stride.png")],
+		"back": [preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_back.png"), preload("res://assets/sprites/nemorax/nemorax_phase-2_silence_walk_back_stride.png")],
+	},
+	{
+		"front": [preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown.png"), preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_walk_front_stride.png")],
+		"front_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_walk_front_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_walk_front_diagonal_stride.png")],
+		"side": [preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_side.png"), preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_walk_side_stride.png")],
+		"back_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_walk_back_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_walk_back_diagonal_stride.png")],
+		"back": [preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_back.png"), preload("res://assets/sprites/nemorax/nemorax_phase-3_dash-cooldown_walk_back_stride.png")],
+	},
+	{
+		"front": [preload("res://assets/sprites/nemorax/nemorax_phase-4_pull.png"), preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_walk_front_stride.png")],
+		"front_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_walk_front_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_walk_front_diagonal_stride.png")],
+		"side": [preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_side.png"), preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_walk_side_stride.png")],
+		"back_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_walk_back_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_walk_back_diagonal_stride.png")],
+		"back": [preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_back.png"), preload("res://assets/sprites/nemorax/nemorax_phase-4_pull_walk_back_stride.png")],
+	},
+	{
+		"front": [preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration.png"), preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_walk_front_stride.png")],
+		"front_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_walk_front_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_walk_front_diagonal_stride.png")],
+		"side": [preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_side.png"), preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_walk_side_stride.png")],
+		"back_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_walk_back_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_walk_back_diagonal_stride.png")],
+		"back": [preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_back.png"), preload("res://assets/sprites/nemorax/nemorax_phase-5_regeneration_walk_back_stride.png")],
+	},
+	{
+		"front": [preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision.png"), preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_walk_front_stride.png")],
+		"front_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_walk_front_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_walk_front_diagonal_stride.png")],
+		"side": [preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_side.png"), preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_walk_side_stride.png")],
+		"back_diagonal": [preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_walk_back_diagonal.png"), preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_walk_back_diagonal_stride.png")],
+		"back": [preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_back.png"), preload("res://assets/sprites/nemorax/nemorax_phase-6_narrow-vision_walk_back_stride.png")],
+	},
 ]
 const TEX_TELEGRAPH := preload("res://assets/sprites/nemorax/nemorax_telegraph.png")
 const TEX_LUNGE := preload("res://assets/sprites/nemorax/nemorax_lunge.png")

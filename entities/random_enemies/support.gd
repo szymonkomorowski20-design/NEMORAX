@@ -10,6 +10,8 @@ class_name Support
 ## na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/support/support_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/support_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/support_skill.png")
 
 @export var buff_move_bonus: float = 0.15 ## dokument: "+15% move"
 @export var buff_duration: float = 3.0
@@ -45,5 +47,8 @@ func _physics_process(delta: float) -> void:
 
 func _skill_self_buff() -> void:
 	_set_skill_pose("pull") # brak dedykowanej pozy buffu — reużyta "pull" jako "coś na siebie rzuca"
+	# Krąg rytuału (skill) pod sobą przed buffem, promienisty rozbłysk (attack) w chwili aktywacji.
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position, 0.4, 0.32)
 	drift_speed = _base_drift_speed * (1.0 + buff_move_bonus)
 	_buff_timer = buff_duration
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.35, 0.3)

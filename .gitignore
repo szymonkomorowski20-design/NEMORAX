@@ -11,6 +11,12 @@ mono_crash.*.json
 # Narzędzia lokalne
 .claude/
 
+# Artefakty generowania grafiki (GPT/Codex) — pliki robocze, nie zasoby gry:
+# zielone tło przed usunięciem (chroma-key) i katalog roboczy narzędzia.
+*_chroma.png
+*_chroma.png.import
+/output/
+
 # System
 .DS_Store
 Thumbs.db

@@ -8,6 +8,8 @@ class_name Ambusher
 ## (jeden statyczny obraz na wszystkie pozy na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/ambusher/ambusher_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/ambusher_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/ambusher_skill.png")
 
 @export var strike_speed: float = 380.0
 @export var strike_range: float = 95.0 ## dokument: "strike range 95"
@@ -41,4 +43,9 @@ func _physics_process(delta: float) -> void:
 	sprite.modulate.a = 1.0 if (_telegraph_active or _lunge_active or _flash_frames > 0) else hidden_alpha
 
 func _skill_strike() -> void:
+	var dir: Vector2 = player.global_position - global_position
+	var angle := dir.angle() if dir.length() > 0.01 else 0.0
+	# Znacznik ujawnienia (skill) w miejscu docelowym wypadu, cios (attack) przy sobie.
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position + dir.normalized() * strike_range, 0.3, 0.3)
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.25, 0.3, angle)
 	_lunge_toward_player(strike_speed, strike_range / strike_speed)

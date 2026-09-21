@@ -313,13 +313,17 @@ NIC się wizualnie nie zmieniło — zweryfikowane wprost testami
 brakujący krok — dopisanie kluczy `side`/`front_diagonal`/`back_diagonal`/
 `back` do istniejących słowników, zero dalszych zmian w kodzie.
 
-- [ ] Wygenerować 91 obrazków Fazy 1b (sekcja 8).
+- [x] Wygenerować 91 obrazków Fazy 1b (sekcja 8) — dowiezione (2026-09-21).
 - [ ] Wygenerować 252 obrazki Fazy 3-5 (sekcja 9).
-- [ ] Podpiąć obie partie (dopisanie kluczy do istniejących słowników
-      tekstur — `WALK_VARIANTS` w graczu/wcieleniach, `_sprite_textures` w
-      podklasach `Incarnation`, `PHASE_BASE_TEXTURES`/`TEX_*` w `boss.gd`,
-      nowe `TEX_*_VARIANTS` w `player.gd`).
-- [ ] Realny playtest całości.
+- [x] Podpiąć Fazę 1b — dopisane klucze `front_diagonal`/`back_diagonal` +
+      tablice `[neutral, stride]` do `_sprite_textures["walk"]` we
+      wszystkich 6 wcieleniach i `PHASE_BASE_TEXTURES` w `boss.gd`
+      (2026-09-21). Zweryfikowane headless (135 testów) + realny screenshot
+      okna gry (Mordrath front_diagonal, Nemorax faza 1 back_diagonal —
+      obie poprawnie wyrenderowane, bez uszkodzonej/brakującej grafiki).
+      `player.gd` miał to już zrobione wcześniej.
+- [ ] Podpiąć Fazę 3-5, gdy grafika z sekcji 9 zostanie dowieziona.
+- [ ] Realny playtest całości (interaktywny, nie tylko statyczny reference_room).
 
 ---
 
