@@ -965,6 +965,15 @@ func _spawn_trail_ghost() -> void:
 	var ghost := Sprite2D.new()
 	ghost.texture = TEX_DASH_TRAIL
 	ghost.scale = Vector2(trail_ghost_scale, trail_ghost_scale)
+	# Grafika w spoczynku (bez obrotu) rysuje ostrą krawędź w prawo, a
+	# rozmywający się pył w lewo — czyli domyślnie "patrzy" w prawo (kąt 0).
+	# Bez obrotu wyglądała więc naturalnie WYŁĄCZNIE przy dashu w prawo, a przy
+	# dashu w lewo (i innych kierunkach) ostra krawędź i pył wychodziły
+	# odwrócone względem faktycznego ruchu — stąd "o 180 stopni źle" przy
+	# dashu w przeciwną stronę. Naprawione obracaniem do _dash_direction, nie
+	# stałym przesunięciem, żeby działało poprawnie pod każdym kątem, nie
+	# tylko w tym jednym, który akurat wyglądał źle.
+	ghost.rotation = _dash_direction.angle()
 	ghost.top_level = true
 	ghost.global_position = global_position
 	ghost.modulate = Color(1.0, 1.0, 1.0, 0.5)
