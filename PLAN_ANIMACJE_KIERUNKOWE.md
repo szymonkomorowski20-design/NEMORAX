@@ -251,21 +251,28 @@ idą, zamrożone w pozostałych stanach (tak jak dziś zamrożone są w ogóle).
 
 ## 6. Szablon promptu do generowania nowych ujęć
 
-### 6.1 Nowy kąt widoku (front-skos / tył-skos) — ta sama zasada co tył/bok
+### 6.1 Nowy kąt widoku — dowolny z 4 (bok / tył / front-skos / tył-skos)
+
+Ten sam szablon obsługuje wszystkie 4 nowe kąty — podmienia się tylko
+nawiasy `[...]` i opis pozy/akcji (dla póz bojowych patrz sekcja 9, nie
+"mid-stride walking pose" jak przy chodzie):
 
 > Using the attached image as the exact reference for [NAZWA]'s design — same
 > proportions, same colors, same materials, same markings, same accent glow
 > color — regenerate this EXACT same creature in the EXACT same pose and
-> action (mid-stride walking pose, neutral standing weight), but seen from
-> [FRONT-DIAGONAL VIEW: a three-quarter view, angled 45 degrees between the
-> front view and the side profile, still facing generally toward the camera
-> but turned to one side / BACK-DIAGONAL VIEW: a three-quarter view, angled
-> 45 degrees between the back view and the side profile, still facing
-> generally away from the camera but turned to one side]. Keep the identical
-> art style, lighting proportions and color palette as the reference — invent
-> any details not visible in the reference (back of armor, wings, tail) in a
-> way consistent with the rest of the design. Transparent background, no
-> text, single character, no other changes to the design.
+> action ([OPIS POZY — np. "mid-stride walking pose", "sword mid-swing
+> action pose", "wounded flinching hit-reaction pose"]), but seen from
+> [SIDE VIEW: an exact left-side profile view, facing left / BACK VIEW:
+> directly from behind, back facing the camera / FRONT-DIAGONAL VIEW: a
+> three-quarter view, angled 45 degrees between the front view and the side
+> profile, still facing generally toward the camera but turned to one side /
+> BACK-DIAGONAL VIEW: a three-quarter view, angled 45 degrees between the
+> back view and the side profile, still facing generally away from the
+> camera but turned to one side]. Keep the identical art style, lighting
+> proportions and color palette as the reference — invent any details not
+> visible in the reference (back of armor, wings, tail) in a way consistent
+> with the rest of the design. Transparent background, no text, single
+> character, no other changes to the design.
 
 ### 6.2 Nowa klatka cyklu chodu (ta sama poza+kąt, inna faza kroku)
 
@@ -289,12 +296,30 @@ oba naraz) — dokładnie ta sama zasada co przy pozach w `POZY_ANIMACJI.md`.
 
 **Faza 0 i 1 — ZROBIONE (2026-09-20)**, zastąpione przez Fazę 1b poniżej.
 
-- [ ] **Faza 1b — w trakcie.** Lista dokładnych plików do wygenerowania: sekcja 8.
-- [ ] Po dowiezieniu grafiki: rozszerzyć `facing.gd` (sekcja 5.1-5.2),
-      dodać `_walk_cycle_phase`/`_update_walk_cycle`/`_walk_cycle_frame` do
-      `player.gd`, `entities/incarnation.gd`, `entities/boss.gd`.
-- [ ] Realny playtest Fazy 1b → decyzja czy iść dalej w Fazy 3-5 (pozostałe
-      pozy, patrz sekcja 4).
+**Kod Fazy 1b — ZROBIONY (2026-09-21).** `facing.gd` ma już 5 kątów +
+tablice klatek + łagodny fallback; `player.gd`/`entities/incarnation.gd`/
+`entities/boss.gd` mają już `_walk_cycle_phase`/`_walk_cycle_frame()`. Nic
+z tego nie zmienia dziś wyglądu gry — czeka na 91 obrazków z sekcji 8.
+
+**Kod Fazy 3-5 — TEŻ już ZROBIONY z wyprzedzeniem (2026-09-21).**
+`entities/incarnation.gd`/`entities/boss.gd` od razu kierowały KAŻDĄ pozę
+przez jedno, wspólne `Facing.resolve()` — nie trzeba tam nic zmieniać.
+`player.gd` tego nie robił (miał osobne, twarde przypisania tekstury na
+każdą pozę bojową) — przepisany tak, żeby też przechodził przez
+`Facing.resolve()`, z właściwym dla każdej pozy źródłem kierunku (mysz dla
+walki, WASD dla ruchu). Dziś każda poza ma tylko klucz `"front"`, więc
+NIC się wizualnie nie zmieniło — zweryfikowane wprost testami
+(`tests/test_player_facing.gd`). Dowiezienie grafiki z sekcji 9 to jedyny
+brakujący krok — dopisanie kluczy `side`/`front_diagonal`/`back_diagonal`/
+`back` do istniejących słowników, zero dalszych zmian w kodzie.
+
+- [ ] Wygenerować 91 obrazków Fazy 1b (sekcja 8).
+- [ ] Wygenerować 252 obrazki Fazy 3-5 (sekcja 9).
+- [ ] Podpiąć obie partie (dopisanie kluczy do istniejących słowników
+      tekstur — `WALK_VARIANTS` w graczu/wcieleniach, `_sprite_textures` w
+      podklasach `Incarnation`, `PHASE_BASE_TEXTURES`/`TEX_*` w `boss.gd`,
+      nowe `TEX_*_VARIANTS` w `player.gd`).
+- [ ] Realny playtest całości.
 
 ---
 
@@ -343,3 +368,103 @@ pozycja dryfowania).
 
 13 ciał × 7 obrazków = **91 obrazków**. Generować partiami po jednym ciele,
 testować headless po każdej partii (jak dotąd), nie na raz.
+
+---
+
+## 9. Fazy 3-5 — pełny zakres ruchu dla WSZYSTKICH pozostałych póz (252 obrazki)
+
+Na życzenie autora: zamachy mieczem, ruchy podczas czarowania, umiejętności
+wszystkich przeciwników i Nemoraksa dostają te same 5 kątów co chód. Kod jest
+już gotowy (sekcja 7) — to czysto lista grafiki do wygenerowania.
+
+**Zasada**: każda z 63 póz niżej ma dziś TYLKO "front" (żaden nie ma jeszcze
+back/side — to były zawsze pozy "od przodu", inaczej niż chód w Fazie 1).
+Potrzebuje więc **4 nowych kątów** (side, back, front_diagonal,
+back_diagonal), NIE tylko 2 jak przy Fazie 1b — tam back/side już istniały
+z Fazy 1, tu trzeba wszystkiego naraz. Referencja dla WSZYSTKICH 4 kątów to
+zawsze dzisiejszy jedyny plik danej pozy (front) — nie łańcuch kąt-po-kącie
+jak przy klatkach kroku w Fazie 1b, bo tu nie ma drugiej klatki, jeden
+obrazek na kąt wystarczy (te pozy są chwilowe, nie zapętlone jak chód).
+
+Szablon: sekcja 6.1, wstawiając w `[OPIS POZY]` krótki opis samej akcji
+(np. "sword mid-swing action pose, blade extended", "channeling a spell
+with both hands raised, energy crackling") — dokładny opis KAŻDEJ pozy już
+istnieje w `GRACZ_KOMPLETNY.md`/`POZY_ANIMACJI.md`, więc kopiuj stamtąd,
+nie wymyślaj na nowo.
+
+### 9.1 Gracz — 10 póz × 4 kąty = 40 obrazków
+
+| Poza | Plik referencyjny (front) | Opis pozy z |
+|---|---|---|
+| Idle (stanie) | `player_base.png` | `GRACZ_KOMPLETNY.md` §1.1 |
+| Dash | `player_dash.png` | `GRACZ_KOMPLETNY.md` §4.2 |
+| Zamach mieczem — windup | `player_sword_windup.png` | `GRACZ_KOMPLETNY.md` §4.3 |
+| Zamach mieczem — active | `player_sword_active.png` | `GRACZ_KOMPLETNY.md` §4.4 |
+| Ładowanie różdżki | `player_wand_windup.png` | `GRACZ_KOMPLETNY.md` §4.5 |
+| Wystrzał różdżki | `player_wand_fire.png` | `GRACZ_KOMPLETNY.md` §4.6 |
+| Blok | `player_block.png` | `GRACZ_KOMPLETNY.md` §4.7 |
+| Leczenie | `player_heal.png` | `GRACZ_KOMPLETNY.md` §4.8 |
+| Trafiony | `player_hit.png` | `GRACZ_KOMPLETNY.md` §4.9 |
+| Śmierć | `player_death.png` | `GRACZ_KOMPLETNY.md` §4.10 |
+
+Podpięcie w kodzie: dopisać klucze do `TEX_*_VARIANTS` w `player.gd` (np.
+`TEX_SWORD_WINDUP_VARIANTS["side"] = <nowy_plik>`) — reszta działa bez zmian.
+
+### 9.2 Sześć wcieleń — 43 pozy × 4 kąty = 172 obrazki
+
+Uniwersalne 6 póz (opisy w `POZY_ANIMACJI.md` §3.2-3.7, ta sama treść dla
+wszystkich sześciu) × 6 postaci = 36, plus unikalne pozy umiejętności
+(§4.1-4.7) = 7 (Orryx ma dwie: vanish + reappear). Razem 43 pozy.
+
+| Postać | Telegraph | Lunge | Cast-pulse | Pull | Hit | Death | Unikalna(e) |
+|---|---|---|---|---|---|---|---|
+| Vhar'Nokh | `vhar-nokh_telegraph.png` | `vhar-nokh_lunge.png` | `vhar-nokh_cast-pulse.png` | `vhar-nokh_pull.png` | `vhar-nokh_hit.png` | `vhar-nokh_death.png` | `vhar-nokh_teleport.png` — §4.1 |
+| Mordrath | `mordrath_telegraph.png` | `mordrath_lunge.png` | `mordrath_cast-pulse.png` | `mordrath_pull.png` | `mordrath_hit.png` | `mordrath_death.png` | `mordrath_silence-pulse.png` — §4.2 |
+| Zha'Ruun | `zha-ruun_telegraph.png` | `zha-ruun_lunge.png` | `zha-ruun_cast-pulse.png` | `zha-ruun_pull.png` | `zha-ruun_hit.png` | `zha-ruun_death.png` | `zha-ruun_echo-pulse.png` — §4.3 |
+| Nekravor | `nekravor_telegraph.png` | `nekravor_lunge.png` | `nekravor_cast-pulse.png` | `nekravor_pull.png` | `nekravor_hit.png` | `nekravor_death.png` | `nekravor_crush.png` — §4.4 |
+| Thal'Gor | `thal-gor_telegraph.png` | `thal-gor_lunge.png` | `thal-gor_cast-pulse.png` | `thal-gor_pull.png` | `thal-gor_hit.png` | `thal-gor_death.png` | `thal-gor_lifesteal-bite.png` — §4.5 |
+| Orryx | `orryx_telegraph.png` | `orryx_lunge.png` | `orryx_cast-pulse.png` | `orryx_pull.png` | `orryx_hit.png` | `orryx_death.png` | `orryx_reappear.png` — §4.6, `orryx_vanish.png` — §4.7 |
+
+(Uniwersalne opisy: Telegraph=§3.2, Lunge=§3.3, Cast-pulse=§3.4, Pull=§3.5,
+Hit=§3.6, Death=§3.7 — ta sama kolumna dla wszystkich sześciu wierszy.)
+
+Podpięcie w kodzie: w `_ready()` każdej podklasy `Incarnation`, zmienić np.
+`"telegraph": TEX_TELEGRAPH` na `"telegraph": {"front": TEX_TELEGRAPH,
+"side": <nowy>, "back": <nowy>, "front_diagonal": <nowy>, "back_diagonal":
+<nowy>}` — jeden słownik na pozę, `_update_sprite_state()` w bazowej klasie
+już to obsłuży bez zmian.
+
+### 9.3 Nemorax — 10 póz × 4 kąty = 40 obrazków
+
+| Poza | Plik referencyjny (front) | Opis pozy z |
+|---|---|---|
+| Telegraph | `nemorax_telegraph.png` | `POZY_ANIMACJI.md` §3.2 |
+| Lunge | `nemorax_lunge.png` | `POZY_ANIMACJI.md` §3.3 |
+| Cast-pulse | `nemorax_cast-pulse.png` | `POZY_ANIMACJI.md` §3.4 |
+| Pull | `nemorax_pull.png` | `POZY_ANIMACJI.md` §3.5 |
+| Hit | `nemorax_hit.png` | `POZY_ANIMACJI.md` §3.6 |
+| Transformacja fazy | `nemorax_phase-transform.png` | `POZY_ANIMACJI.md` §5.1 |
+| Upadek dużej formy | `nemorax_large-form-collapse.png` | `POZY_ANIMACJI.md` §5.2 |
+| Odrodzenie małej formy | `nemorax_small-form-rebirth.png` | `POZY_ANIMACJI.md` §5.3 |
+| Kpina / pytanie finałowe | `nemorax_small-form-taunt.png` | `POZY_ANIMACJI.md` §5.4 |
+| Prawdziwa śmierć | `nemorax_small-form-true-death.png` | `POZY_ANIMACJI.md` §5.5 |
+
+Podpięcie w kodzie: `boss.gd` dziś trzyma te jako gołe stałe `TEX_*` — zmienić
+na `Dictionary` tym samym wzorcem co `PHASE_BASE_TEXTURES` już używa
+(`{"front":.., "back":.., "side":..}`, dopisać `front_diagonal`/`back_diagonal`).
+
+### 9.4 Razem
+
+40 (gracz) + 172 (wcielenia) + 40 (Nemorax) = **252 obrazki**. To jest
+DUŻO — generować i podpinać partiami (jedna postać/kategoria naraz),
+testować headless po każdej partii, dokładnie jak dotychczas. Nie ma
+potrzeby robić tego w jednej sesji ani w podanej tu kolejności — każda
+poza/postać jest niezależna od pozostałych.
+
+### 9.5 Łączny koszt Faz 1b + 3-5
+
+91 (chód) + 252 (reszta) = **343 nowe obrazki** na pełny zakres ruchu
+wszystkich 13 ciał. Dla porównania: to więcej niż CAŁA dotychczasowa
+grafika w projekcie razem wzięta. Warto rozważyć, czy jechać ze wszystkim
+naraz, czy najpierw ocenić efekt na jednej postaci (np. tylko gracz, 40
+obrazków) przed zamówieniem reszty.
