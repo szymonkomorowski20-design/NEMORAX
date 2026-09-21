@@ -72,6 +72,7 @@ var max_speed: float ## efektywna wartość — base_max_speed * (1 + punkty*spe
 @export var trail_ghost_scale: float = 0.08 ## kopie śladu dasha
 
 # --- Dash ---
+@export var input_buffer_window: float = 0.12 ## s, jak długo pamiętane jest wcześniejsze naciśnięcie dash/atak, żeby odpaliło się automatycznie w momencie, gdy znów będzie można (cooldown/zamach się kończy) — tylko dash i atak mają fazę/cooldown, którego wyścig z czasem naciśnięcia da się realnie wyczuć; blok/leczenie są ograniczone wyłącznie zasobem (stamina/stack), który nie zmienia się w tak krótkim oknie, więc bufor nic by im nie dał
 @export var dash_speed: float = 900.0 ## px/s, prędkość w trakcie dasha
 @export var dash_duration: float = 0.18 ## s, jak długo trwa dash
 @export var dash_cooldown: float = 0.6 ## s, odnowienie dasha (mnożone x2 w fazie Zwłoka)
@@ -176,6 +177,8 @@ var state: State = State.NORMAL
 var _dash_cooldown_timer: float = 0.0
 var _void_dash_lock_timer: float = 0.0 ## ustawiane z zewnątrz przez Ząb Zera
 var _dash_timer: float = 0.0
+var _buffered_dash_timer: float = 0.0
+var _buffered_attack_timer: float = 0.0
 var _dash_direction: Vector2 = Vector2.DOWN
 var _last_move_direction: Vector2 = Vector2.DOWN
 
@@ -222,8 +225,8 @@ func _physics_process(delta: float) -> void:
 
 	_tick_timers(delta)
 	_handle_weapon_switch()
-	_handle_dash_input()
-	_handle_attack_input() # niezależne od stanu ruchu — da się zacząć w trakcie dasha
+	_handle_dash_input(delta)
+	_handle_attack_input(delta) # niezależne od stanu ruchu — da się zacząć w trakcie dasha
 	_handle_block_input()
 	_handle_heal_input()
 
@@ -270,14 +273,24 @@ func _handle_weapon_switch() -> void:
 		current_weapon = "wand"
 		_play_sfx(SND_WEAPON_SWITCH)
 
-func _handle_dash_input() -> void:
-	if state == State.DASHING or state == State.DEAD:
-		return
-	if not Input.is_action_just_pressed("dash"):
+## Bufor wejścia (sekcja Responsywność): naciśnięcie dasha ZAWSZE od razu
+## odpala "denied", jeśli w tym momencie nie jest gotowy — ale zostaje jeszcze
+## przez input_buffer_window sekund "w pamięci", więc jeśli cooldown/blokada
+## Zęba Zera skończy się w tym oknie, dash i tak odpali się automatycznie, bez
+## potrzeby drugiego naciśnięcia w idealnym momencie.
+func _handle_dash_input(delta: float) -> void:
+	if Input.is_action_just_pressed("dash"):
+		_buffered_dash_timer = input_buffer_window
+		if state != State.DASHING and state != State.DEAD and not _is_dash_ready():
+			_play_sfx(SND_DASH_VOID_LOCKED if _void_dash_lock_timer > 0.0 else SND_DASH_DENIED)
+	elif _buffered_dash_timer > 0.0:
+		_buffered_dash_timer -= delta
+
+	if state == State.DASHING or state == State.DEAD or _buffered_dash_timer <= 0.0:
 		return
 	if not _is_dash_ready():
-		_play_sfx(SND_DASH_VOID_LOCKED if _void_dash_lock_timer > 0.0 else SND_DASH_DENIED)
 		return
+	_buffered_dash_timer = 0.0
 	# Atak NIE jest już przerywany dashem (na życzenie autora) — leci dalej
 	# niezależnie, patrz _attack_phase i _process_attack_phase().
 	var input_dir := _read_input_vector()
@@ -332,17 +345,27 @@ func _can_afford_attack() -> bool:
 
 ## Niezależne od stanu ruchu (sekcja o broni: da się atakować w dowolnym
 ## momencie dasha, mieczem albo różdżką) — jedyny warunek to brak trwającego
-## już zamachu i śmierć.
-func _handle_attack_input() -> void:
+## już zamachu i śmierć. Bufor wejścia (jak w _handle_dash_input): naciśnięcie
+## pod koniec recovery poprzedniego zamachu albo przy chwilowym niedoborze
+## staminy/many zostaje w pamięci na input_buffer_window sekund i odpala się
+## same, gdy tylko znów będzie można machnąć — bez wymogu drugiego, idealnie
+## wymierzonego naciśnięcia.
+func _handle_attack_input(delta: float) -> void:
 	if state == State.DEAD:
+		_buffered_attack_timer = 0.0
 		return
-	if _attack_phase != "":
-		return
-	if not Input.is_action_just_pressed("attack"):
+	if Input.is_action_just_pressed("attack"):
+		_buffered_attack_timer = input_buffer_window
+		if _attack_phase == "" and not _can_afford_attack():
+			_play_sfx(SND_ATTACK_DENIED)
+	elif _buffered_attack_timer > 0.0:
+		_buffered_attack_timer -= delta
+
+	if _attack_phase != "" or _buffered_attack_timer <= 0.0:
 		return
 	if not _can_afford_attack():
-		_play_sfx(SND_ATTACK_DENIED)
 		return
+	_buffered_attack_timer = 0.0
 	_start_attack()
 
 ## Blok (PPM) — dodane na życzenie autora: koszt 3/4 max staminy, odpycha
