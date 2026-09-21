@@ -37,6 +37,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		keybind_screen.open()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_O:
 		options_screen.open()
+	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_M:
+		_exit_to_main_menu()
+
+## Porzuca bieżący przebieg (jak przegrana z Nemoraxem — GameFlow.reset_run())
+## i wraca do ekranu tytułowego, zamiast po prostu zamykać grę. Bez tego nie
+## było ŻADNEGO sposobu, żeby wyjść z aktywnej rozgrywki poza zabiciem procesu.
+func _exit_to_main_menu() -> void:
+	GameFlow.reset_run()
+	# Scena menu nie ma process_mode ALWAYS — zostawienie drzewa spauzowanego
+	# zamroziłoby ją od razu po wczytaniu (żaden _process/_unhandled_input).
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://menu.tscn")
 
 func _draw() -> void:
 	if not visible:
@@ -50,7 +62,7 @@ func _draw() -> void:
 	draw_string(font, Vector2((viewport_size.x - title_size.x) * 0.5, viewport_size.y * 0.4), title,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Palette.PLAYER_BODY)
 
-	var hint := "Escape / Enter — wznów        K — klawisze        O — opcje"
+	var hint := "Escape / Enter — wznów    K — klawisze    O — opcje    M — wyjdź do menu"
 	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
 	draw_string(font, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.5), hint,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)

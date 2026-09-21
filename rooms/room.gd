@@ -319,9 +319,23 @@ func _on_altar_door_entered() -> void:
 	GameFlow.enter_altar()
 
 func _on_player_died() -> void:
-	ui.show_overlay("Zginąłeś\n\nSpacja, aby spróbować ponownie")
+	ui.show_overlay("Zginąłeś\n\nSpacja, aby zacząć od nowa")
 	_game_over_kind = "death"
 
+## Zgon w zwykłym pokoju (dowolny losowy wróg albo wcielenie) MUSI resetować
+## przebieg tak samo jak zgon w arena.gd (walka z Nemoraxem) — dawne
+## reload_current_scene() tylko odświeżało TEN SAM pokój na TYCH SAMYCH
+## danych z GameFlow (fragmenty, wyczyszczone pokoje, pozycja bez zmian), więc
+## śmierć poza finałową walką w ogóle nie cofała przebiegu do początku, mimo
+## że ekran mówił "spróbuj ponownie". Prawdziwy bug, nie tylko niespójność.
 func _handle_game_over_input() -> void:
 	if _game_over_kind == "death" and Input.is_action_just_pressed("ui_accept"):
-		get_tree().reload_current_scene()
+		_restart_run_from_scratch()
+
+## Wydzielone z _handle_game_over_input() tak, żeby dało się przetestować
+## sam reset przebiegu wprost (bez symulowania Input.is_action_just_pressed,
+## co w tym zestawie testów jest niewiarygodne bez realnej klatki silnika —
+## patrz inne testy tego zestawu).
+func _restart_run_from_scratch() -> void:
+	GameFlow.reset_run()
+	get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
