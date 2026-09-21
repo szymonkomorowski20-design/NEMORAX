@@ -54,11 +54,26 @@ func _ready() -> void:
 			"Wszystkie fragmenty duszy zebrane.\nPodejdź do ołtarza, aby przywołać Nemoraksa.",
 			4.0
 		)
+		_play_ready_lore_lines()
 	else:
 		# Nie powinno się zdarzyć — patrz komentarz na górze pliku.
 		state = AltarState.LOCKED
 		push_warning("Altar: wejście z niekompletnym zestawem fragmentów (%d/%d) — GameFlow.is_direction_open() powinno to blokować" % [GameFlow.fragments_collected.size(), GameFlow.CHAPTER_COUNT])
 		ui.show_taunt("Brakuje fragmentów duszy (%d/%d)." % [GameFlow.fragments_collected.size(), GameFlow.CHAPTER_COUNT], 4.0)
+
+## Dwa dodatkowe okrzyki po istniejącym (FABULA_I_DIALOGI.md sekcja 3.3),
+## odpalane w tle — sprawdzają `state` przed każdym, żeby nie nadpisać
+## "Nemorax powstaje..." tekstem lore, gdyby gracz zdążył wejść w aktywację
+## zanim ta sekwencja się skończy.
+func _play_ready_lore_lines() -> void:
+	await get_tree().create_timer(4.0).timeout
+	if state != AltarState.READY:
+		return
+	ui.show_taunt("Sześć głosów, sześć krzywd. Za chwilę znów będą jednym.", 3.5)
+	await get_tree().create_timer(3.5).timeout
+	if state != AltarState.READY:
+		return
+	ui.show_taunt("Nie pierwszy raz to robisz. Coś w tobie o tym wie, nawet jeśli ty nie wiesz.", 4.0)
 
 ## Sześć gniazd w kręgu wokół pedestału — sam obrazek jest neutralny, więc
 ## każde gniazdo dostaje kolor swojego wcielenia przez modulate (patrz

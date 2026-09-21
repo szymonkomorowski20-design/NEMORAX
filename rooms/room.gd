@@ -234,8 +234,22 @@ func _on_incarnation_died(fragment_name: String) -> void:
 	soul.collected.connect(_on_soul_collected.bind(fragment_name))
 	add_child(soul)
 
+## Ostatnie słowa każdego wcielenia (FABULA_I_DIALOGI.md sekcja 3.2) —
+## zastępują generyczny toast, klucz to dokładny fragment_name z
+## entities/incarnations/*.gd. Nieznany klucz (nie powinno się zdarzyć,
+## wszystkie 6 jest tu ujęte) spada z powrotem na generyczny tekst.
+const INCARNATION_DEATH_LINES := {
+	"Vhar’Nokh, Wygnany z Otchłani": "Vhar’Nokh: „Wygnaliście mnie raz. Teraz robicie to znowu.”",
+	"Mordrath Bez-Wymiaru": "Mordrath: „Nie... nie zdążyłem... nie zdąży—”",
+	"Zha’Ruun, Pożeracz Granic": "Zha’Ruun: „Granica. Granica. Zawsze jakaś granica.”",
+	"Nekravor, Ten Którego Odrzucono": "Nekravor: „Odrzucony. Jak zawsze. Jak zawsze. Jak—”",
+	"Thal’Gor, Pęknięty Pomiędzy Światami": "Thal’Gor: „Byłem tak blisko. Byłem tak blisko całości.”",
+	"Orryx Cień-Nicości": "Orryx: „...”",
+}
+
 func _on_soul_collected(fragment_name: String) -> void:
-	ui.show_taunt("Zdobyto fragment duszy: %s" % fragment_name, 2.0)
+	var line: String = INCARNATION_DEATH_LINES.get(fragment_name, "Zdobyto fragment duszy: %s" % fragment_name)
+	ui.show_taunt(line, 3.0)
 	# Soul Bond (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 8) — aktywuje się w
 	# chwili PODNIESIENIA duszy (nie samego pokonania wcielenia), stąd tutaj a
 	# nie w _on_incarnation_died(). Nic nie robi, jeśli gracz nie ma Soul Bond.

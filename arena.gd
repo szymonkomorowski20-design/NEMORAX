@@ -114,10 +114,22 @@ void fragment() {
 	eclipse_rect.material = _eclipse_material
 	eclipse_rect.visible = false
 
+## Kwestie fazy (FABULA_I_DIALOGI.md sekcja 3.4) — kluczowane po phase_index,
+## nie po nazwie fazy (ta ostatnia to już samo "rule_name" z Palette).
+const PHASE_TRANSITION_LINES := {
+	1: "Pamiętam, że mam ręce.",
+	2: "Widziałem to już. To spojrzenie. Ten strach.",
+	3: "To miejsce. Zawsze było moje. Odzyskuję je.",
+	4: "BOLAŁO. ZA KAŻDYM. RAZEM.",
+	5: "Jestem. Naprawdę jestem. Po raz pierwszy od—",
+}
+
 func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) -> void:
 	player.gain_xp() # spójne z pokojami — traktujemy każdą pokonaną fazę jak "pokonanego przeciwnika"
 	if rule_name != "":
 		ui.show_form_name(rule_name)
+	if PHASE_TRANSITION_LINES.has(phase_index):
+		_show_phase_line_after_name(PHASE_TRANSITION_LINES[phase_index])
 	match phase_index:
 		1: # Force (dawniej Cisza) — dźwięk wyciszony do końca walki. Nazwa/grafika
 			# fazy się zmieniły (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 13), ta
@@ -131,6 +143,13 @@ func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) 
 		5: # Sovereignty (dawniej Zaćmienie) — ciemność poza kręgiem wokół gracza
 			_eclipse_active = true
 			eclipse_rect.visible = true
+
+## show_form_name i show_taunt piszą do tego samego pola w ui.gd
+## (_center_message) — pokazanie kwestii RAZEM z banerem nazwy fazy zjadłoby
+## baner w 0 klatek, więc czekamy, aż baner sam zejdzie.
+func _show_phase_line_after_name(line: String) -> void:
+	await get_tree().create_timer(ui.form_name_display_time).timeout
+	ui.show_taunt(line, 3.0)
 
 func _on_boss_died(is_final: bool) -> void:
 	if is_final:
@@ -154,15 +173,39 @@ func _play_big_form_death() -> void:
 	player.input_reversed = true # reguła siódma: Odwrócenie
 	ui.hide_all = true # interfejs znika w całości w fazie finałowej
 
-	ui.show_taunt(
-		"Czy pamiętasz, ile razy już mnie pokonałeś?\n\n%d" % deaths,
-		finale_taunt_duration
-	)
+	ui.show_taunt(_finale_taunt_text(), finale_taunt_duration)
+
+## Drwina przed finałową formą, coraz bardziej wprost o pętli w miarę
+## kolejnych porażek Strażnika w tym zapisie (FABULA_I_DIALOGI.md sekcja 3.5).
+func _finale_taunt_text() -> String:
+	if deaths < 3:
+		return "Czy pamiętasz, ile razy już mnie pokonałeś?"
+	elif deaths < 10:
+		return "Czy pamiętasz, ile razy już mnie pokonałeś? Bo ja pamiętam każdy."
+	else:
+		return "Czy pamiętasz, ile razy już mnie pokonałeś? Nie musisz. Ja policzę za nas oboje. To jedno, co zawsze mi zostaje."
 
 func _finish_victory() -> void:
 	_battle_over = true
+	var is_first_win := wins == 0
 	wins += 1
 	_save_progress()
+	_play_victory_epilogue(is_first_win)
+
+## Epilog PRZED istniejącym ekranem statystyk (FABULA_I_DIALOGI.md sekcja 3.6)
+## — linia 3.7 tylko przy PIERWSZYM prawdziwym zwycięstwie w tym zapisie,
+## znika bez śladu przy każdym kolejnym.
+func _play_victory_epilogue(is_first_win: bool) -> void:
+	if is_first_win:
+		ui.show_taunt("...to twoja twarz.", 1.0)
+		await get_tree().create_timer(1.0).timeout
+	ui.show_taunt("Rozpada się. Fragmenty już szukają, gdzie zasnąć.", 3.0)
+	await get_tree().create_timer(3.0).timeout
+	ui.show_taunt(
+		"Ktoś je znowu zbierze. Ty, albo ktoś bardzo do ciebie podobny.\nTo nie było ocalenie. To było odłożenie na później.",
+		4.0
+	)
+	await get_tree().create_timer(4.0).timeout
 	# Wygrana to prawdziwy koniec przebiegu (endgame) — zostaje jako ekran
 	# końcowy, bez pętli z powrotem do pokoju 1.
 	ui.show_overlay(
