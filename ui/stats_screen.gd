@@ -8,6 +8,14 @@ class_name StatsScreen
 ## drzewo jest spauzowane, ich WŁASNY _unhandled_input (domyślny process_mode)
 ## i tak przestaje działać, więc oba ekrany nie mogą być otwarte naraz.
 
+const FONT_TITLE := preload("res://assets/fonts/Cinzel-SemiBold.woff")
+const FONT_BODY := preload("res://assets/fonts/EBGaramond-Regular.woff")
+const FONT_BODY_MEDIUM := preload("res://assets/fonts/EBGaramond-Medium.woff")
+const SELECTED_COLOR := Color("#E8C547")
+const SELECTED_BG := Color("#E8C547", 0.16)
+const TEXT_COLOR := Color("#E9E1F0") # parchment-lavender, cieplejsze niż czyste WHITE
+const HINT_COLOR := Color("#8A7FA0") # przygaszony — podpowiedź ma być mniej widoczna niż treść
+
 var player: Player = null
 var _selected_index: int = 0
 
@@ -48,12 +56,11 @@ func _draw() -> void:
 		return
 	var viewport_size := get_viewport_rect().size
 	draw_rect(Rect2(Vector2.ZERO, viewport_size), Color(Palette.BACKGROUND, 0.92), true)
-	var font := ThemeDB.fallback_font
 
 	var title := "Statystyki postaci — Level %d/%d" % [player.level, player.max_level]
-	var title_size := font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 30)
-	draw_string(font, Vector2((viewport_size.x - title_size.x) * 0.5, viewport_size.y * 0.1), title,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Palette.PLAYER_BODY)
+	var title_size := FONT_TITLE.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 30)
+	draw_string(FONT_TITLE, Vector2((viewport_size.x - title_size.x) * 0.5, viewport_size.y * 0.1), title,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 30, SELECTED_COLOR)
 
 	var bar_width := 420.0
 	var bar_pos := Vector2((viewport_size.x - bar_width) * 0.5, viewport_size.y * 0.18)
@@ -61,23 +68,29 @@ func _draw() -> void:
 	draw_rect(Rect2(bar_pos, Vector2(bar_width * player.xp_ratio(), 14.0)), Palette.PLAYER_BODY, true)
 
 	var points_text := "Niewydane punkty: %d" % player.unspent_stat_points
-	var points_size := font.get_string_size(points_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
-	draw_string(font, Vector2((viewport_size.x - points_size.x) * 0.5, viewport_size.y * 0.25), points_text,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
+	var points_size := FONT_BODY_MEDIUM.get_string_size(points_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
+	draw_string(FONT_BODY_MEDIUM, Vector2((viewport_size.x - points_size.x) * 0.5, viewport_size.y * 0.25), points_text,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, TEXT_COLOR)
 
 	var start_y := viewport_size.y * 0.34
 	var line_height := 34.0
+	var row_width := 360.0
 	for i in range(Player.STAT_KEYS.size()):
 		var key: String = Player.STAT_KEYS[i]
 		var label: String = Player.STAT_LABELS[key]
 		var points: int = player.stat_points[key]
 		var line := "%s — %d %s" % [label, points, ("punkt" if points == 1 else "punktów")]
-		var color := Palette.HIT_FLASH if i == _selected_index else Color.WHITE
+		var is_selected := i == _selected_index
+		var font := FONT_BODY_MEDIUM if is_selected else FONT_BODY
+		var color := SELECTED_COLOR if is_selected else TEXT_COLOR
 		var line_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, 22)
-		draw_string(font, Vector2((viewport_size.x - line_size.x) * 0.5, start_y + i * line_height), line,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
+		var baseline := Vector2((viewport_size.x - line_size.x) * 0.5, start_y + i * line_height)
+		if is_selected:
+			var row_rect := Rect2((viewport_size.x - row_width) * 0.5, baseline.y - line_size.y - 4.0, row_width, line_size.y + 12.0)
+			draw_rect(row_rect, SELECTED_BG, true)
+		draw_string(font, baseline, line, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
 
 	var hint := "Strzałki: wybór — Enter: wydaj punkt — Tab/Escape: zamknij"
-	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 18)
-	draw_string(font, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.92), hint,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
+	var hint_size := FONT_BODY.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 18)
+	draw_string(FONT_BODY, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.92), hint,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, HINT_COLOR)
