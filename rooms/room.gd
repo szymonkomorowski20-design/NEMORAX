@@ -112,11 +112,24 @@ func _ready() -> void:
 	ui.player = player
 	ui.show_minimap = true
 
+	# Pokój już wyczyszczony (gracz wrócił po fakcie przez inne drzwi na siatce
+	# — możliwe, bo to graf, nie jednokierunkowy korytarz) NIE respawnuje
+	# przeciwnika. Bez tej kontroli re-zabicie tego samego wcielenia wołałoby
+	# GameFlow.clear_current_room() drugi raz: podwójny fragment duszy na
+	# liście i podwójne dobicie rooms_cleared_count za ten sam pokój.
+	var already_cleared: bool = _room_data.get("cleared", false)
 	match _room_data.get("type"):
 		GameFlow.RoomType.RANDOM:
-			_spawn_enemy(GameFlow.current_random_enemy_scene_path(), true)
+			if already_cleared:
+				_spawn_doors_for_open_directions()
+				_maybe_spawn_chest()
+			else:
+				_spawn_enemy(GameFlow.current_random_enemy_scene_path(), true)
 		GameFlow.RoomType.SOUL:
-			_spawn_enemy(GameFlow.current_incarnation_scene_path(), false)
+			if already_cleared:
+				_spawn_doors_for_open_directions()
+			else:
+				_spawn_enemy(GameFlow.current_incarnation_scene_path(), false)
 		_: # START — pusty, bezpieczny pokój, drzwi od razu otwarte
 			_spawn_doors_for_open_directions()
 
