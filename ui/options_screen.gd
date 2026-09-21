@@ -16,6 +16,11 @@ const BUS_NAMES := ["Master", "Music", "SFX", "UI"]
 const BUS_LABELS := ["Głośność główna", "Głośność muzyki", "Głośność efektów", "Głośność interfejsu"]
 const KEYBIND_ITEM_INDEX := 4 # = BUS_NAMES.size(), ostatni wpis listy to nie suwak
 const ITEM_COUNT := 5
+## Palette.HIT_FLASH to czysta biel (#FFFFFF), taka sama jak kolor
+## niezaznaczonych wierszy poniżej — podświetlenie było więc niewidoczne
+## (patrz ten sam bug naprawiony w menu.gd).
+const SELECTED_COLOR := Color("#E8C547")
+const SELECTED_BG := Color("#E8C547", 0.16)
 
 @export var font_size: int = 22
 @export var title_font_size: int = 32
@@ -23,6 +28,7 @@ const ITEM_COUNT := 5
 @onready var keybind_screen: KeybindScreen = $KeybindScreen
 
 var _selected_index: int = 0
+var _item_rects: Array[Rect2] = [] ## jak w menu.gd — ręczne trafienie myszką, bo to _draw(), nie Control/Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -42,7 +48,11 @@ func open() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or keybind_screen.visible:
 		return
-	if event.is_action_pressed("ui_down"):
+	if event is InputEventMouseMotion:
+		_update_hover(event.position)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_click(event.position)
+	elif event.is_action_pressed("ui_down"):
 		_selected_index = (_selected_index + 1) % ITEM_COUNT
 	elif event.is_action_pressed("ui_up"):
 		_selected_index = (_selected_index - 1 + ITEM_COUNT) % ITEM_COUNT
@@ -56,6 +66,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		visible = false
 		_save_settings()
 		closed.emit()
+
+func _update_hover(mouse_pos: Vector2) -> void:
+	for i in range(_item_rects.size()):
+		if _item_rects[i].has_point(mouse_pos):
+			_selected_index = i
+			return
+
+## Suwaki głośności: klik w lewą połowę wiersza = ciszej, w prawą = głośniej
+## (tak jak strzałki lewo/prawo) — "Zmień klawisze" aktywuje się kliknięciem
+## w dowolnym miejscu wiersza, bo to nie suwak.
+func _handle_click(mouse_pos: Vector2) -> void:
+	for i in range(_item_rects.size()):
+		if not _item_rects[i].has_point(mouse_pos):
+			continue
+		_selected_index = i
+		if i == KEYBIND_ITEM_INDEX:
+			keybind_screen.open()
+		else:
+			var rect := _item_rects[i]
+			var delta_db := VOLUME_STEP_DB if mouse_pos.x > rect.position.x + rect.size.x * 0.5 else -VOLUME_STEP_DB
+			_adjust_volume(i, delta_db)
+		return
 
 func _adjust_volume(bus_slot: int, delta_db: float) -> void:
 	var idx := AudioServer.get_bus_index(BUS_NAMES[bus_slot])
@@ -105,21 +137,30 @@ func _draw() -> void:
 
 	var start_y := viewport_size.y * 0.30
 	var line_height := font_size * 1.8
+	_item_rects.resize(ITEM_COUNT)
 	for i in range(BUS_NAMES.size()):
 		var idx := AudioServer.get_bus_index(BUS_NAMES[i])
 		var db := AudioServer.get_bus_volume_db(idx) if idx >= 0 else 0.0
 		var pct := int(round(clamp((db - MIN_VOLUME_DB) / (MAX_VOLUME_DB - MIN_VOLUME_DB), 0.0, 1.0) * 100.0))
 		var line := "%s:  %d%%" % [BUS_LABELS[i], pct]
-		var color := Palette.HIT_FLASH if i == _selected_index else Color.WHITE
+		var is_selected := i == _selected_index
 		var line_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-		draw_string(font, Vector2((viewport_size.x - line_size.x) * 0.5, start_y + i * line_height), line,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+		var baseline := Vector2((viewport_size.x - line_size.x) * 0.5, start_y + i * line_height)
+		var row_rect := Rect2(0.0, baseline.y - line_size.y - 4.0, viewport_size.x, line_size.y + 12.0)
+		_item_rects[i] = row_rect
+		if is_selected:
+			draw_rect(row_rect, SELECTED_BG, true)
+		draw_string(font, baseline, line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, SELECTED_COLOR if is_selected else Color.WHITE)
 
 	var keybind_line := "Zmień klawisze"
-	var kb_color := Palette.HIT_FLASH if _selected_index == KEYBIND_ITEM_INDEX else Color.WHITE
+	var kb_selected := _selected_index == KEYBIND_ITEM_INDEX
 	var kb_size := font.get_string_size(keybind_line, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-	draw_string(font, Vector2((viewport_size.x - kb_size.x) * 0.5, start_y + BUS_NAMES.size() * line_height), keybind_line,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, kb_color)
+	var kb_baseline := Vector2((viewport_size.x - kb_size.x) * 0.5, start_y + BUS_NAMES.size() * line_height)
+	var kb_row_rect := Rect2(0.0, kb_baseline.y - kb_size.y - 4.0, viewport_size.x, kb_size.y + 12.0)
+	_item_rects[KEYBIND_ITEM_INDEX] = kb_row_rect
+	if kb_selected:
+		draw_rect(kb_row_rect, SELECTED_BG, true)
+	draw_string(font, kb_baseline, keybind_line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, SELECTED_COLOR if kb_selected else Color.WHITE)
 
 	var hint := "Strzałki: wybór / regulacja — Enter: klawisze — Escape: powrót"
 	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 18)

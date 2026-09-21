@@ -13,6 +13,11 @@ const LOGO_SIZE := Vector2(480.0, 320.0) ## zachowuje proporcje źródłowego pl
 ## przeciwieństwie do Escape w OptionsScreen/KeybindScreen, które tylko
 ## wracają o poziom wyżej.
 const MENU_ITEMS: Array[String] = ["Graj", "Opcje", "Wyjście"]
+## Osobny, wyraźnie inny niż biały tekst opcji — Palette.HIT_FLASH to też
+## czysta biel (#FFFFFF), więc "podświetlenie" nim było identyczne z resztą i
+## faktycznie niewidoczne (prawdziwy bug, nie tylko brak kontrastu).
+const SELECTED_COLOR := Color("#E8C547")
+const SELECTED_BG := Color("#E8C547", 0.16)
 
 @onready var background: TextureRect = $Background
 @onready var logo: TextureRect = $Logo
@@ -20,6 +25,11 @@ const MENU_ITEMS: Array[String] = ["Graj", "Opcje", "Wyjście"]
 @onready var options_screen: OptionsScreen = $OptionsScreen
 
 var _selected_index: int = 0
+## Prostokąty wierszy wyliczane w _draw(), używane przez najechanie/klik
+## myszką w _unhandled_input() — menu jest Node2D rysowanym przez _draw(),
+## nie drzewem klikanych Control/Button, więc trafienie myszką trzeba
+## sprawdzać ręcznie, tak samo jak np. rooms/chest.gd sprawdza zasięg gracza.
+var _item_rects: Array[Rect2] = []
 
 func _ready() -> void:
 	var vp_size := get_viewport_rect().size
@@ -53,7 +63,11 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if keybind_screen.visible or options_screen.visible:
 		return
-	if event.is_action_pressed("ui_down"):
+	if event is InputEventMouseMotion:
+		_update_hover(event.position)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_click(event.position)
+	elif event.is_action_pressed("ui_down"):
 		_selected_index = (_selected_index + 1) % MENU_ITEMS.size()
 	elif event.is_action_pressed("ui_up"):
 		_selected_index = (_selected_index - 1 + MENU_ITEMS.size()) % MENU_ITEMS.size()
@@ -63,6 +77,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().quit()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K:
 		keybind_screen.open()
+
+func _update_hover(mouse_pos: Vector2) -> void:
+	for i in range(_item_rects.size()):
+		if _item_rects[i].has_point(mouse_pos):
+			_selected_index = i
+			return
+
+func _handle_click(mouse_pos: Vector2) -> void:
+	for i in range(_item_rects.size()):
+		if _item_rects[i].has_point(mouse_pos):
+			_selected_index = i
+			_activate_selected()
+			return
 
 func _activate_selected() -> void:
 	match _selected_index:
@@ -81,12 +108,20 @@ func _draw() -> void:
 
 	var start_y := size.y * 0.64
 	var line_height := 34.0
+	_item_rects.resize(MENU_ITEMS.size())
 	for i in range(MENU_ITEMS.size()):
 		var label: String = MENU_ITEMS[i]
-		var color := Palette.HIT_FLASH if i == _selected_index else Color.WHITE
+		var is_selected := i == _selected_index
 		var label_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, 24)
-		draw_string(font, Vector2((size.x - label_size.x) * 0.5, start_y + i * line_height), label,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 24, color)
+		var baseline := Vector2((size.x - label_size.x) * 0.5, start_y + i * line_height)
+		# Pełna szerokość ekranu, nie tylko szerokość napisu — łatwiejszy,
+		# pewniejszy cel dla myszki (mniej ważne gdzie w wierszu ktoś kliknie).
+		var row_rect := Rect2(0.0, baseline.y - label_size.y - 4.0, size.x, label_size.y + 12.0)
+		_item_rects[i] = row_rect
+		if is_selected:
+			draw_rect(row_rect, SELECTED_BG, true)
+		var color := SELECTED_COLOR if is_selected else Color.WHITE
+		draw_string(font, baseline, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, color)
 
 	var hint := "Strzałki: wybór — Enter/Spacja: zatwierdź — Escape: wyjście — K: klawisze"
 	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 16)
