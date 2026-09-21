@@ -17,6 +17,7 @@ func _ready() -> void:
 	telegraph_duration = 0.42
 	knockback_resistance = 0.20
 	keep_distance_range = 82.0 ## dokument: "holds 70-95 range"
+	sprite_scale = 0.06 # KIERUNEK_WIZUALNY_REFERENCJE.md: mały wróg 0.65-0.85 gracza (player.sprite_scale=0.08)
 	super._ready()
 	current_color = Color("#E8933D")
 	fragment_name = "Striker"

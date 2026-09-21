@@ -25,6 +25,7 @@ func _ready() -> void:
 	telegraph_duration = 0.80
 	knockback_resistance = 0.15
 	keep_distance_range = 200.0 ## trzyma dystans zamiast wchodzić w zwarcie, jak w dokumencie
+	sprite_scale = 0.07 # KIERUNEK_WIZUALNY_REFERENCJE.md: średni wróg 0.80-0.95 gracza (player.sprite_scale=0.08)
 	super._ready()
 	_base_drift_speed = drift_speed
 	current_color = Color("#8ED9C9")

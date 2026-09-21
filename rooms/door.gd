@@ -21,6 +21,10 @@ func _ready() -> void:
 	sprite.texture = TEX_DOOR
 	sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
 	sprite.modulate = door_color
+	var contact_shadow := ContactShadow.new()
+	contact_shadow.position = Vector2(0.0, 26.0)
+	contact_shadow.configure(56.0, 12.0, 0.28)
+	add_child(contact_shadow)
 
 func _physics_process(_delta: float) -> void:
 	if _triggered or player == null:

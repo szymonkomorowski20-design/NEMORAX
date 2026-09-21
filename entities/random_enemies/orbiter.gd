@@ -19,6 +19,7 @@ func _ready() -> void:
 	knockback_resistance = 0.15
 	keep_distance_range = 185.0 ## dokument: "preferred range 185"
 	orbit_mode = true
+	sprite_scale = 0.07 # KIERUNEK_WIZUALNY_REFERENCJE.md: średni wróg 0.80-0.95 gracza (player.sprite_scale=0.08)
 	super._ready()
 	orbit_direction = 1.0 if randf() < 0.5 else -1.0
 	current_color = Color("#4FA6A0")

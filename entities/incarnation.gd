@@ -130,6 +130,10 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player") as Player
 	_attack_timer = attack_interval
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	var contact_shadow := ContactShadow.new()
+	contact_shadow.position = Vector2(0.0, 48.0)
+	contact_shadow.configure(radius * 1.15, radius * 0.28, 0.40)
+	add_child(contact_shadow)
 	if elite_aura:
 		elite_aura.texture = TEX_ELITE_AURA
 		elite_aura.scale = Vector2(sprite_scale, sprite_scale)

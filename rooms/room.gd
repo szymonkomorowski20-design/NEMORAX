@@ -20,6 +20,7 @@ const WALL_THICKNESS := 20.0
 const DoorScene := preload("res://rooms/door.tscn")
 const SoulScene := preload("res://rooms/soul.tscn")
 const ChestScene := preload("res://rooms/chest.tscn")
+const RoomAtmosphereScene := preload("res://rooms/room_atmosphere.gd")
 
 const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
 # W kolejności GameFlow.INCARNATION_SCENES (Vhar'Nokh...Orryx) — indeksowane
@@ -114,6 +115,7 @@ func _ready() -> void:
 		wall_tex = ROOM_WALL_TEXTURES[0]
 	Walls.build_floor(self, ARENA_RECT, floor_tex)
 	Walls.build(self, ARENA_RECT, WALL_THICKNESS, wall_tex)
+	_add_room_atmosphere()
 
 	var track: AudioStreamWAV = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
 	# Ustawiane w kodzie, nie tylko w .import — headless `--import` (używane w
@@ -169,6 +171,11 @@ func _process(_delta: float) -> void:
 	if _game_over_kind != "":
 		_handle_game_over_input()
 
+func _add_room_atmosphere() -> void:
+	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
+	atmosphere.configure(ARENA_RECT)
+	add_child(atmosphere)
+
 ## Escape poza ekranem game-over pauzuje/wznawia — w trakcie game-over Spacja
 ## (ui_accept) już obsługuje retry, nie ma tam czego pauzować.
 ## Ten handler nie musi sam pilnować wykluczania z pause_menu/stats_screen —
@@ -209,7 +216,9 @@ func _spawn_doors_for_open_directions() -> void:
 		var pos := Walls.wall_point(ARENA_RECT, wall_side)
 		var neighbor := GameFlow.neighbor_data(direction)
 		var callback := _on_altar_door_entered if neighbor.get("type") == GameFlow.RoomType.ALTAR else _on_move_door_entered.bind(direction)
-		_spawn_door(pos, callback)
+		# Drzwi stoją wewnątrz pokoju, nie na granicy kamery/ściany — dzięki temu
+		# czytają się jako obiekt świata, a nie element ramki ekranu.
+		_spawn_door(pos - Vector2(direction) * 26.0, callback)
 
 func _spawn_door(pos: Vector2, on_entered: Callable) -> void:
 	var door: Door = DoorScene.instantiate()

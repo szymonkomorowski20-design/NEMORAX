@@ -205,6 +205,10 @@ func _ready() -> void:
 	_attack_timer = attack_interval
 	_init_position_history()
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	var contact_shadow := ContactShadow.new()
+	contact_shadow.position = Vector2(0.0, 72.0)
+	contact_shadow.configure(radius * 1.25, radius * 0.30, 0.46)
+	add_child(contact_shadow)
 	lunge_warning.texture = TEX_LUNGE_WARNING
 	lunge_warning.centered = true
 	lunge_warning.offset = Vector2(0.0, -lunge_warning.texture.get_height() * 0.5)

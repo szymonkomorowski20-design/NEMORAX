@@ -24,6 +24,7 @@ func _ready() -> void:
 	telegraph_duration = 1.20 ## dokument: "channel"
 	knockback_resistance = 0.20
 	keep_distance_range = 250.0 ## dokument: "retreats from player, seeks 200-300 range"
+	sprite_scale = 0.096 # KIERUNEK_WIZUALNY_REFERENCJE.md: ciężki wróg 1.05-1.35 gracza (player.sprite_scale=0.08)
 	super._ready()
 	current_color = Color("#B23A6B")
 	fragment_name = "Summoner"

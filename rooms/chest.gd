@@ -26,6 +26,15 @@ var _opened: bool = false
 
 func _ready() -> void:
 	sprite.texture = TEX_CLOSED
+	# Skala ustawiana też tutaj, nie tylko w _physics_process() poniżej — inaczej
+	# skrzynia renderuje się w natywnej rozdzielczości tekstury (1024px) przez
+	# każdą klatkę, zanim/jeśli `player` zostanie ustawiony (ten setter gates
+	# całe _physics_process, patrz niżej).
+	sprite.scale = Vector2(BASE_SPRITE_SCALE, BASE_SPRITE_SCALE)
+	var contact_shadow := ContactShadow.new()
+	contact_shadow.position = Vector2(0.0, 18.0)
+	contact_shadow.configure(42.0, 10.0, 0.30)
+	add_child(contact_shadow)
 
 func _physics_process(_delta: float) -> void:
 	if _opened or player == null:

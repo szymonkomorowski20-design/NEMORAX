@@ -347,6 +347,10 @@ func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 1
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	var contact_shadow := ContactShadow.new()
+	contact_shadow.position = Vector2(0.0, 28.0)
+	contact_shadow.configure(54.0, 14.0, 0.32)
+	add_child(contact_shadow)
 	slash_arc.scale = Vector2(slash_arc_scale, slash_arc_scale)
 	slash_arc.texture = TEX_SLASH_ARC
 	wand_charge_sprite.texture = TEX_WAND_CHARGE
