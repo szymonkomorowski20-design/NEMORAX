@@ -32,9 +32,32 @@ func _ready() -> void:
 	# całe _physics_process, patrz niżej).
 	sprite.scale = Vector2(BASE_SPRITE_SCALE, BASE_SPRITE_SCALE)
 	var contact_shadow := ContactShadow.new()
-	contact_shadow.position = Vector2(0.0, 18.0)
-	contact_shadow.configure(42.0, 10.0, 0.30)
+	contact_shadow.position = Vector2(0.0, 20.0)
+	contact_shadow.configure(48.0, 12.0, 0.44) # wyraźniejszy (KIERUNEK_WIZUALNY_REFERENCJE.md)
 	add_child(contact_shadow)
+
+	# Mały, fizyczny blask przypisany do samej skrzyni (nie wielka plama światła
+	# w pokoju) — pasuje do złotych pęknięć na chest_closed.png/chest_open.png.
+	var glow := PointLight2D.new()
+	glow.texture = _make_glow_texture()
+	glow.color = Color("#E8933D")
+	glow.energy = 0.9
+	glow.texture_scale = 0.85
+	glow.position = Vector2(0.0, -4.0)
+	add_child(glow)
+
+func _make_glow_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(1, 1, 1, 1))
+	gradient.set_color(1, Color(1, 1, 1, 0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = gradient
+	tex.width = 128
+	tex.height = 128
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	return tex
 
 func _physics_process(_delta: float) -> void:
 	if _opened or player == null:

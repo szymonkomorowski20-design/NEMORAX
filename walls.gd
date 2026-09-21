@@ -9,7 +9,7 @@ extends RefCounted
 ## texture_repeat na Enabled, żeby przekroczone [0,1] UV zawijały się zamiast
 ## rozciągać brzegowy piksel.
 
-static func build(parent: Node2D, rect: Rect2, thickness: float, wall_texture: Texture2D = null) -> void:
+static func build(parent: Node2D, rect: Rect2, thickness: float, wall_texture: Texture2D = null, wall_modulate: Color = Color.WHITE) -> void:
 	var segments := [
 		{"pos": Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y - thickness * 0.5),
 			"size": Vector2(rect.size.x + thickness * 2.0, thickness)}, # góra
@@ -40,6 +40,7 @@ static func build(parent: Node2D, rect: Rect2, thickness: float, wall_texture: T
 			sprite.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 			sprite.position = seg["pos"]
 			sprite.z_index = -5
+			sprite.modulate = wall_modulate
 			parent.add_child(sprite)
 
 ## Kafelkowana podłoga pod całą areną — osobno od build(), bo ściany zawsze są
@@ -74,7 +75,7 @@ static func wall_point(rect: Rect2, side: String) -> Vector2:
 			return center
 
 ## Tło poza areną (reszta viewportu) — najgłębsza warstwa, kafelkowana tak samo.
-static func build_void_background(parent: Node2D, viewport_size: Vector2, texture: Texture2D) -> void:
+static func build_void_background(parent: Node2D, viewport_size: Vector2, texture: Texture2D, bg_modulate: Color = Color.WHITE) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = texture
 	sprite.centered = false
@@ -83,4 +84,5 @@ static func build_void_background(parent: Node2D, viewport_size: Vector2, textur
 	sprite.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	sprite.position = Vector2.ZERO
 	sprite.z_index = -20
+	sprite.modulate = bg_modulate
 	parent.add_child(sprite)

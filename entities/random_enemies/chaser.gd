@@ -17,7 +17,7 @@ func _ready() -> void:
 	attack_interval = 1.2
 	telegraph_duration = 0.30
 	knockback_resistance = 0.10
-	sprite_scale = 0.06 # KIERUNEK_WIZUALNY_REFERENCJE.md: mały wróg 0.65-0.85 gracza (player.sprite_scale=0.08)
+	sprite_scale = 0.075 # KIERUNEK_WIZUALNY_REFERENCJE.md: mały wróg 0.65-0.85 gracza (player.sprite_scale=0.10)
 	super._ready()
 	current_color = Color("#8FBF6B")
 	fragment_name = "Chaser"

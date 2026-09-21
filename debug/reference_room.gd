@@ -72,13 +72,8 @@ func _ready() -> void:
 	add_child(zone)
 	zone.global_position = Vector2(300, 550) # z dala od reszty, żeby ocenić samą strefę
 
-	var local_light := PointLight2D.new()
-	local_light.texture = _make_soft_light_texture()
-	local_light.color = Color("#E8933D") # ciepły pomarańcz, kontrast wobec chłodnego ambientu (KIERUNEK_WIZUALNY_REFERENCJE.md)
-	local_light.energy = 2.2
-	local_light.texture_scale = 1.0 # tekstura 256px * 1.0 = ~256px lokalna poświata, nie cała arena
-	local_light.global_position = Vector2(700, 500)
-	add_child(local_light)
+	# Lokalne światło jest teraz stałą częścią rooms/chest.gd (mały złoty blask
+	# przypisany do samej skrzyni) — scena QA nie musi już dokładać własnego.
 
 	# Scena QA jest statyczną kompozycją do oceny wyglądu, nie symulacją walki —
 	# bez tego gracz bez sterowania zginąłby wrogom w kilka sekund, zanim zdążę
@@ -90,18 +85,3 @@ func _ready() -> void:
 	player.set_physics_process(false)
 	chaser.set_physics_process(false)
 	tank.set_physics_process(false)
-
-## Miękka radialna poświata generowana kodem (bez nowego pliku graficznego) —
-## GradientTexture2D z wypełnieniem RADIAL, biały środek gasnący do przezroczystości.
-func _make_soft_light_texture() -> GradientTexture2D:
-	var gradient := Gradient.new()
-	gradient.set_color(0, Color(1, 1, 1, 1))
-	gradient.set_color(1, Color(1, 1, 1, 0))
-	var tex := GradientTexture2D.new()
-	tex.gradient = gradient
-	tex.width = 256
-	tex.height = 256
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(1.0, 0.5)
-	return tex

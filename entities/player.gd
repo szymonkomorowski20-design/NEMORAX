@@ -102,7 +102,7 @@ var max_speed: float ## efektywna wartość — base_max_speed * (1 + punkty*spe
 var _walk_cycle_phase: float = 0.0
 
 # --- Wygląd (dostrojenie sprite'ów wobec oryginalnych plików 1024-1254px) ---
-@export var sprite_scale: float = 0.08 ## postać gracza
+@export var sprite_scale: float = 0.10 ## postać gracza — powiększona z 0.08 (KIERUNEK_WIZUALNY_REFERENCJE.md: gracz musi być czytelniejszy/większy od tła i wrogów)
 @export var slash_arc_scale: float = 0.09 ## wycinek ataku mieczem
 @export var wand_charge_scale: float = 0.05 ## kula ładowania różdżki
 @export var trail_ghost_scale: float = 0.08 ## kopie śladu dasha
@@ -348,8 +348,8 @@ func _ready() -> void:
 	collision_mask = 1
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
 	var contact_shadow := ContactShadow.new()
-	contact_shadow.position = Vector2(0.0, 28.0)
-	contact_shadow.configure(54.0, 14.0, 0.32)
+	contact_shadow.position = Vector2(0.0, 32.0)
+	contact_shadow.configure(68.0, 17.0, 0.44) # wyraźniejszy, dostrojony do powiększonego sprite_scale=0.10
 	add_child(contact_shadow)
 	slash_arc.scale = Vector2(slash_arc_scale, slash_arc_scale)
 	slash_arc.texture = TEX_SLASH_ARC

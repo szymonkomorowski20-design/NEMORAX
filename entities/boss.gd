@@ -207,7 +207,7 @@ func _ready() -> void:
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
 	var contact_shadow := ContactShadow.new()
 	contact_shadow.position = Vector2(0.0, 72.0)
-	contact_shadow.configure(radius * 1.25, radius * 0.30, 0.46)
+	contact_shadow.configure(radius * 1.25, radius * 0.30, 0.52) # wyraźniejszy (KIERUNEK_WIZUALNY_REFERENCJE.md)
 	add_child(contact_shadow)
 	lunge_warning.texture = TEX_LUNGE_WARNING
 	lunge_warning.centered = true

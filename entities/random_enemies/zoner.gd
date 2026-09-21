@@ -20,7 +20,7 @@ func _ready() -> void:
 	telegraph_duration = 0.90
 	knockback_resistance = 0.15
 	keep_distance_range = 250.0 ## dokument: "maintains midrange"
-	sprite_scale = 0.07 # KIERUNEK_WIZUALNY_REFERENCJE.md: średni wróg 0.80-0.95 gracza (player.sprite_scale=0.08)
+	sprite_scale = 0.0875 # KIERUNEK_WIZUALNY_REFERENCJE.md: średni wróg 0.80-0.95 gracza (player.sprite_scale=0.10)
 	super._ready()
 	current_color = Color("#9B4F8C")
 	fragment_name = "Zoner"

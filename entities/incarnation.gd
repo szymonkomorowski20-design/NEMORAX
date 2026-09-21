@@ -132,7 +132,7 @@ func _ready() -> void:
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
 	var contact_shadow := ContactShadow.new()
 	contact_shadow.position = Vector2(0.0, 48.0)
-	contact_shadow.configure(radius * 1.15, radius * 0.28, 0.40)
+	contact_shadow.configure(radius * 1.15, radius * 0.28, 0.48) # wyraźniejszy (KIERUNEK_WIZUALNY_REFERENCJE.md)
 	add_child(contact_shadow)
 	if elite_aura:
 		elite_aura.texture = TEX_ELITE_AURA

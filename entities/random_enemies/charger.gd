@@ -17,7 +17,7 @@ func _ready() -> void:
 	telegraph_duration = 0.80
 	knockback_resistance = 0.35
 	keep_distance_range = 270.0 ## dokument: "repositions to 180-360 range before charge"
-	sprite_scale = 0.096 # KIERUNEK_WIZUALNY_REFERENCJE.md: ciężki wróg 1.05-1.35 gracza (player.sprite_scale=0.08)
+	sprite_scale = 0.12 # KIERUNEK_WIZUALNY_REFERENCJE.md: ciężki wróg 1.05-1.35 gracza (player.sprite_scale=0.10)
 	super._ready()
 	current_color = Color("#C4453A")
 	fragment_name = "Charger"

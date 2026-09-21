@@ -96,9 +96,16 @@ var incarnation: Incarnation
 var _game_over_kind: String = "" # "" albo "death"
 var _room_data: Dictionary
 
+## Ściany/tło poza areną celowo przyciemnione WZGLĘDEM podłogi (ta sama
+## tekstura co podłoga inaczej czyta się jak rama obrazka, nie jak granica
+## świata — KIERUNEK_WIZUALNY_REFERENCJE.md). Tło poza areną ciemniejsze
+## jeszcze bardziej niż ściana — ma sugerować otchłań, nie kolejną powierzchnię.
+const WALL_MODULATE := Color(0.45, 0.45, 0.52, 1.0)
+const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
+
 func _ready() -> void:
 	_room_data = GameFlow.current_room_data()
-	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
+	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
 
 	var floor_tex: Texture2D
 	var wall_tex: Texture2D
@@ -114,7 +121,7 @@ func _ready() -> void:
 		floor_tex = ROOM_FLOOR_TEXTURES[0]
 		wall_tex = ROOM_WALL_TEXTURES[0]
 	Walls.build_floor(self, ARENA_RECT, floor_tex)
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS, wall_tex)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, wall_tex, WALL_MODULATE)
 	_add_room_atmosphere()
 
 	var track: AudioStreamWAV = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
