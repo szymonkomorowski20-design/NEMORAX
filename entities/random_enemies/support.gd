@@ -26,6 +26,7 @@ func _ready() -> void:
 	knockback_resistance = 0.15
 	keep_distance_range = 200.0 ## trzyma dystans zamiast wchodzić w zwarcie, jak w dokumencie
 	sprite_scale = 0.0875 # KIERUNEK_WIZUALNY_REFERENCJE.md: średni wróg 0.80-0.95 gracza (player.sprite_scale=0.10)
+	radius = 31.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	_base_drift_speed = drift_speed
 	current_color = Color("#8ED9C9")

@@ -20,6 +20,7 @@ func _ready() -> void:
 	telegraph_duration = 0.30
 	knockback_resistance = 0.10
 	sprite_scale = 0.075 # KIERUNEK_WIZUALNY_REFERENCJE.md: mały wróg 0.65-0.85 gracza (player.sprite_scale=0.10)
+	radius = 26.0 # przeliczone z tej samej proporcji co domyślne 95/sprite_scale=0.27 — bez tego hitbox zostałby ze starej, dużej skali mimo mniejszego sprite'a
 	super._ready()
 	current_color = Color("#8FBF6B")
 	fragment_name = "Chaser"

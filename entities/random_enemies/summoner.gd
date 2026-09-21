@@ -25,6 +25,7 @@ func _ready() -> void:
 	knockback_resistance = 0.20
 	keep_distance_range = 250.0 ## dokument: "retreats from player, seeks 200-300 range"
 	sprite_scale = 0.12 # KIERUNEK_WIZUALNY_REFERENCJE.md: ciężki wróg 1.05-1.35 gracza (player.sprite_scale=0.10)
+	radius = 42.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#B23A6B")
 	fragment_name = "Summoner"

@@ -18,6 +18,7 @@ func _ready() -> void:
 	knockback_resistance = 0.20
 	keep_distance_range = 82.0 ## dokument: "holds 70-95 range"
 	sprite_scale = 0.075 # KIERUNEK_WIZUALNY_REFERENCJE.md: mały wróg 0.65-0.85 gracza (player.sprite_scale=0.10)
+	radius = 26.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#E8933D")
 	fragment_name = "Striker"

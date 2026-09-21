@@ -21,6 +21,7 @@ func _ready() -> void:
 	knockback_resistance = 0.20
 	keep_distance_range = 150.0 ## "stalk" — umiarkowany dystans przed wypadem, nie wręcz
 	sprite_scale = 0.075 # KIERUNEK_WIZUALNY_REFERENCJE.md: mały wróg 0.65-0.85 gracza (player.sprite_scale=0.10)
+	radius = 26.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#9B6BF0")
 	fragment_name = "Dasher"

@@ -19,7 +19,7 @@ func _ready() -> void:
 	attack_interval = 2.4
 	telegraph_duration = 0.75
 	knockback_resistance = 0.75
-	radius = 110.0 ## większy niż domyślne 95 — Tank powinien czuć się fizycznie większy
+	radius = 49.0 ## przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd) — nadal ~1.16x ciężkiego archetypu (42), Tank ma czuć się fizycznie największy z 11
 	sprite_scale = 0.12 # KIERUNEK_WIZUALNY_REFERENCJE.md: ciężki wróg 1.05-1.35 gracza (player.sprite_scale=0.10)
 	super._ready()
 	current_color = Color("#B8622E")

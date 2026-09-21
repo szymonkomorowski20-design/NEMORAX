@@ -20,6 +20,7 @@ func _ready() -> void:
 	knockback_resistance = 0.35
 	keep_distance_range = 270.0 ## dokument: "repositions to 180-360 range before charge"
 	sprite_scale = 0.12 # KIERUNEK_WIZUALNY_REFERENCJE.md: ciężki wróg 1.05-1.35 gracza (player.sprite_scale=0.10)
+	radius = 42.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#C4453A")
 	fragment_name = "Charger"

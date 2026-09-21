@@ -22,6 +22,7 @@ func _ready() -> void:
 	keep_distance_range = 185.0 ## dokument: "preferred range 185"
 	orbit_mode = true
 	sprite_scale = 0.0875 # KIERUNEK_WIZUALNY_REFERENCJE.md: średni wróg 0.80-0.95 gracza (player.sprite_scale=0.10)
+	radius = 31.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	orbit_direction = 1.0 if randf() < 0.5 else -1.0
 	current_color = Color("#4FA6A0")
