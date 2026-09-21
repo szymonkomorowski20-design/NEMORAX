@@ -79,9 +79,43 @@ var reached_arena: bool = false ## true po przejściu ołtarza — patrz resume_
 ## w pierwszym pokoju, więc gracz startuje tam z domyślnych wartości @export.
 var saved_player_state: Dictionary = {}
 
+## Zaciemnienie na przejściach między scenami (Game Feel — Room Feel) — dawny
+## reload_current_scene()/change_scene_to_file() był twardym cięciem z klatki
+## na klatkę, co przy tak częstych, kierowanych przez gracza przejściach po
+## siatce (patrz PLAN_LOSOWYCH_POKOI.md) rzuca się w oczy bardziej niż przy
+## starej, liniowej sekwencji pokoi. CanvasLayer wisi na TYM autoloadzie (nie
+## w scenie), więc przeżywa reload/zmianę sceny — bez tego zniknąłby w
+## momencie przejścia, zamiast zostać widoczny przez obie połówki zacięcia.
+const FADE_DURATION := 0.12 ## s, każda z dwóch połówek przejścia
+var _fade_rect: ColorRect
+
 func _ready() -> void:
+	_setup_fade_overlay()
 	if not _load_progress():
 		_generate_map()
+
+func _setup_fade_overlay() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 100 # ponad UI każdej sceny (pokój/ołtarz/arena)
+	_fade_rect = ColorRect.new()
+	_fade_rect.color = Color(0.0, 0.0, 0.0, 0.0)
+	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(_fade_rect)
+	add_child(layer)
+
+## Wspólne przejście: zaciemnia ekran, wykonuje `apply` (reload albo zmiana
+## sceny), czeka jedną klatkę żeby nowa scena zdążyła się zbudować, po czym
+## rozjaśnia z powrotem. Fire-and-forget — wołający (room.gd/altar.gd) nie
+## musi czekać na dokończenie animacji, żeby przejście logicznie "zaszło".
+func _transition(apply: Callable) -> void:
+	var fade_in := create_tween()
+	fade_in.tween_property(_fade_rect, "color:a", 1.0, FADE_DURATION)
+	await fade_in.finished
+	apply.call()
+	await get_tree().process_frame
+	var fade_out := create_tween()
+	fade_out.tween_property(_fade_rect, "color:a", 0.0, FADE_DURATION)
 
 ## Rozrost losowego błądzenia od pokoju startowego (24 RANDOM), potem 6 SOUL +
 ## 1 ALTAR dołączone jako ślepe zaułki do już postawionych pokoi — dokładnie
@@ -282,19 +316,19 @@ func move_to_neighbor(direction: Vector2i) -> void:
 	entry_direction = direction
 	visited_rooms[current_room_pos] = true
 	_save_progress()
-	get_tree().reload_current_scene()
+	_transition(get_tree().reload_current_scene)
 
 ## Wywoływane przez room.gd, gdy gracz przechodzi przez drzwi prowadzące do
 ## ołtarza — osobna, stała scena (rooms/altar.tscn), nie generyczny room.tscn.
 func enter_altar() -> void:
 	_save_progress()
-	get_tree().change_scene_to_file(ALTAR_SCENE)
+	_transition(get_tree().change_scene_to_file.bind(ALTAR_SCENE))
 
 ## Wywoływane przez altar.gd po złożeniu wszystkich fragmentów.
 func complete_altar() -> void:
 	reached_arena = true
 	_save_progress()
-	get_tree().change_scene_to_file(ARENA_SCENE)
+	_transition(get_tree().change_scene_to_file.bind(ARENA_SCENE))
 
 ## Do restartu całego przebiegu od zera — po PRZEGRANEJ z Nemoraksem (patrz
 ## arena.gd) wraca się tu, do świeżo wygenerowanej mapy od pokoju startowego.
