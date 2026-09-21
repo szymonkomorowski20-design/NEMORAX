@@ -49,6 +49,7 @@ func _setup_input_map() -> void:
 	_bind_key("weapon_wand", KEY_2)
 	_bind_key("heal", KEY_E)
 	_bind_key("pickup", KEY_F)
+	_bind_key("toggle_debug", KEY_F3) # narzędzie dewelopera (Juice._update_debug_label) — celowo poza REBINDABLE_ACTIONS, gracz go nie rebinduje
 
 func _bind_key(action: String, keycode: Key) -> void:
 	if InputMap.has_action(action):

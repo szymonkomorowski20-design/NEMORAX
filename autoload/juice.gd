@@ -12,6 +12,56 @@ extends Node
 var _hitstop_active := false
 var _shake_time_left := 0.0
 
+## Podgląd na żywo (sekcja Debug Mode) — F3, dotąd nic takiego nie istniało.
+## Czysto tekstowy odczyt, nie edytor "na żywo": tabelka liczb do tuningu
+## (stamina/mana/cooldowny/timery bufora/hitstop/shake) zamiast zgadywania z
+## samego patrzenia na ekran. Mieszka na Juice, bo to już właściciel
+## hitstopu/trzęsienia, i CanvasLayer tutaj (jak fade w game_flow.gd) przeżywa
+## reload/zmianę sceny, więc F3 działa identycznie w pokoju/ołtarzu/arenie.
+var debug_visible: bool = false
+var _debug_label: Label
+
+func _ready() -> void:
+	_setup_debug_overlay()
+
+func _setup_debug_overlay() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 101 # nad zaciemnieniem przejść (100, patrz game_flow.gd)
+	_debug_label = Label.new()
+	_debug_label.add_theme_color_override("font_color", Color.WHITE)
+	_debug_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_debug_label.add_theme_constant_override("outline_size", 3)
+	_debug_label.position = Vector2(8.0, 8.0)
+	_debug_label.visible = false
+	layer.add_child(_debug_label)
+	add_child(layer)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_debug"):
+		debug_visible = not debug_visible
+		_debug_label.visible = debug_visible
+
+func _update_debug_label() -> void:
+	var lines: Array[String] = [
+		"FPS: %d   time_scale: %.2f   hitstop: %s   shake_left: %.3f" % [
+			Engine.get_frames_per_second(), Engine.time_scale, _hitstop_active, _shake_time_left,
+		],
+	]
+	var player := get_tree().get_first_node_in_group("player")
+	if player != null:
+		lines.append("player.state: %s   attack_phase: %s   weapon: %s" % [
+			Player.State.keys()[player.state],
+			player._attack_phase if player._attack_phase != "" else "-",
+			player.current_weapon,
+		])
+		lines.append("hp: %.0f/%.0f   stamina: %.0f/%.0f   mana: %.0f/%.0f" % [
+			player.health, player.max_health, player.stamina, player.max_stamina, player.mana, player.max_mana,
+		])
+		lines.append("dash_cooldown: %.2f   buffered_dash: %.2f   buffered_attack: %.2f   heal_stacks: %d" % [
+			player._dash_cooldown_timer, player._buffered_dash_timer, player._buffered_attack_timer, player.get_heal_stacks(),
+		])
+	_debug_label.text = "\n".join(lines)
+
 ## Zatrzymuje grę na `duration` sekund w czasie rzeczywistym. Kolejne wywołanie
 ## w trakcie trwającego hitstopu jest ignorowane (sekcja 4: „nie mogą się nakładać").
 func hitstop(duration: float) -> void:
@@ -57,6 +107,8 @@ func play_sfx_at(stream: AudioStream, world_position: Vector2, bus: String = "SF
 	player.play()
 
 func _process(delta: float) -> void:
+	if debug_visible:
+		_update_debug_label()
 	if _shake_time_left <= 0.0:
 		return
 	_shake_time_left -= delta
