@@ -37,3 +37,31 @@ func test_plain_texture_without_variants_never_flips(_root: Node) -> void:
 	var result := Facing.resolve(TEX_FRONT, Vector2(200.0, 0.0))
 	NemoraxTest.assert_eq(result["texture"], TEX_FRONT, "poza bez wariantów zwraca teksturę bez zmian")
 	NemoraxTest.assert_eq(result["flip_h"], false, "poza bez wariantów (Texture2D, nie Dictionary) nigdy nie jest odbijana")
+
+## Faza 1b: dictionary BEZ front_diagonal/back_diagonal (stary słownik sprzed
+## rozszerzenia, albo dowolna nierozszerzona jeszcze poza) musi łagodnie
+## degradować do najbliższego grubszego kąta zamiast się wysypać.
+func test_missing_diagonal_falls_back_gracefully(_root: Node) -> void:
+	var front_diagonal_dir := Vector2(1.0, 1.0) # 45° między front a side -> front_diagonal
+	var result := Facing.resolve(VARIANTS, front_diagonal_dir)
+	NemoraxTest.assert_eq(result["texture"], TEX_SIDE, "front_diagonal bez własnej grafiki powinien spaść do side")
+	NemoraxTest.assert_eq(result["flip_h"], true, "fallback do side zachowuje polaryzację flip dla ruchu w prawo")
+
+	var back_diagonal_dir := Vector2(-1.0, -1.0) # 45° między back a side -> back_diagonal
+	var result2 := Facing.resolve(VARIANTS, back_diagonal_dir)
+	NemoraxTest.assert_eq(result2["texture"], TEX_SIDE, "back_diagonal bez własnej grafiki powinien spaść do side")
+	NemoraxTest.assert_eq(result2["flip_h"], false, "ruch w lewo nie powinien się odbijać")
+
+func test_dedicated_diagonal_texture_is_used_when_present(_root: Node) -> void:
+	var variants_with_diagonal := VARIANTS.duplicate()
+	variants_with_diagonal["front_diagonal"] = TEX_BACK # dowolna inna tekstura, żeby odróżnić od fallbacku
+	var result := Facing.resolve(variants_with_diagonal, Vector2(1.0, 1.0))
+	NemoraxTest.assert_eq(result["texture"], TEX_BACK, "własna grafika front_diagonal powinna mieć pierwszeństwo przed fallbackiem")
+
+func test_walk_cycle_frame_picks_from_array_and_wraps(_root: Node) -> void:
+	var neutral := TEX_FRONT
+	var stride := TEX_BACK
+	var animated := {"front": [neutral, stride]}
+	NemoraxTest.assert_eq(Facing.resolve(animated, Vector2(0.0, 200.0), 0)["texture"], neutral, "frame 0 powinien dać klatkę neutralną")
+	NemoraxTest.assert_eq(Facing.resolve(animated, Vector2(0.0, 200.0), 1)["texture"], stride, "frame 1 powinien dać klatkę kroku")
+	NemoraxTest.assert_eq(Facing.resolve(animated, Vector2(0.0, 200.0), 2)["texture"], neutral, "frame powinien się zawijać modulo rozmiaru tablicy")

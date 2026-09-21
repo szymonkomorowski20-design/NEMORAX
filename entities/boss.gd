@@ -131,6 +131,11 @@ var _lunge_did_double: bool = false ## pilnuje, żeby dorzucić najwyżej jeden 
 
 var _knockback_velocity: Vector2 = Vector2.ZERO ## ustawiane z zewnątrz przez blok gracza (PPM)
 
+## Cykl chodu (PLAN_ANIMACJE_KIERUNKOWE.md, Faza 1b) — patrz player.gd/
+## incarnation.gd, identyczny mechanizm; baza fazowa PEŁNI rolę "chodu" bossa.
+@export var walk_cycle_speed: float = 6.0 ## pełnych cykli/s
+var _walk_cycle_phase: float = 0.0
+
 func _ready() -> void:
 	max_health = phase_max_health
 	health = max_health
@@ -178,6 +183,7 @@ func _physics_process(delta: float) -> void:
 		_process_lunge(delta)
 	elif not _invulnerable:
 		_drift_towards_player(delta)
+		_walk_cycle_phase += delta * walk_cycle_speed
 		_handle_hunger_regen(delta)
 		_attack_timer -= delta
 		if _attack_timer <= 0.0:
@@ -448,6 +454,7 @@ func _play_sfx(stream: AudioStream) -> void:
 ## is_dead=true, stąd wywołanie także z _physics_process w ścieżce is_dead.
 func _update_sprite_state() -> void:
 	var entry # Texture2D (bez wariantów) albo Dictionary front/back/side (pozy z pilotażu 360°)
+	var is_walk_pose := false
 	if is_dead:
 		entry = TEX_SMALL_FORM_TRUE_DEATH if is_final_phase else TEX_LARGE_FORM_COLLAPSE
 	elif _rebirth_pose_timer > 0.0:
@@ -466,10 +473,15 @@ func _update_sprite_state() -> void:
 		entry = TEX_LUNGE
 	else:
 		entry = PHASE_BASE_TEXTURES[phase_index]
+		is_walk_pose = true
 	if entry != null:
-		var facing := Facing.resolve(entry, _facing_direction)
+		var frame := _walk_cycle_frame() if is_walk_pose else 0
+		var facing := Facing.resolve(entry, _facing_direction, frame)
 		sprite.texture = facing["texture"]
 		sprite.flip_h = facing["flip_h"]
+
+func _walk_cycle_frame() -> int:
+	return int(_walk_cycle_phase) % 2
 
 func _draw() -> void:
 	# Kontakt z ciałem zawsze rani (dodane na życzenie autora) — stały żółty kontur

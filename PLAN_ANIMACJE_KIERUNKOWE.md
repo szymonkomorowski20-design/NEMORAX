@@ -10,6 +10,17 @@ dodatkowych obrazków (widok z tyłu + z boku) do części póz, plus mała zmia
 w kodzie wyboru tekstury. Da się to zrobić etapami, zaczynając od jednej,
 najbardziej opłacalnej pozy (chód), zamiast wszystkiego naraz.**
 
+**Aktualizacja (2026-09-21) — Faza 1b**: pilotaż z Fazy 1 (3 kąty, 1
+zamrożona klatka na kąt) dał efekt "chodzenia w rozkroku" — postać zawsze
+pokazuje tę samą, statyczną, szeroko rozstawioną pozę zamiast naprzemiennego
+kroku, a przy skosach (np. ruch północny-wschód) skacze od razu między
+przód/bok zamiast płynnie skręcać. Autor poprosił o dwie rzeczy naraz: **więcej
+kątów** (żeby obracanie się wyglądało realniej) i **prawdziwy cykl chodu**
+(żeby wyglądało, że postać faktycznie stawia kroki, nie sunie w miejscu).
+Sekcje 4-8 poniżej są **przepisane pod tę rozszerzoną wersję** — stara treść
+(3 kąty, 1 klatka) zostaje jako historia w sekcjach 1-3, reszta dokumentu
+opisuje już docelowy, rozszerzony system.
+
 ---
 
 ## 1. Dlaczego zwykła rotacja nie wystarczy
@@ -35,7 +46,7 @@ jedną linijką — to brak grafiki na pozostałe kierunki.
 | Stan | Plik | Kierunek dziś |
 |---|---|---|
 | idle | `player_base.png` | zawsze przód |
-| chód | `player_walk.png` | zawsze przód |
+| chód | `player_walk.png` | **5 kątów × 2 klatki od Fazy 1b** (patrz sekcja 8) |
 | dash | `player_dash.png` | zawsze przód |
 | zamach mieczem | `player_sword_windup.png` | zawsze przód |
 | cięcie mieczem | `player_sword_active.png` | zawsze przód |
@@ -58,19 +69,23 @@ Wspólne 7 stanów (Vhar'Nokh, Mordrath, Zha'Ruun, Nekravor, Thal'Gor, Orryx):
 unikalna umiejętność na postać (`teleport`/`reappear`+`vanish`/`crush`/
 `lifesteal_bite`/`silence_pulse`/`echo_pulse`). Wszystkie sterowane wektorem
 "do gracza" (`_drift_towards_player`, `_lunge_direction`) — już policzonym w
-kodzie, nie trzeba niczego nowego liczyć, tylko go użyć.
+kodzie, nie trzeba niczego nowego liczyć, tylko go użyć. `walk` dostaje od
+Fazy 1b te same 5 kątów × 2 klatki co gracz.
 
 ### Nemorax (`entities/boss.gd`) — 17 stanów użytych w grze, sterowane kierunkiem do gracza / celu wypadu
 
 6 baz fazowych (`phase-1_base`...`phase-6_narrow-vision`) + `telegraph`,
 `lunge`, `cast-pulse`, `pull`, `hit`, `phase-transform`,
 `large-form-collapse`, `small-form-rebirth`, `small-form-taunt`,
-`small-form-true-death`. (Uwaga poboczna, nie temat tego dokumentu:
-`nemorax_walk.png`, `nemorax_death.png` i `nemorax.png` leżą w katalogu, ale
-nie są dziś podpięte pod żaden stan w kodzie.)
+`small-form-true-death`. Baza fazowa to jego "chód"/idle-dryf na stałe —
+dostaje te same 5 kątów × 2 klatki co gracz/wcielenia, dla KAŻDEJ z 6 faz
+osobno. (Uwaga poboczna, nie temat tego dokumentu: `nemorax_walk.png`,
+`nemorax_death.png` i `nemorax.png` leżą w katalogu, ale nie są dziś
+podpięte pod żaden stan w kodzie.)
 
 **Razem: ok. 76 unikalnych, używanych w grze "stanów ciała" bez wariantu
-kierunkowego.**
+kierunkowego — z czego 13 (gracz + 6 wcieleń + 6 faz Nemoraksa, wszystkie to
+poza "chód") dostaje od Fazy 1b pełne 5 kątów × 2 klatki.**
 
 ---
 
@@ -82,21 +97,19 @@ kierunkowego.**
   gracz + 6 wcieleń + Nemorax), np. `sprite.flip_h = kierunek.x < 0.0`.
 - **Efekt:** postać "patrzy" w lewo albo w prawo zamiast zawsze w tę samą
   stronę. Brak rozróżnienia góra/dół, brak prawdziwego obrotu.
-- **Ryzyko:** żadne. Można zrobić od razu, niezależnie od reszty planu.
+- **Ryzyko:** żadne. Zrobione już w Fazie 0.
 
 ### Wariant B — prawdziwe warianty kierunkowe (nowa grafika + wybór tekstury)
 
-- Obecna grafika = widok "od przodu" (postać patrzy w stronę kamery). Żeby
-  pokryć pełne 360° w 4 kierunkach (przód/tył/lewo/prawo), **wystarczą 2 NOWE
-  obrazki na pozę** — "z tyłu" i "z boku" (bok odbijamy `flip_h` na drugą
-  stronę, więc lewo i prawo to ta sama grafika). Przód już mamy.
-- **Koszt przy pełnym pokryciu wszystkich 76 stanów: ~152 nowe obrazki**
-  (76 × 2). To największa pojedyncza operacja generowania grafiki w całym
-  projekcie — więcej niż wszystkie dotychczasowe 123 pliki razem wzięte.
+- Obecna grafika = widok "od przodu" (postać patrzy w stronę kamery). Pełne
+  360° przy 8 kierunkach (przód/przód-skos/bok/tył-skos/tył, lewo=prawo
+  odbite) wymaga **4 NOWYCH kątów widoku** poza już posiadanym przodem —
+  patrz sekcja 4 (to jest rozszerzenie względem oryginalnej wersji tego
+  dokumentu, która liczyła tylko 2 nowe kąty: tył+bok).
 - **Realne ryzyko: spójność.** Referencyjny obrazek pokazuje tylko przód —
-  poproszenie o widok z tyłu każe modelowi "wymyślić" elementy, których nie
-  widać na referencji (skrzydła, ogon, plecy pancerza). To jest największa
-  niewiadoma całego planu, nie sama liczba obrazków.
+  poproszenie o widok z innego kąta każe modelowi "wymyślić" elementy,
+  których nie widać na referencji (skrzydła, ogon, plecy pancerza). To jest
+  największa niewiadoma całego planu, nie sama liczba obrazków.
 - **Zmiana w kodzie:** patrz sekcja 5.
 
 ### Wariant C — szkielet 2D (Skeleton2D/Bone2D, jak Spine/DragonBones)
@@ -104,177 +117,229 @@ kierunkowego.**
 - Silnikowo Godot to wspiera w pełni. ALE wymaga postaci jako osobnych,
   warstwowych części (tułów/głowa/kończyny/skrzydła) zamiast jednego płaskiego
   obrazka na pozę — czyli innego pipeline'u grafiki od zera, niekompatybilnego
-  z już wygenerowanymi ~123 plikami.
+  z już wygenerowanymi assetami.
 - **Niezalecane** przy obecnym stanie projektu — oznaczałoby odrzucenie
-  całej dotychczasowej inwestycji w grafikę na rzecz innego podejścia.
+  całej dotychczasowej inwestycji w grafikę na rzecz innego podejścia. Dałoby
+  PRAWDZIWY cykl chodu "za darmo" (interpolacja kości), ale kosztem przebudowy
+  całego pipeline'u — nieproporcjonalne do problemu ("chód wygląda sztywno").
 
 ---
 
-## 4. Rekomendowany plan etapowy
+## 4. Plan etapowy (zaktualizowany o Fazę 1b)
 
-Zamiast robić Wariant B dla wszystkich 76 stanów naraz (~152 obrazki, duże
-ryzyko niespójności), zacząć od stanu, który widać na ekranie NAJDŁUŻEJ i
-NAJCZĘŚCIEJ — chodu/dryfowania — i dopiero po ocenie jakości/spójności
-decydować, czy rozszerzać na pozy bojowe (zamach, cięcie, trafienie itd.),
-które trwają ułamek sekundy i mają mniejszy "zwrot z inwestycji".
+| Faza | Zakres | Nowa grafika | Zmiana kodu | Status |
+|---|---|---|---|---|
+| **0** | `flip_h` na wszystkich 9 postaciach | 0 | mała | ✅ zrobione |
+| **1 — pilotaż** | Chód, 3 kąty (przód/tył/bok), 1 klatka/kąt | 16 obrazków | `facing.gd` v1 | ✅ zrobione, ale zastąpione przez 1b niżej |
+| **1b — więcej kątów + cykl chodu** | Chód, **5 kątów** (przód/przód-skos/bok/tył-skos/tył) × **2 klatki** (neutralna/krok) | **91 obrazków** (patrz sekcja 8) | `facing.gd` v2 + timer cyklu chodu na każdej postaci | 🔲 do zrobienia — TEN dokument |
+| **2** | Ocena jakości po 1b → decyzja czy iść dalej | — | — | otwarte |
+| **3-5** | Pozostałe pozy (atak/trafienie/śmierć itd.) dostają te same 5 kątów | ~330 obrazków (5 kątów zamiast 2, więc więcej niż w oryginalnej wersji planu) | rozszerzenie tej samej struktury | otwarte, niezależne od 1b |
 
-| Faza | Zakres | Nowa grafika | Zmiana kodu |
-|---|---|---|---|
-| **0** | `flip_h` na wszystkich 9 postaciach (Wariant A) | 0 | mała, w każdym z 9 plików |
-| **1 — pilotaż** | Tylko pozy "chód"/"idle-dryf": gracz (`player_walk`), 6 wcieleń (`*_walk`), Nemorax (6× `phase-N_base`, bo to jego "chód" na stałe) | 8 pozycji × 2 warianty = **16 obrazków** | struktura danych z sekcji 5, tylko dla stanu "walk" |
-| **2** | Ocena jakości pilotażu → decyzja czy iść dalej | — | — |
-| **3 — rozszerzenie** | Pozostałe pozy gracza (10 × 2 = 20 obrazków) | 20 | rozszerzenie tej samej struktury |
-| **4 — rozszerzenie** | Pozostałe pozy wcieleń (6×7 × 2 ≈ 84 obrazków) | 84 | j.w. |
-| **5 — rozszerzenie** | Pozostałe pozy Nemoraksa (11 × 2 = 22 obrazki) | 22 | j.w. |
-
-Fazy 3-5 są **opcjonalne i niezależne od siebie** — można zatrzymać się na
-samym pilotażu (Faza 1), jeśli efekt "postać skręca podczas chodu" już
-wystarczy, i zostawić pozy akcji (atak/trafienie/śmierć) zawsze "od przodu"
-tak jak dziś (to zresztą częsta konwencja w grach top-down: chód kierunkowy,
-akcje zawsze czytelne "do kamery").
+Fazy 3-5 są **nadal opcjonalne i niezależne** — Faza 1b kończy się na samym
+chodzie. Akcje bojowe (atak/trafienie/śmierć) zostają "zawsze do kamery" jak
+dziś, chyba że po ocenie efektu 1b autor zdecyduje inaczej.
 
 ---
 
 ## 5. Co trzeba zmienić w kodzie
 
-1. **Dane:** `_sprite_textures` (incarnation.gd, boss.gd) i odpowiednik w
-   player.gd zmieniają się z `{pose: Texture2D}` na `{pose: {"front":
-   Texture2D, "back": Texture2D, "side": Texture2D}}` — TYLKO dla póz objętych
-   daną fazą (pozy spoza zakresu fazy mają tylko `"front"`, reszta pozostaje
-   jak dziś).
-2. **Bucket kierunku:** nowa mała funkcja pomocnicza (np. w `Juice` albo nowym
-   pliku `facing.gd`), przyjmuje wektor kierunku, zwraca `("front"/"back"/
-   "side", flip_h: bool)` na podstawie kąta:
-   - `front`: kierunek "w dół" względem kamery (domyślny, już mamy).
-   - `back`: kierunek "w górę".
-   - `side` + `flip_h=false/true`: kierunek w lewo/prawo.
-3. **Źródło kierunku per postać:**
-   - Gracz: `_attack_direction` dla póz bojowych (miecz/różdżka/blok/leczenie),
-     `velocity` dla chodu/dashu (to już dwa osobne wektory w kodzie, nic nowego
-     nie trzeba liczyć).
-   - Wcielenia i Nemorax: wektor "do gracza", już liczony w
-     `_drift_towards_player`/`_lunge_direction` — trzeba go tylko zapisać do
-     pola i odczytać w `_update_sprite_state()`.
-4. **Wybór tekstury:** `_update_sprite_state()`/`_update_visuals()` po
-   ustaleniu `pose` (jak dziś) dodatkowo ustala `facing` i pobiera
-   `_sprite_textures[pose].get(facing, _sprite_textures[pose]["front"])` —
-   fallback na `"front"`, żeby pozy bez wariantów kierunkowych (poza zakresem
-   danej fazy) działały bez zmian.
-5. **`sprite.flip_h`** ustawiane obok wyboru tekstury, tak jak dziś
-   `lunge_warning.rotation`.
+### 5.1 Bucket kierunku — z 3 na 5 kątów (`facing.gd`)
 
-To wszystko mechaniczne, bez ryzyka — największa niewiadoma leży w punkcie
-niżej (grafika), nie w kodzie.
+Podział pełnego koła na 8 wycinków po 45°, zwinięty do 5 nazw przez
+odbicie lewo/prawo (dokładnie ta sama zasada co dziś dla "side" — tylko
+teraz dotyczy też skosów):
+
+```gdscript
+static func _bucket(direction: Vector2) -> String:
+	if direction.length() < 0.001:
+		return "front"
+	var angle_from_front := rad_to_deg(absf(direction.angle_to(Vector2.DOWN))) # 0..180
+	if angle_from_front < 22.5:
+		return "front"
+	elif angle_from_front < 67.5:
+		return "front_diagonal"
+	elif angle_from_front < 112.5:
+		return "side"
+	elif angle_from_front < 157.5:
+		return "back_diagonal"
+	else:
+		return "back"
+```
+
+`flip_h` (lewo/prawo) dotyczy teraz trzech bucketów zamiast jednego:
+`side`, `front_diagonal`, `back_diagonal` (wszystko poza czystym
+przód/tył) — flipowane, gdy `direction.x > 0.0`, dokładnie jak dziś.
+
+**Kompatybilność wsteczna — łańcuch fallbacków.** Pozy, które NIE dostały
+jeszcze wariantów 5-kątowych (czyli dziś wszystko poza chodem, a nawet chód
+przed dowiezieniem nowej grafiki) nie mogą się wysypać, gdy zapytane o
+`front_diagonal`/`back_diagonal`, których nie mają:
+
+```gdscript
+const BUCKET_FALLBACKS := {
+	"front": ["front"],
+	"front_diagonal": ["front_diagonal", "side", "front"],
+	"side": ["side", "front"],
+	"back_diagonal": ["back_diagonal", "side", "back", "front"],
+	"back": ["back", "front"],
+}
+```
+
+`resolve()` idzie po tej liście i bierze pierwszy klucz, jaki faktycznie
+istnieje w słowniku danej pozy — dzięki temu stary słownik `{"front",
+"back", "side"}` (albo nawet goła `Texture2D` bez żadnych wariantów) działa
+bez zmian pod nowym 5-kątowym bucketem, po prostu z grubszym przybliżeniem
+kąta, dopóki nie dowiezie się właściwej grafiki na dany kąt.
+
+### 5.2 Cykl chodu — klatki zamiast jednej zamrożonej pozy
+
+Każdy kąt chodu dostaje 2 klatki: `neutral` (to, co jest dziś) i `stride`
+(nowa — środek kroku, ciężar przeniesiony na jedną nogę, druga wysunięta do
+przodu). Struktura danych: zamiast `{"front": Texture2D}` →
+`{"front": [Texture2D_neutral, Texture2D_stride]}` — tablica zamiast
+pojedynczej tekstury, TYLKO dla pozy "chód"; wszystkie pozostałe pozy
+zostają pojedynczymi `Texture2D` jak dziś.
+
+`Facing.resolve()` dostaje trzeci, opcjonalny parametr `frame: int = 0`
+(domyślnie 0 = zero zmian w istniejących wywołaniach bez cyklu):
+
+```gdscript
+static func resolve(tex_or_variants, direction: Vector2, frame: int = 0) -> Dictionary:
+	if tex_or_variants is Dictionary:
+		var key := _bucket(direction)
+		var entry = _lookup_with_fallback(tex_or_variants, key)
+		var tex: Texture2D = entry[frame % entry.size()] if entry is Array else entry
+		var flips := key == "side" or key == "front_diagonal" or key == "back_diagonal"
+		return {"texture": tex, "flip_h": flips and direction.x > 0.0}
+	return {"texture": tex_or_variants, "flip_h": false}
+```
+
+**Tempo kroku zależne od prędkości** (to jest "realniejsza fizyka", o którą
+prosił autor — szybszy ruch = szybsze stawianie kroków, jak w prawdziwym
+biegu, nie tylko szybsze przesuwanie się w miejscu). Każda animowana postać
+(gracz, `Incarnation`, `Boss`) dostaje mały, identyczny mechanizm:
+
+```gdscript
+@export var walk_cycle_speed: float = 6.0 ## pełnych cykli/s przy pełnej prędkości
+var _walk_cycle_phase: float = 0.0
+
+func _update_walk_cycle(delta: float, current_speed: float, reference_speed: float) -> void:
+	var ratio := clamp(current_speed / reference_speed, 0.0, 1.0) if reference_speed > 0.0 else 0.0
+	if ratio > 0.05:
+		_walk_cycle_phase += delta * walk_cycle_speed * ratio
+	# BRAK resetu fazy do zera po zatrzymaniu — postać "zamraża się" na
+	# klatce, na której akurat stanęła, zamiast strzelać z powrotem do
+	# neutralnej pozy w jednej klatce (mniej sztuczne wizualnie).
+
+func _walk_cycle_frame() -> int:
+	return int(_walk_cycle_phase) % 2
+```
+
+Gracz woła to z `current_speed = velocity.length()`, `reference_speed =
+max_speed`. Wcielenia/Nemorax (stały `drift_speed`, bez rozpędzania) wołają
+z `current_speed` = 0 podczas telegrafu/wypadu/etc. i `drift_speed` w
+trakcie zwykłego dryfowania — czyli cyklują tylko wtedy, gdy faktycznie
+idą, zamrożone w pozostałych stanach (tak jak dziś zamrożone są w ogóle).
+
+### 5.3 Źródło kierunku per postać — bez zmian względem Fazy 1
+
+- Gracz: `velocity` dla chodu/dashu.
+- Wcielenia i Nemorax: wektor "do gracza", już liczony w
+  `_drift_towards_player`/zapisany w `_facing_direction`.
 
 ---
 
 ## 6. Szablon promptu do generowania nowych ujęć
 
-Dokładnie ta sama zasada co w `POZY_ANIMACJI.md` (referencja, nie opis od
-zera) — tu zastosowana do KĄTA WIDOKU zamiast POZY:
+### 6.1 Nowy kąt widoku (front-skos / tył-skos) — ta sama zasada co tył/bok
 
 > Using the attached image as the exact reference for [NAZWA]'s design — same
 > proportions, same colors, same materials, same markings, same accent glow
 > color — regenerate this EXACT same creature in the EXACT same pose and
-> action ([OPIS POZY, np. "mid-stride walking pose"]), but seen from
-> [BACK VIEW: "directly behind, back facing the camera" / SIDE VIEW: "exact
-> left-side profile view, facing left"]. Keep the identical art style,
-> lighting proportions and color palette as the reference — invent any
-> details not visible in the reference (back of armor, wings, tail) in a way
-> consistent with the rest of the design. Transparent background, no text,
-> single character, no other changes to the design.
+> action (mid-stride walking pose, neutral standing weight), but seen from
+> [FRONT-DIAGONAL VIEW: a three-quarter view, angled 45 degrees between the
+> front view and the side profile, still facing generally toward the camera
+> but turned to one side / BACK-DIAGONAL VIEW: a three-quarter view, angled
+> 45 degrees between the back view and the side profile, still facing
+> generally away from the camera but turned to one side]. Keep the identical
+> art style, lighting proportions and color palette as the reference — invent
+> any details not visible in the reference (back of armor, wings, tail) in a
+> way consistent with the rest of the design. Transparent background, no
+> text, single character, no other changes to the design.
 
-Jedna generacja = jeden obrazek = jeden kąt, tak jak przy pozach — łączenie
-kilku kątów w jednym zapytaniu kończy się tak samo źle jak łączenie póz.
+### 6.2 Nowa klatka cyklu chodu (ta sama poza+kąt, inna faza kroku)
 
----
+> Using the attached image as the exact reference for [NAZWA]'s design AND
+> exact camera angle — same proportions, same colors, same materials, same
+> viewing angle as the reference — regenerate this EXACT same creature from
+> the EXACT same camera angle, but in a mid-stride WALKING pose instead of
+> the reference's pose: weight shifted onto one leg, that leg planted and
+> bent, the other leg lifted and extended forward mid-step, a natural
+> walking motion, arms swinging slightly in opposition if the design has
+> visible arms. Keep the identical art style, lighting, viewing angle and
+> color palette as the reference — no other changes to the design.
+> Transparent background, no text, single character.
 
-## 7. Lista brakujących rzeczy przed startem (checklist)
-
-**Faza 1 (pilotaż chodu) — ZROBIONE (2026-09-20).** Wygenerowano i podpięto
-wszystkie 26 obrazków (player + 6 wcieleń + 6 faz Nemoraksa × back/side), bez
-żadnej z nich "popłynięcia" wymagającego regeneracji. Kod: `facing.gd`
-(root, nie `entities/`) + `Facing.resolve(tex_or_variants, direction) ->
-{"texture","flip_h"}`, wołane z `player.gd` (`_update_visuals`),
-`incarnation.gd` (`_update_sprite_state`, wspólne dla wszystkich 6 podklas —
-kierunek trzymany w nowym polu `_facing_direction`) i `boss.gd` (analogicznie,
-`PHASE_BASE_TEXTURES` jest teraz `Array[Dictionary]`). Zweryfikowane headless
-testem czterech kierunków kardynalnych dla gracza/wcielenia/Nemoraksa,
-włącznie ze zmianą fazy i czyszczeniem `flip_h` przy przejściu na pozę bez
-wariantów. Smoke testy wszystkich scen czyste.
-
-- [ ] Realny playtest — ocena, czy efekt jest wart rozszerzenia na Fazy 3-5
-      (pozostałe obrazki, patrz sekcja 4 i pełna lista w sekcji 8). To jedyna
-      otwarta decyzja.
+Jedna generacja = jedna zmienna na raz (albo kąt, albo klatka kroku, nigdy
+oba naraz) — dokładnie ta sama zasada co przy pozach w `POZY_ANIMACJI.md`.
 
 ---
 
-## 8. Fazy 3-5 — pełna lista plików do wygenerowania (decyzja: rozszerzamy)
+## 7. Status
 
-Na życzenie autora — pełny backlog, gotowy do odklikania jak
-`PROMPTY_FINALNE_WSZYSTKO.md`. Nie duplikuję tu treści opisów póz (już
-istnieją i są poprawne w `GRACZ_KOMPLETNY.md`/`POZY_ANIMACJI.md`) — każdy
-wiersz mówi, KTÓRY opis wstawić do szablonu z sekcji 6 tego dokumentu jako
-`[OPIS POZY]`, i z jakiego pliku wziąć referencję (zawsze aktualny plik `front`
-tej pozy, NIGDY plik back/side innej pozy — inaczej błąd się skumuluje).
+**Faza 0 i 1 — ZROBIONE (2026-09-20)**, zastąpione przez Fazę 1b poniżej.
 
-Dla każdego wiersza: **2 obrazki** (`_back`, `_side`), tym samym szablonem z
-sekcji 6, zmieniając tylko [BACK VIEW]/[SIDE VIEW].
+- [ ] **Faza 1b — w trakcie.** Lista dokładnych plików do wygenerowania: sekcja 8.
+- [ ] Po dowiezieniu grafiki: rozszerzyć `facing.gd` (sekcja 5.1-5.2),
+      dodać `_walk_cycle_phase`/`_update_walk_cycle`/`_walk_cycle_frame` do
+      `player.gd`, `entities/incarnation.gd`, `entities/boss.gd`.
+- [ ] Realny playtest Fazy 1b → decyzja czy iść dalej w Fazy 3-5 (pozostałe
+      pozy, patrz sekcja 4).
 
-### 8.1 Gracz — 10 póz × 2 = 20 obrazków
+---
 
-| Poza | Plik referencyjny (front) | Opis pozy z |
-|---|---|---|
-| Idle (stanie) | `player_base.png` | `GRACZ_KOMPLETNY.md` §1.1 |
-| Dash | `player_dash.png` | `GRACZ_KOMPLETNY.md` §4.2 |
-| Zamach mieczem — windup | `player_sword_windup.png` | `GRACZ_KOMPLETNY.md` §4.3 |
-| Zamach mieczem — active | `player_sword_active.png` | `GRACZ_KOMPLETNY.md` §4.4 |
-| Ładowanie różdżki | `player_wand_windup.png` | `GRACZ_KOMPLETNY.md` §4.5 |
-| Wystrzał różdżki | `player_wand_fire.png` | `GRACZ_KOMPLETNY.md` §4.6 |
-| Blok | `player_block.png` | `GRACZ_KOMPLETNY.md` §4.7 |
-| Leczenie | `player_heal.png` | `GRACZ_KOMPLETNY.md` §4.8 |
-| Trafiony | `player_hit.png` | `GRACZ_KOMPLETNY.md` §4.9 |
-| Śmierć | `player_death.png` | `GRACZ_KOMPLETNY.md` §4.10 |
+## 8. Faza 1b — pełna lista obrazków do wygenerowania (91 sztuk)
 
-### 8.2 Sześć wcieleń — 43 pozy × 2 = 86 obrazków
+13 "chodzących" ciał (gracz + 6 wcieleń + 6 faz bazowych Nemoraksa) × 7
+nowych obrazków każde = 91. Dla KAŻDEGO ciała:
 
-Uniwersalne 6 póz (opisy w `POZY_ANIMACJI.md` §3.2-3.7, ta sama treść dla
-wszystkich sześciu — referencja i tak wymusi właściwy wygląd) × 6 postaci =
-36, plus unikalne pozy umiejętności (§4.1-4.7) = 7 (Orryx ma DWIE unikalne:
-vanish + reappear). Razem 43.
+- **2 zupełnie nowe kąty** (front-skos, tył-skos) × **2 klatki** (neutralna +
+  krok) = 4 nowe obrazki. Referencja do kąta: dzisiejszy plik `_front`
+  (albo baza fazowa dla Nemoraksa). Referencja do klatki kroku w NOWYM
+  kącie: obrazek tego samego kąta dopiero co wygenerowany (neutralna →
+  krok), nie stary front.
+- **1 nowa klatka kroku** dla KAŻDEGO z 3 już istniejących kątów
+  (front/tył/bok) = 3 nowe obrazki. Referencja: dzisiejszy plik tego kąta
+  (on sam staje się klatką "neutralną").
 
-| Postać | Telegraph | Lunge | Cast-pulse | Pull | Hit | Death | Unikalna(e) |
-|---|---|---|---|---|---|---|---|
-| Vhar'Nokh | `vhar-nokh_telegraph.png` | `vhar-nokh_lunge.png` | `vhar-nokh_cast-pulse.png` | `vhar-nokh_pull.png` | `vhar-nokh_hit.png` | `vhar-nokh_death.png` | `vhar-nokh_teleport.png` — §4.1 |
-| Mordrath | `mordrath_telegraph.png` | `mordrath_lunge.png` | `mordrath_cast-pulse.png` | `mordrath_pull.png` | `mordrath_hit.png` | `mordrath_death.png` | `mordrath_silence-pulse.png` — §4.2 |
-| Zha'Ruun | `zha-ruun_telegraph.png` | `zha-ruun_lunge.png` | `zha-ruun_cast-pulse.png` | `zha-ruun_pull.png` | `zha-ruun_hit.png` | `zha-ruun_death.png` | `zha-ruun_echo-pulse.png` — §4.3 |
-| Nekravor | `nekravor_telegraph.png` | `nekravor_lunge.png` | `nekravor_cast-pulse.png` | `nekravor_pull.png` | `nekravor_hit.png` | `nekravor_death.png` | `nekravor_crush.png` — §4.4 |
-| Thal'Gor | `thal-gor_telegraph.png` | `thal-gor_lunge.png` | `thal-gor_cast-pulse.png` | `thal-gor_pull.png` | `thal-gor_hit.png` | `thal-gor_death.png` | `thal-gor_lifesteal-bite.png` — §4.5 |
-| Orryx | `orryx_telegraph.png` | `orryx_lunge.png` | `orryx_cast-pulse.png` | `orryx_pull.png` | `orryx_hit.png` | `orryx_death.png` | `orryx_reappear.png` — §4.6, `orryx_vanish.png` — §4.7 |
+Razem 4 + 3 = **7 nowych obrazków na ciało**.
 
-(Uniwersalne opisy: Telegraph=§3.2, Lunge=§3.3, Cast-pulse=§3.4, Pull=§3.5,
-Hit=§3.6, Death=§3.7 — ta sama kolumna dla wszystkich sześciu wierszy.)
+### 8.1 Gracz
 
-### 8.3 Nemorax — 10 póz × 2 = 20 obrazków
+| Kąt | Klatka | Referencja | Prompt |
+|---|---|---|---|
+| front | stride (NOWA) | `player_walk.png` | szablon 6.2 |
+| front_diagonal | neutral (NOWA) | `player_base.png` (front, idle) | szablon 6.1 |
+| front_diagonal | stride (NOWA) | front_diagonal/neutral dopiero wygenerowany | szablon 6.2 |
+| side | stride (NOWA) | `player_walk_side.png` | szablon 6.2 |
+| back_diagonal | neutral (NOWA) | `player_base.png` | szablon 6.1 (back-diagonal) |
+| back_diagonal | stride (NOWA) | back_diagonal/neutral dopiero wygenerowany | szablon 6.2 |
+| back | stride (NOWA) | `player_walk_back.png` | szablon 6.2 |
 
-Uniwersalne 5 (bez "death" — Nemorax nie ma generycznej śmierci w kodzie,
-tylko dwa specyficzne stany niżej) + 5 unikalnych stanów finałowych.
+### 8.2 Sześć wcieleń — ta sama tabela × 6 postaci (Vhar'Nokh, Mordrath, Zha'Ruun, Nekravor, Thal'Gor, Orryx)
 
-| Poza | Plik referencyjny (front) | Opis pozy z |
-|---|---|---|
-| Telegraph | `nemorax_telegraph.png` | `POZY_ANIMACJI.md` §3.2 |
-| Lunge | `nemorax_lunge.png` | `POZY_ANIMACJI.md` §3.3 |
-| Cast-pulse | `nemorax_cast-pulse.png` | `POZY_ANIMACJI.md` §3.4 |
-| Pull | `nemorax_pull.png` | `POZY_ANIMACJI.md` §3.5 |
-| Hit | `nemorax_hit.png` | `POZY_ANIMACJI.md` §3.6 |
-| Transformacja fazy | `nemorax_phase-transform.png` | `POZY_ANIMACJI.md` §5.1 |
-| Upadek dużej formy | `nemorax_large-form-collapse.png` | `POZY_ANIMACJI.md` §5.2 |
-| Odrodzenie małej formy | `nemorax_small-form-rebirth.png` | `POZY_ANIMACJI.md` §5.3 |
-| Kpina / pytanie finałowe | `nemorax_small-form-taunt.png` | `POZY_ANIMACJI.md` §5.4 |
-| Prawdziwa śmierć | `nemorax_small-form-true-death.png` | `POZY_ANIMACJI.md` §5.5 |
+Dla każdej: referencje to `<nazwa>_walk.png` / `<nazwa>_walk_back.png` /
+`<nazwa>_walk_side.png` (już istnieją z Fazy 1) — te same 7 wierszy co
+tabela 8.1, podmieniając plik referencyjny na wariant danej postaci.
+
+### 8.3 Sześć faz Nemoraksa — ta sama tabela × 6 faz
+
+Referencje: `nemorax_phase-N_base.png` / `_back.png` / `_side.png` (N=1..6,
+już istnieją z Fazy 1) — te same 7 wierszy, plik referencyjny to baza danej
+fazy (Nemorax nie ma osobnej "walk", baza fazowa PEŁNI tę rolę — to jego
+pozycja dryfowania).
 
 ### 8.4 Razem
 
-20 (gracz) + 86 (wcielenia) + 20 (Nemorax) = **126 obrazków**. Generować i
-integrować w tej samej kolejności co dotąd — partiami po jednej
-postaci/kategorii, testować headless po każdej partii, nie na raz.
+13 ciał × 7 obrazków = **91 obrazków**. Generować partiami po jednym ciele,
+testować headless po każdej partii (jak dotąd), nie na raz.

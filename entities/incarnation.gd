@@ -64,6 +64,12 @@ var _lunge_speed: float = 0.0
 
 var _knockback_velocity: Vector2 = Vector2.ZERO ## ustawiane z zewnątrz przez blok gracza (PPM)
 
+## Cykl chodu (PLAN_ANIMACJE_KIERUNKOWE.md, Faza 1b) — patrz player.gd,
+## identyczny mechanizm. Cykluje TYLKO podczas zwykłego dryfowania w stronę
+## gracza (drift_speed jest stały, więc ratio to zawsze 0 albo 1, bez rozpędzania).
+@export var walk_cycle_speed: float = 6.0 ## pełnych cykli/s
+var _walk_cycle_phase: float = 0.0
+
 ## Skalowanie trudności dla pokoi z losowymi przeciwnikami (nie wcieleniami z
 ## duszami, które mają ręcznie dobrane, stałe statystyki na życzenie autora) —
 ## mnożnik rośnie z numerem pokoju w GameFlow, patrz room.gd._spawn_random_enemy().
@@ -99,6 +105,7 @@ func _physics_process(delta: float) -> void:
 		_process_lunge(delta)
 	else:
 		_drift_towards_player(delta)
+		_walk_cycle_phase += delta * walk_cycle_speed
 		_attack_timer -= delta
 		if _attack_timer <= 0.0:
 			_attack_timer = attack_interval
@@ -109,6 +116,9 @@ func _physics_process(delta: float) -> void:
 	if _skill_pose_timer > 0.0:
 		_skill_pose_timer -= delta
 	_update_sprite_state()
+
+func _walk_cycle_frame() -> int:
+	return int(_walk_cycle_phase) % 2
 
 ## Wywoływane z zewnątrz (blok gracza pod PPM) — odpycha wcielenie na chwilę.
 func apply_knockback(impulse: Vector2) -> void:
@@ -242,6 +252,7 @@ func _update_sprite_state() -> void:
 		pose = "lunge"
 	var entry = _sprite_textures.get(pose, _sprite_textures.get("walk"))
 	if entry != null:
-		var facing := Facing.resolve(entry, _facing_direction)
+		var frame := _walk_cycle_frame() if pose == "walk" else 0
+		var facing := Facing.resolve(entry, _facing_direction, frame)
 		sprite.texture = facing["texture"]
 		sprite.flip_h = facing["flip_h"]

@@ -65,6 +65,14 @@ var max_speed: float ## efektywna wartość — base_max_speed * (1 + punkty*spe
 @export var friction: float = 2500.0 ## px/s^2, jak szybko gracz hamuje bez wejścia
 @export var radius: float = 14.0 ## px, promień koła gracza (też kolizji)
 
+## Cykl chodu (PLAN_ANIMACJE_KIERUNKOWE.md, Faza 1b) — tempo stawiania kroków
+## rośnie z prędkością, zamiast zawsze tej samej zamrożonej pozy "w rozkroku".
+## Nieaktywne wizualnie, dopóki WALK_VARIANTS nie dostanie tablic [neutral,
+## stride] zamiast pojedynczych tekstur (patrz Facing.resolve()) — bezpieczne
+## do wdrożenia już teraz, bo nic się nie zmienia bez tej grafiki.
+@export var walk_cycle_speed: float = 6.0 ## pełnych cykli/s przy pełnej max_speed
+var _walk_cycle_phase: float = 0.0
+
 # --- Wygląd (dostrojenie sprite'ów wobec oryginalnych plików 1024-1254px) ---
 @export var sprite_scale: float = 0.08 ## postać gracza
 @export var slash_arc_scale: float = 0.09 ## wycinek ataku mieczem
@@ -341,7 +349,19 @@ func _physics_process(delta: float) -> void:
 	_tick_stamina_regen(delta)
 	move_and_slide()
 	_update_trail(delta)
+	_update_walk_cycle(delta)
 	_update_visuals()
+
+## Tempo cyklu chodu rośnie z prędkością (Faza 1b) — stojąc w miejscu faza się
+## nie rusza, więc _walk_cycle_frame() zamraża się na klatce, na której akurat
+## gracz stanął, zamiast strzelać z powrotem do neutralnej pozy w 1 klatkę.
+func _update_walk_cycle(delta: float) -> void:
+	var ratio: float = clamp(velocity.length() / max_speed, 0.0, 1.0) if max_speed > 0.0 else 0.0
+	if ratio > 0.05:
+		_walk_cycle_phase += delta * walk_cycle_speed * ratio
+
+func _walk_cycle_frame() -> int:
+	return int(_walk_cycle_phase) % 2
 
 func _tick_timers(delta: float) -> void:
 	_dash_cooldown_timer = max(0.0, _dash_cooldown_timer - delta)
@@ -985,7 +1005,7 @@ func _update_visuals() -> void:
 	elif _attack_phase == "active" or _attack_phase == "recovery":
 		sprite.texture = TEX_SWORD_ACTIVE if _swing_weapon == "sword" else TEX_WAND_FIRE
 	elif velocity.length() > 5.0:
-		var walk_facing := Facing.resolve(WALK_VARIANTS, velocity)
+		var walk_facing := Facing.resolve(WALK_VARIANTS, velocity, _walk_cycle_frame())
 		sprite.texture = walk_facing["texture"]
 		sprite.flip_h = walk_facing["flip_h"]
 	else:
