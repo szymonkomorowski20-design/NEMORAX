@@ -29,6 +29,20 @@ func hitstop(duration: float) -> void:
 func screen_shake() -> void:
 	_shake_time_left = shake_duration
 
+## Wspólne "trafienie wroga" — ujednolica take_damage+flash_white+hitstop+shake,
+## które inaczej trzeba by powtarzać w każdym miejscu, skąd gracz może zadać
+## obrażenia (miecz w player.gd, pocisk w projectile.gd), a każde kolejne
+## miejsce byłoby kolejną kopią do rozjechania się przy następnej zmianie.
+## NIE obejmuje register_hit_on_enemy() (mana/stacki leczenia) ani dźwięku
+## trafienia — to zależy od konkretnej broni, nie jest uniwersalną reakcją celu.
+func apply_hit(target: Node, damage: float, hitstop_duration: float = boss_hit_hitstop) -> void:
+	if target.has_method("take_damage"):
+		target.take_damage(damage)
+	if target.has_method("flash_white"):
+		target.flash_white()
+	hitstop(hitstop_duration)
+	screen_shake()
+
 ## Odtwarza jednorazowy dźwięk w danym miejscu świata i sam się sprząta po
 ## zakończeniu — do obiektów, które znikają (queue_free()) w tej samej klatce,
 ## w której powinien zabrzmieć ich dźwięk (pocisk, pieczęć, dusza itd.), więc

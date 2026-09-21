@@ -35,14 +35,9 @@ func _check_hit() -> void:
 		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
 		if global_position.distance_to(target.global_position) > radius + target_radius:
 			continue
-		if target.has_method("take_damage"):
-			target.take_damage(damage)
-		if target.has_method("flash_white"):
-			target.flash_white()
+		Juice.apply_hit(target, damage)
 		if shooter != null:
 			shooter.register_hit_on_enemy()
-		Juice.hitstop(Juice.boss_hit_hitstop)
-		Juice.screen_shake()
 		Juice.play_sfx_at(SND_IMPACT, global_position)
 		queue_free()
 		return

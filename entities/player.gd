@@ -578,14 +578,9 @@ func _check_attack_hits() -> void:
 				continue
 
 		_attack_hit_targets.append(target)
-		if target.has_method("take_damage"):
-			target.take_damage(attack_damage)
-		if target.has_method("flash_white"):
-			target.flash_white()
+		Juice.apply_hit(target, attack_damage)
 		register_hit_on_enemy()
 		_play_sfx(SND_SWORD_HIT)
-		Juice.hitstop(Juice.boss_hit_hitstop)
-		Juice.screen_shake()
 
 func _read_input_vector() -> Vector2:
 	var v := Input.get_vector("move_left", "move_right", "move_up", "move_down")
