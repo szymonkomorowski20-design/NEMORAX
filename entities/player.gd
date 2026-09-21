@@ -17,10 +17,23 @@ const TEX_BASE := preload("res://assets/sprites/gracz/player_base.png")
 const TEX_WALK := preload("res://assets/sprites/gracz/player_walk.png")
 const TEX_WALK_BACK := preload("res://assets/sprites/gracz/player_walk_back.png")
 const TEX_WALK_SIDE := preload("res://assets/sprites/gracz/player_walk_side.png")
+const TEX_WALK_FRONT_STRIDE := preload("res://assets/sprites/gracz/player_walk_front_stride.png")
+const TEX_WALK_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_walk_front_diagonal_neutral.png")
+const TEX_WALK_FRONT_DIAGONAL_STRIDE := preload("res://assets/sprites/gracz/player_walk_front_diagonal_stride.png")
+const TEX_WALK_SIDE_STRIDE := preload("res://assets/sprites/gracz/player_walk_side_stride.png")
+const TEX_WALK_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_walk_back_diagonal_neutral.png")
+const TEX_WALK_BACK_DIAGONAL_STRIDE := preload("res://assets/sprites/gracz/player_walk_back_diagonal_stride.png")
+const TEX_WALK_BACK_STRIDE := preload("res://assets/sprites/gracz/player_walk_back_stride.png")
 # Pilotaż 360° (PLAN_ANIMACJE_KIERUNKOWE.md) — na razie tylko chód ma warianty
 # kierunkowe; "front" to dawny, jedyny plik. Facing.resolve() rozstrzyga
 # front/back/side (+flip_h dla lewej strony) na podstawie kierunku ruchu.
-const WALK_VARIANTS := {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE}
+const WALK_VARIANTS := {
+	"front": [TEX_WALK, TEX_WALK_FRONT_STRIDE],
+	"front_diagonal": [TEX_WALK_FRONT_DIAGONAL, TEX_WALK_FRONT_DIAGONAL_STRIDE],
+	"side": [TEX_WALK_SIDE, TEX_WALK_SIDE_STRIDE],
+	"back_diagonal": [TEX_WALK_BACK_DIAGONAL, TEX_WALK_BACK_DIAGONAL_STRIDE],
+	"back": [TEX_WALK_BACK, TEX_WALK_BACK_STRIDE],
+}
 const TEX_DASH := preload("res://assets/sprites/gracz/player_dash.png")
 const TEX_SWORD_WINDUP := preload("res://assets/sprites/gracz/player_sword_windup.png")
 const TEX_SWORD_ACTIVE := preload("res://assets/sprites/gracz/player_sword_active.png")
