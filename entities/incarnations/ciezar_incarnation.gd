@@ -28,7 +28,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#6C63FF")
 	fragment_name = "Nekravor, Ten Którego Odrzucono" # patrz LORE_I_ASSETY.md
-	_skills = [_skill_gravity_pull, _skill_crush_pulse, _skill_gravity_lunge]
+	_skills = [_skill_gravity_pull, _skill_crush_pulse, _skill_gravity_lunge, _pattern_lunge_and_crush]
 	_sprite_textures = {
 		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
@@ -49,3 +49,10 @@ func _skill_crush_pulse() -> void:
 func _skill_gravity_lunge() -> void:
 	_pull_player(pull_strength * 0.6)
 	_lunge_toward_player(lunge_speed, lunge_duration)
+
+## "Grupa wzorców" (dokument sekcja 11) — wciąga wypadem, po chwili miażdży.
+func _pattern_lunge_and_crush() -> void:
+	_skill_gravity_lunge()
+	await get_tree().create_timer(lunge_duration + 0.2).timeout
+	if not is_dead:
+		_skill_crush_pulse()

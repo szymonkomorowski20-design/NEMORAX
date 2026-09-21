@@ -33,7 +33,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#8C9AC2") # dopasowane do dostarczonej grafiki (chłodny błękit, nie ciepły beż)
 	fragment_name = "Orryx Cień-Nicości" # patrz LORE_I_ASSETY.md
-	_skills = [_skill_vanish_strike, _skill_flicker_pulse, _skill_dark_pull]
+	_skills = [_skill_vanish_strike, _skill_flicker_pulse, _skill_dark_pull, _pattern_pull_and_vanish_strike]
 	_sprite_textures = {
 		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
@@ -70,6 +70,13 @@ func _skill_dark_pull() -> void:
 	_pull_player(pull_strength)
 	if not is_dead:
 		_damage_pulse(pull_followup_radius, pull_followup_damage)
+
+## "Grupa wzorców" (dokument sekcja 11) — wciąga w cień, potem znika i uderza.
+func _pattern_pull_and_vanish_strike() -> void:
+	_skill_dark_pull()
+	await get_tree().create_timer(0.3).timeout
+	if not is_dead:
+		_skill_vanish_strike()
 
 func _check_contact() -> void:
 	if _intangible:

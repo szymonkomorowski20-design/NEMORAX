@@ -27,7 +27,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#C44FD6")
 	fragment_name = "Zha’Ruun, Pożeracz Granic" # patrz LORE_I_ASSETY.md
-	_skills = [_skill_echo_pulse, _skill_stutter_lunge, _skill_rewind_pull]
+	_skills = [_skill_echo_pulse, _skill_stutter_lunge, _skill_rewind_pull, _pattern_pull_and_stutter]
 	_sprite_textures = {
 		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
@@ -51,3 +51,10 @@ func _skill_stutter_lunge() -> void:
 
 func _skill_rewind_pull() -> void:
 	_pull_player(rewind_pull_strength)
+
+## "Grupa wzorców" (dokument sekcja 11) — wciąga, potem dobija urywanym wypadem.
+func _pattern_pull_and_stutter() -> void:
+	_skill_rewind_pull()
+	await get_tree().create_timer(0.25).timeout
+	if not is_dead:
+		_skill_stutter_lunge()

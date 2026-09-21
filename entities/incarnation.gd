@@ -82,6 +82,13 @@ var orbit_direction: float = 1.0 ## losowane raz w _ready() podklasy (1.0 albo -
 
 @export var is_elite: bool = false ## ustawiane przez apply_elite_modifier(), nie ręcznie
 
+## Tempo przy niskim zdrowiu (dokument, sekcja 11 — powtarzające się u
+## WSZYSTKICH sześciu minibossów: "below ~40-45% HP: recovery ×0.85, pace
+## +10%") — jedna wspólna wartość zamiast sześciu ręcznie dobranych progów,
+## bo te konkretne stworzenia nie mają odpowiednika w dokumencie do skopiowania.
+@export var low_health_threshold: float = 0.40 ## ułamek max_health, poniżej którego przyspiesza
+@export var low_health_tempo_multiplier: float = 0.85 ## mnożnik telegrafu/odstępu ataku poniżej progu
+
 ## Skalowanie trudności dla pokoi z losowymi przeciwnikami (nie wcieleniami z
 ## duszami, które mają ręcznie dobrane, stałe statystyki na życzenie autora) —
 ## mnożnik rośnie z numerem pokoju w GameFlow, patrz room.gd._spawn_random_enemy().
@@ -134,7 +141,7 @@ func _physics_process(delta: float) -> void:
 		_walk_cycle_phase += delta * walk_cycle_speed
 		_attack_timer -= delta
 		if _attack_timer <= 0.0:
-			_attack_timer = attack_interval
+			_attack_timer = _effective_attack_interval()
 			_start_telegraph()
 
 	if _flash_frames > 0:
@@ -145,6 +152,15 @@ func _physics_process(delta: float) -> void:
 
 func _walk_cycle_frame() -> int:
 	return int(_walk_cycle_phase) % 2
+
+func _is_low_health() -> bool:
+	return max_health > 0.0 and (health / max_health) <= low_health_threshold
+
+func _effective_attack_interval() -> float:
+	return attack_interval * low_health_tempo_multiplier if _is_low_health() else attack_interval
+
+func _effective_telegraph_duration() -> float:
+	return telegraph_duration * low_health_tempo_multiplier if _is_low_health() else telegraph_duration
 
 ## Wywoływane z zewnątrz (blok gracza pod PPM) — odpycha wcielenie na chwilę.
 func apply_knockback(impulse: Vector2) -> void:
@@ -191,7 +207,7 @@ func _check_contact() -> void:
 func _start_telegraph() -> void:
 	_telegraph_active = true
 	_play_sfx(SND_TELEGRAPH)
-	await get_tree().create_timer(telegraph_duration).timeout
+	await get_tree().create_timer(_effective_telegraph_duration()).timeout
 	_telegraph_active = false
 	if not is_dead:
 		_perform_random_skill()

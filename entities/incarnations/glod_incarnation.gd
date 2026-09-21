@@ -26,7 +26,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#E8524A") # dopasowane do dostarczonej grafiki (czerwona, nie zielona)
 	fragment_name = "Thal’Gor, Pęknięty Pomiędzy Światami" # patrz LORE_I_ASSETY.md
-	_skills = [_skill_bite, _skill_ravenous_pulse, _skill_pull_and_bite]
+	_skills = [_skill_bite, _skill_ravenous_pulse, _skill_pull_and_bite, _pattern_pulse_and_bite]
 	_sprite_textures = {
 		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
@@ -52,6 +52,13 @@ func _skill_ravenous_pulse() -> void:
 func _skill_pull_and_bite() -> void:
 	_pull_player(pull_strength)
 	_lunge_toward_player(bite_speed, bite_duration)
+
+## "Grupa wzorców" (dokument sekcja 11) — osłabia impulsem, potem dobija ugryzieniem.
+func _pattern_pulse_and_bite() -> void:
+	_skill_ravenous_pulse()
+	await get_tree().create_timer(0.3).timeout
+	if not is_dead:
+		_skill_bite()
 
 ## Nadpisane tylko na czas wypadu — zwykły dotyk (poza umiejętnością) nie leczy,
 ## żeby lifesteal był nagrodą za trafienie ugryzieniem, nie za samo dryfowanie obok.

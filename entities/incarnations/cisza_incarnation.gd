@@ -25,7 +25,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#9B4DFF") # dopasowane do dostarczonej grafiki (fioletowa, nie pomarańczowa)
 	fragment_name = "Mordrath Bez-Wymiaru" # patrz LORE_I_ASSETY.md
-	_skills = [_skill_silence_pulse, _skill_muffling_pull, _skill_silent_rush]
+	_skills = [_skill_silence_pulse, _skill_muffling_pull, _skill_silent_rush, _pattern_pulse_and_rush]
 	_sprite_textures = {
 		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
@@ -47,3 +47,10 @@ func _skill_muffling_pull() -> void:
 
 func _skill_silent_rush() -> void:
 	_lunge_toward_player(rush_speed, rush_duration)
+
+## "Grupa wzorców" (dokument sekcja 11) — pulsuje ciszą, po chwili dobija wypadem.
+func _pattern_pulse_and_rush() -> void:
+	_skill_silence_pulse()
+	await get_tree().create_timer(0.3).timeout
+	if not is_dead:
+		_skill_silent_rush()

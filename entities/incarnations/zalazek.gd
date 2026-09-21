@@ -27,7 +27,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#F0447A")
 	fragment_name = "Vhar’Nokh, Wygnany z Otchłani" # patrz LORE_I_ASSETY.md
-	_skills = [_skill_teleport_strike, _skill_unstable_burst, _skill_double_blink]
+	_skills = [_skill_teleport_strike, _skill_unstable_burst, _skill_double_blink, _pattern_teleport_and_burst]
 	_sprite_textures = {
 		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
 		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
@@ -49,6 +49,15 @@ func _skill_double_blink() -> void:
 	if not is_dead:
 		_teleport_near_player()
 		_lunge_toward_player(lunge_speed, lunge_duration)
+
+## "Grupa wzorców" (dokument sekcja 11: minibossy wybierają całe sekwencje
+## ruchów, nie pojedyncze ataki) — łączy dwie już istniejące umiejętności w
+## jedną, selekcjonowalną całość zamiast osobnego systemu łańcuchowania.
+func _pattern_teleport_and_burst() -> void:
+	_skill_teleport_strike()
+	await get_tree().create_timer(0.3).timeout
+	if not is_dead:
+		_skill_unstable_burst()
 
 func _teleport_near_player() -> void:
 	_set_skill_pose("teleport")
