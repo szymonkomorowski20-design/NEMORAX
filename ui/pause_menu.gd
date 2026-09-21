@@ -7,6 +7,7 @@ class_name PauseMenu
 ## get_tree().paused = true — bez tego cała gałąź zamarłaby razem z resztą gry.
 
 @onready var keybind_screen: KeybindScreen = $KeybindScreen
+@onready var options_screen: OptionsScreen = $OptionsScreen
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -17,23 +18,25 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 ## Wywoływane z zewnątrz (room.gd/arena.gd) po naciśnięciu Escape. Gdy akurat
-## otwarty jest ekran rebindingu, pierwsze Escape cofa do samej pauzy zamiast
-## od razu wznawiać rozgrywkę — obsługiwane przez KeybindScreen samo, tutaj
-## tylko pilnujemy, żeby w tym stanie nie przełączyć też pauzy naraz.
+## otwarty jest ekran rebindingu/opcji, pierwsze Escape cofa do samej pauzy
+## zamiast od razu wznawiać rozgrywkę — obsługiwane przez te ekrany same,
+## tutaj tylko pilnujemy, żeby w tym stanie nie przełączyć też pauzy naraz.
 func toggle() -> void:
-	if keybind_screen.visible:
+	if keybind_screen.visible or options_screen.visible:
 		return
 	visible = not visible
 	get_tree().paused = visible
 	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or keybind_screen.visible:
+	if not visible or keybind_screen.visible or options_screen.visible:
 		return
 	if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
 		toggle() # Enter LUB Escape na pauzie = wznów
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K:
 		keybind_screen.open()
+	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_O:
+		options_screen.open()
 
 func _draw() -> void:
 	if not visible:
@@ -47,7 +50,7 @@ func _draw() -> void:
 	draw_string(font, Vector2((viewport_size.x - title_size.x) * 0.5, viewport_size.y * 0.4), title,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Palette.PLAYER_BODY)
 
-	var hint := "Escape / Enter — wznów        K — zmień klawisze"
+	var hint := "Escape / Enter — wznów        K — klawisze        O — opcje"
 	var hint_size := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
 	draw_string(font, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.5), hint,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
