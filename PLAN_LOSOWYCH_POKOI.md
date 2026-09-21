@@ -1,42 +1,94 @@
-# NEMORAX — Plan: 24 pokoje z losowymi przeciwnikami (+ 6 pokoi z duszami = 30)
+# NEMORAX — Plan: mapa pokoi w stylu "The Binding of Isaac" (30 pokoi)
 
-Ustalenia z rozmowy z autorem (2026-09-20), zanim assety od drugiego bota
+Ustalenia z rozmowy z autorem (2026-09-20/21), zanim assety od drugiego bota
 (7 przeciwników + 8 wyglądów pokoi) będą gotowe. Architektura i logika są już
 **wdrożone i grywalne dziś** na tymczasowych zastępczych assetach — ten
 dokument mówi dokładnie, co podmienić, żeby przejść na docelowe.
 
+**Historia**: pierwsza wersja tego dokumentu opisywała LINIOWĄ sekwencję 30
+pokoi (6 rozdziałów × [4 losowe + 1 z duszą] jeden za drugim). Autor poprosił
+o przebudowę na prawdziwą SIATKĘ 2D w stylu Isaaca — ten dokument opisuje
+FINALNĄ, siatkową wersję; sekcja historyczna usunięta, żeby nie mylić.
+
 ## 1. Ustalona struktura
 
-- **30 pokoi razem**, nie 24 ani 6 — sześć rozdziałów, każdy: **4 pokoje z
-  losowym przeciwnikiem → 1 pokój z wcieleniem/duszą** (24÷6=4 pasuje idealnie
-  do 6 rozdziałów × 5 = 30).
-- System fragmentów duszy **bez zmian** — dają je wyłącznie pokoje z
-  wcieleniami (jak dotychczas, 6 fragmentów na cały przebieg), losowi
-  przeciwnicy NIE dają fragmentów ani duszy do podniesienia — po ich pokonaniu
-  drzwi dalej pojawiają się od razu.
-- Losowi przeciwnicy: **rosnąca trudność** z numerem pokoju (nie stały,
-  przewidywalny cykl) — mnożnik `1.0 + current_room_index * 0.08`, czyli
-  +8%/pokój, zastosowany do `max_health`/`contact_damage` (albo odpowiedników,
-  gdy 7 docelowych przeciwników dostanie własne pola).
-- Bez powtórzenia tego samego losowego przeciwnika dwa pokoje z rzędu (ta sama
-  zasada co ataki bossa/umiejętności wcieleń w całej reszcie gry).
+- **Mapa 2D**, nie liniowa sekwencja — pokoje jako węzły grafu na siatce
+  `Vector2i`, połączone drzwiami N/S/W/E. Gracz sam wybiera, którędy iść.
+- **30 pokoi razem**: 1 START (bezpieczny, bez przeciwnika) + 24 RANDOM
+  (losowy przeciwnik, rosnąca trudność) + 6 SOUL (po jednym na wcielenie,
+  dają fragment duszy) + 1 ALTAR.
+- **SOUL i ALTAR to ślepe zaułki** — dokładnie jedno połączenie z resztą
+  mapy każdy, jak drzwi bossa w Isaacu, żeby czuły się jak cel wyprawy, nie
+  przystanek na trasie.
+- **Drzwi pokoju z żywym przeciwnikiem są zamknięte** (RANDOM/SOUL,
+  niepokonany) — nie da się wyjść, dopóki się go nie pokona (ustalone z
+  autorem, dokładnie jak w Isaacu). Dzięki temu **da się ukończyć grę bez
+  czyszczenia wszystkich 30 pokoi** — wystarczy trafić na 6 z duszą i na
+  ołtarz jakąkolwiek ścieżką po siatce, reszta jest opcjonalna.
+- **Ołtarz to osobny pokój na mapie, zablokowany do kompletu 6 fragmentów**
+  (ustalone z autorem) — drzwi prowadzące do niego są zamknięte, dopóki
+  `fragments_collected.size() < 6`, niezależnie od tego, czy sąsiedni pokój
+  jest już wyczyszczony.
+- System fragmentów duszy **bez zmian** co do treści — dają je wyłącznie
+  pokoje SOUL (6 na cały przebieg), losowi przeciwnicy NIE dają fragmentów
+  ani duszy do podniesienia — po ich pokonaniu drzwi po prostu się otwierają.
+- Losowi przeciwnicy: **rosnąca trudność** z `rooms_cleared_count` (licznik
+  WYCZYSZCZONYCH pokoi w całym przebiegu, nie pozycja na mapie — gracz może
+  iść w dowolnej kolejności) — mnożnik `1.0 + rooms_cleared_count * 0.08`.
+- Bez powtórzenia tego samego losowego przeciwnika w dwóch SĄSIEDNIO
+  POSTAWIONYCH podczas generacji pokojach (ta sama zasada co ataki
+  bossa/umiejętności wcieleń w całej reszcie gry) — ustalane RAZ przy
+  generacji mapy, nie przy każdym wejściu (pokój ma stały przydział, nie
+  losuje się na nowo przy powrocie).
 
 ## 2. Co już działa (kod wdrożony w tej sesji)
 
-- `autoload/game_flow.gd`: `current_room_index` teraz 0-29 (nie 0-5).
-  `is_random_enemy_room()`, `current_chapter_index()`, `total_room_count()`,
-  `choose_random_enemy_scene_path()` — cała logika 4:1 gotowa i przetestowana
-  (`tests/test_game_flow_chapters.gd`).
-- `entities/incarnation.gd`: `apply_difficulty_scale(multiplier)` — skaluje
-  `max_health`/`health`/`contact_damage`. Wywoływane TYLKO dla losowych
-  przeciwników, wcielenia z duszami zachowują swoje ręcznie dobrane stałe
-  statystyki.
-- `rooms/room.gd`: `_on_start_door_entered()` rozgałęzia się na
-  `GameFlow.is_random_enemy_room()` — losuje przeciwnika z puli albo bierze
-  wcielenie rozdziału jak dotychczas. `_on_incarnation_died()` pomija krok z
-  duszą dla losowych przeciwników.
-- `walls.gd`: `wall_point(rect, side)` — przy okazji naprawione też "drzwi
-  tylko na ścianach" (patrz commit `ccf126c`), używane też przez nowy system.
+- `autoload/game_flow.gd`: **całkowicie przepisane** z liniowego
+  `current_room_index` na graf `room_map: Dictionary<Vector2i, Dictionary>`.
+  - `_generate_map()`: losowy spacer od `Vector2i.ZERO` (START) stawia 24
+    RANDOM, potem 6 SOUL + 1 ALTAR dołączone jako ślepe zaułki przez
+    `_pick_leaf_attachment_point()` — **uwaga, dwa subtelne bugi złapane i
+    naprawione testem `test_soul_and_altar_rooms_are_dead_ends`**: (1)
+    kandydat na nowy pokój musi mieć dokładnie JEDNEGO zajętego sąsiada, nie
+    tylko "być pusty" — inaczej mógł przypadkiem stykać się z innym już
+    postawionym pokojem; (2) już postawiony pokój SOUL/ALTAR nie może sam
+    zostać "rodzicem" kolejnego specjalnego pokoju, inaczej straciłby status
+    ślepego zaułka. Test robi 30 regeneracji z rzędu, bo to losowe — jedno
+    udane uruchomienie nic nie gwarantuje.
+  - `is_direction_open(direction)`: łączy obie blokady (walka + ołtarz).
+  - `wall_for_direction()`/`opposite_wall_for_direction()`: mapowanie
+    NORTH/SOUTH/WEST/EAST na ściany `Walls.wall_point()` i na ścianę, przy
+    której gracz ląduje w NOWYM pokoju (przeciwna do kierunku ruchu).
+  - `clear_current_room()`, `move_to_neighbor(direction)`, `enter_altar()` —
+    odpowiedniki dawnego `complete_current_room()`, teraz świadome pozycji
+    na siatce, nie tylko rosnącego indeksu.
+  - Zapis/odczyt (`_save_progress`/`_load_progress`) serializuje
+    `room_map`/`current_room_pos`/`entry_direction`/`visited_rooms` przez
+    proste słowniki `{"x":.., "y":..}` (JSON nie zna `Vector2i` wprost).
+    `_load_progress()` zwraca teraz `bool` (false = brak/zepsuty zapis →
+    wołający generuje nową mapę), zamiast po cichu zostawiać domyślne
+    wartości.
+- `entities/incarnation.gd`: `apply_difficulty_scale(multiplier)` — bez zmian
+  względem poprzedniej wersji, tylko wołający (`room.gd`) używa teraz
+  `GameFlow.rooms_cleared_count` zamiast pozycji w sekwencji.
+- `rooms/room.gd`: **przepisane** — `_ready()` czyta
+  `GameFlow.current_room_data()` (typ/rozdział/enemy_index), pozycjonuje
+  gracza przy ścianie PRZECIWNEJ do `GameFlow.entry_direction` (albo na
+  środku w pokoju startowym), spawnuje przeciwnika (albo od razu drzwi, jeśli
+  START). `_spawn_doors_for_open_directions()` stawia realne drzwi na
+  KAŻDEJ ścianie, którą `GameFlow.is_direction_open()` uzna za otwartą —
+  do 4 naraz, nie jedne stałe "drzwi startowe/wyjściowe" jak w liniowej
+  wersji. Drzwi prowadzące do sąsiada typu ALTAR dostają inny callback
+  (`_on_altar_door_entered` → `GameFlow.enter_altar()`, zmiana sceny na
+  `altar.tscn`) niż zwykłe drzwi (`_on_move_door_entered` →
+  `GameFlow.move_to_neighbor()`, reload tej samej sceny na nowej pozycji).
+- `ui/ui.gd`: minimapa przepisana na mgłę wojny — pokazuje pokoje odwiedzone
+  (pełny kolor) i sąsiadów odwiedzonych (przygaszony zarys, nieodwiedzone),
+  bieżący pokój zawsze wyśrodkowany w 6×6-polowym oknie, podświetlony
+  obwódką; SOUL/ALTAR dostają dodatkową obwódkę.
+- `walls.gd`: `wall_point(rect, side)` obsługuje już wszystkie 4 strony
+  (top/bottom/left/right) — potrzebne teraz, bo drzwi mogą być na
+  dowolnej z 4 ścian, nie tylko góra/dół jak w liniowej wersji.
 
 ## 3. Tymczasowe zastępstwa — DO PODMIANY, gdy assety będą gotowe
 
@@ -60,7 +112,10 @@ const RANDOM_ENEMY_SCENES: Array[String] = [
 ]
 ```
 (dokładne nazwy plików wg tego, co faktycznie dostarczy drugi bot — to tylko
-przykładowa konwencja).
+przykładowa konwencja). Przydział `enemy_index` per pokój dzieje się RAZ, w
+`_generate_map()` — podmiana tej listy automatycznie działa z całą resztą
+systemu (generacja, brak powtórzeń, trudność), zero dalszych zmian potrzebnych
+w `_generate_map()` samym.
 
 **Kontrakt, jaki musi spełniać każda z 7 scen**, żeby zadziałała bez dalszych
 zmian w `room.gd`:
@@ -86,32 +141,34 @@ zmian w `room.gd`:
 
 `rooms/room.gd`, `_ready()`:
 ```gdscript
-if GameFlow.is_random_enemy_room():
-	var theme_index := GameFlow.current_room_index % ROOM_FLOOR_TEXTURES.size()
+elif _room_data.get("type") == GameFlow.RoomType.RANDOM:
+	var theme_index: int = int(_room_data.get("enemy_index", 0)) % ROOM_FLOOR_TEXTURES.size()
 	floor_tex = ROOM_FLOOR_TEXTURES[theme_index]
 	wall_tex = ROOM_WALL_TEXTURES[theme_index]
 ```
-Dziś reużywa 6 istniejących tekstur pokoi wcieleń (modulo 6), NIE docelowych 8
-motywów. Gdy 16 plików (8× floor+wall) będzie gotowych:
+Dziś reużywa 6 istniejących tekstur pokoi wcieleń (modulo 6, indeksowane po
+`enemy_index` zapisanym w danym pokoju), NIE docelowych 8 motywów. Gdy 16
+plików (8× floor+wall) będzie gotowych:
 1. Dodać nowe stałe, analogicznie do `ROOM_FLOOR_TEXTURES`:
    ```gdscript
    const RANDOM_ROOM_FLOOR_TEXTURES: Array[Texture2D] = [ ... 8 wpisów ... ]
    const RANDOM_ROOM_WALL_TEXTURES: Array[Texture2D] = [ ... 8 wpisów ... ]
    ```
-2. W `_ready()` podmienić `ROOM_FLOOR_TEXTURES.size()`/`ROOM_FLOOR_TEXTURES[theme_index]`
-   na `RANDOM_ROOM_FLOOR_TEXTURES.size()`/`RANDOM_ROOM_FLOOR_TEXTURES[theme_index]`
-   (i analogicznie dla ściany) w gałęzi `is_random_enemy_room()`.
-   Mapowanie `current_room_index % 8` już samo rozłoży 8 motywów na 24 pokoje
-   (3 pokoje na motyw) — nie trzeba dalszej logiki.
+2. W `_ready()`, w gałęzi `RoomType.RANDOM`, podmienić
+   `ROOM_FLOOR_TEXTURES`/`ROOM_WALL_TEXTURES` na
+   `RANDOM_ROOM_FLOOR_TEXTURES`/`RANDOM_ROOM_WALL_TEXTURES` (rozmiar puli
+   sam się zmieni z 6 na 8 dzięki `.size()` w module).
+3. Pokój START też dziś reużywa `ROOM_FLOOR_TEXTURES[0]` jako placeholder
+   (gałąź `else` w `_ready()`) — do rozważenia osobny, neutralny wygląd
+   "przedsionka" przy okazji tej samej podmiany, jeśli drugi bot coś takiego
+   przygotuje (nie było jawnie zamówione, więc placeholder wystarczy na razie).
 
 ## 4. Co NIE wymaga zmian
 
-- `rooms/altar.gd` — nie odwołuje się do `current_room_index`/liczby pokoi w
-  ogóle, działa identycznie niezależnie od tego, ile pokoi je poprzedziło.
-  6 fragmentów zostaje 6 fragmentami.
+- `rooms/altar.gd` — nie odwołuje się do struktury mapy w ogóle, działa
+  identycznie niezależnie od tego, ile/które pokoje je poprzedziły. 6
+  fragmentów zostaje 6 fragmentami.
 - `arena.gd`/walka z Nemoraksem — bez zmian.
-- Zapis/odczyt postępu (`user://gauntlet_progress.json`) — już rozszerzony o
-  `last_random_enemy_index`, reszta pól bez zmian.
 
 ## 5. Checklist podpięcia (gdy assety + dokument przekazaniowy dotrą)
 
@@ -126,8 +183,10 @@ motywów. Gdy 16 plików (8× floor+wall) będzie gotowych:
 - [ ] Podmienić `RANDOM_ENEMY_SCENES` w `game_flow.gd` na 7 realnych ścieżek.
 - [ ] Dodać `RANDOM_ROOM_FLOOR_TEXTURES`/`RANDOM_ROOM_WALL_TEXTURES` (8+8) i
       podmienić `_ready()` w `room.gd` zgodnie z sekcją 3.2.
-- [ ] Przetestować headless (nowy `tests/test_random_enemies.gd` — round-trip
-      każdej z 7 scen, `apply_difficulty_scale` na realnych statystykach) +
-      pełny smoke test wszystkich scen.
-- [ ] Realny playtest całych 30 pokoi pod kątem tempa/trudności — mnożnik
+- [ ] Przetestować headless (nowy test round-trip każdej z 7 scen,
+      `apply_difficulty_scale` na realnych statystykach) + pełny smoke test
+      wszystkich scen + `tests/test_game_flow_map.gd` (powinien przejść bez
+      zmian, bo nie zależy od TREŚCI `RANDOM_ENEMY_SCENES`, tylko od jej
+      rozmiaru/generacji).
+- [ ] Realny playtest całej mapy pod kątem tempa/trudności — mnożnik
       +8%/pokój to wartość startowa do dostrojenia, nie ostateczna.

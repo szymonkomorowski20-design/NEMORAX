@@ -1,11 +1,13 @@
 # NEMORAX
 
-Gra akcji 2D z widokiem z góry. Godot 4, GDScript. 30 pomieszczeń w 6
-rozdziałach (4 losowe pokoje + 1 wcielenie hybrydy Nemorax na rozdział), każde
-wcielenie zostawia fragment duszy — po zebraniu wszystkich sześciu, ołtarz
-przywołuje finałowego bossa. Kod gry jest kompletny i przetestowany; grafika i
-dźwięk są w pełni podpięte (sprite'y, nie `_draw()`) dla gracza/wcieleń/Nemoraksa
-— 7 dedykowanych przeciwników losowych i ich 8 wyglądów pokoi są w trakcie
+Gra akcji 2D z widokiem z góry. Godot 4, GDScript. Mapa pokoi 2D w stylu "The
+Binding of Isaac" (30 pokoi: 1 startowy + 24 z losowym przeciwnikiem + 6 z
+wcieleniem hybrydy Nemorax + 1 ołtarz) — gracz sam wybiera drogę po siatce,
+nie trzeba czyścić wszystkich pokoi. Każde wcielenie zostawia fragment duszy —
+po zebraniu wszystkich sześciu, ołtarz (zablokowany do tego czasu) przywołuje
+finałowego bossa. Kod gry jest kompletny i przetestowany; grafika i dźwięk są
+w pełni podpięte (sprite'y, nie `_draw()`) dla gracza/wcieleń/Nemoraksa — 7
+dedykowanych przeciwników losowych i ich 8 wyglądów pokoi są w trakcie
 generowania, patrz [PLAN_LOSOWYCH_POKOI.md](PLAN_LOSOWYCH_POKOI.md) (dziś
 zastępczo reużywają assety wcieleń, w pełni grywalne).
 
@@ -44,36 +46,51 @@ przypisuje, Escape wraca. Przypisania zapisują się w `user://settings.json`
 (`autoload/keybinds.gd`) i nakładają się na domyślną mapę z `palette.gd` przy
 starcie gry.
 
-## 30 pokoi (6 rozdziałów) → ołtarz → Nemorax
+## Mapa 30 pokoi (styl "The Binding of Isaac") → ołtarz → Nemorax
 
-- `rooms/room.tscn` (ta sama scena za każdym razem) przeładowuje się 30 razy —
-  `GameFlow` autoload mówi, co zespawnować w danym slocie. Każdy z 6 rozdziałów
-  to **4 pokoje z losowym przeciwnikiem** (`GameFlow.RANDOM_ENEMY_SCENES`,
-  rosnąca trudność co pokój, patrz `GameFlow.RANDOM_ENEMY_DIFFICULTY_STEP`) +
-  **1 pokój z wcieleniem** hybrydy i jego trzema umiejętnościami (losowane bez
-  powtórzeń, nawiązują do jednej z faz Nemoraxa — `entities/incarnations/`,
-  wspólny szkielet w `entities/incarnation.gd`). Docelowy zestaw 7 losowych
+- `rooms/room.tscn` (ta sama scena za każdym razem) przeładowuje się przy
+  każdym przejściu przez drzwi — `GameFlow` autoload trzyma mapę jako graf
+  (`Dictionary<Vector2i, Dictionary>`, pokoje N/S/W/E), nie liniową
+  sekwencję. Generowana proceduralnie przy starcie/resecie: 1 pokój
+  **startowy** (bezpieczny) + 24 z **losowym przeciwnikiem**
+  (`GameFlow.RANDOM_ENEMY_SCENES`, rosnąca trudność z liczbą wyczyszczonych
+  pokoi, patrz `GameFlow.RANDOM_ENEMY_DIFFICULTY_STEP`) + 6 z **wcieleniem**
+  hybrydy i jego trzema umiejętnościami (losowane bez powtórzeń, nawiązują do
+  jednej z faz Nemoraxa — `entities/incarnations/`, wspólny szkielet w
+  `entities/incarnation.gd`) + 1 **ołtarz**. Pokoje z wcieleniem i ołtarz są
+  ślepymi zaułkami (dokładnie jedno połączenie z resztą mapy) — trzeba je
+  faktycznie znaleźć, nie trafiają się po drodze. Docelowy zestaw 7 losowych
   przeciwników (4 wręcz + 3 dystansowych) i ich 8 wyglądów pokoi jest w trakcie
   generowania — patrz [PLAN_LOSOWYCH_POKOI.md](PLAN_LOSOWYCH_POKOI.md) po
   dokładny stan i checklistę podpięcia.
-- Przebieg pokoju: pusty przedsionek → drzwi na ścianie (podejście uruchamia
-  przeciwnika) → walka → **wcielenie**: dusza wypada jako przedmiot
-  (`rooms/soul.gd`), podnosisz ją klawiszem F, dopiero potem nowe drzwi;
-  **losowy przeciwnik**: bez duszy/fragmentu, nowe drzwi pojawiają się od razu
-  → kolejny pokój (`rooms/door.gd`, zawsze dokładnie na ścianie,
-  `Walls.wall_point()`).
+- **Drzwi pokoju z żywym przeciwnikiem są zamknięte** (nie zespawnowane),
+  dopóki się go nie pokona — jak w Isaacu. Dzięki temu da się ukończyć grę
+  bez czyszczenia wszystkich 30 pokoi, wystarczy dotrzeć do 6 z duszą i do
+  ołtarza jakąkolwiek ścieżką. **Ołtarz jest dodatkowo zablokowany, dopóki
+  nie zebrano wszystkich 6 fragmentów** — drzwi do niego widać dopiero po
+  komplecie.
+- Przebieg pokoju: gracz pojawia się przy ścianie, którą wszedł (środek w
+  pokoju startowym) → jeśli jest przeciwnik, drzwi zamknięte → po pokonaniu
+  (**wcielenie**: dusza wypada jako przedmiot (`rooms/soul.gd`), podnosisz ją
+  klawiszem F, dopiero potem drzwi; **losowy przeciwnik**: bez duszy/fragmentu,
+  drzwi od razu) → drzwi na WSZYSTKICH teraz otwartych ścianach
+  (`rooms/door.gd`, zawsze dokładnie na ścianie, `Walls.wall_point()`) →
+  wybierasz, którędy dalej.
+- Minimapa w prawym górnym rogu ekranu (`ui.gd`) pokazuje odkrytą część mapy
+  z mgłą wojny — pokoje odwiedzone w pełnym kolorze, sąsiedzi odwiedzonych
+  jako przygaszony zarys, bieżący pokój zawsze wyśrodkowany.
 - Zdrowie, stamina, mana i stacki leczenia gracza przenoszą się między pokojami
   bez darmowego resetu (`GameFlow.capture_player_state`/`apply_player_state`) —
   to samo dotyczy retry po śmierci w danym pokoju.
-- Po 30. pokoju: `rooms/altar.gd` — podejście do ołtarza przywołuje Nemoraxa
-  i przenosi do `arena.tscn`, czyli istniejącej walki opisanej niżej. System
-  sześciu fragmentów duszy jest bez zmian — dają je wyłącznie pokoje z
-  wcieleniami, nie losowi przeciwnicy.
-- Postęp przez 30 pokoi (który jest aktualny, zebrane fragmenty, migawka
+- Po skompletowaniu 6 fragmentów i dotarciu do ołtarza: `rooms/altar.gd` —
+  podejście do ołtarza przywołuje Nemoraxa i przenosi do `arena.tscn`, czyli
+  istniejącej walki opisanej niżej.
+- Cały stan mapy (graf pokoi, pozycja, odwiedzone, zebrane fragmenty, migawka
   statystyk gracza) jest zapisywany na dysk (`user://gauntlet_progress.json`,
-  `autoload/game_flow.gd`) — zamknięcie gry w trakcie gauntletu nie cofa do
-  pokoju 1, menu wznawia dokładnie tam, gdzie gracz skończył
-  (`GameFlow.resume_scene_path()`).
+  `autoload/game_flow.gd`) — zamknięcie gry w trakcie przebiegu nie cofa do
+  początku, menu wznawia dokładnie tam, gdzie gracz skończył
+  (`GameFlow.resume_scene_path()`). Przegrana z Nemoraksem generuje
+  całkowicie nową mapę od zera (`GameFlow.reset_run()`).
 
 ## Boss — Nemorax
 
@@ -136,7 +153,7 @@ reszta to opcjonalny polish (unikalne umiejętności, muzyka, ambient pokoi).
 - `autoload/` — `palette.gd` (kolory + domyślna mapa wejścia), `keybinds.gd`
   (rebinding — nakłada się na mapę z palette.gd, zapisuje do
   `user://settings.json`), `juice.gd` (hitstop, trzęsienie ekranu),
-  `game_flow.gd` (postęp przez 30 pokoi/6 rozdziałów i zebrane fragmenty duszy)
+  `game_flow.gd` (mapa 30 pokoi jako graf, postęp i zebrane fragmenty duszy)
 - `entities/` — `player.gd`, `boss.gd` (Nemorax), ataki bossa (`seal.gd`, `void_zone.gd`,
   `shadow.gd`), pocisk gracza (`projectile.gd`), oraz `incarnation.gd` (wspólny szkielet
   wcieleń I losowych przeciwników) z podklasami w `entities/incarnations/`

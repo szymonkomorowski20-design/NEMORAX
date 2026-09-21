@@ -1,17 +1,29 @@
 extends Node
-## Stan całego przebiegu gry (rozszerzenie poza pierwotny dokument): który
-## pokój z 30 jest teraz, ile fragmentów duszy zebrano, i przejścia między
-## scenami. Autoload, więc przeżywa reload/zmianę sceny. Zapisywane na dysk
-## (na życzenie autora), żeby zamknięcie gry w trakcie gauntletu nie cofało
-## do pokoju 1.
+## Stan całego przebiegu gry — SIATKA pokoi 2D w stylu "The Binding of Isaac"
+## (na życzenie autora, zastępuje dawną liniową sekwencję 30 pokoi). Autoload,
+## więc przeżywa reload/zmianę sceny. Zapisywane na dysk, żeby zamknięcie gry
+## w trakcie przebiegu nie cofało do początku.
 ##
-## Struktura 30 pokoi (na życzenie autora, rozszerzenie o "przeciwników
-## losowych" ponad pierwotne 6 wcieleń): 6 ROZDZIAŁÓW, każdy to 4 pokoje z
-## losowym przeciwnikiem (z puli RANDOM_ENEMY_SCENES, rosnąca trudność) + 1
-## pokój z wcieleniem dającym fragment duszy — dokładnie jak dotychczasowe 6
-## wcieleń, bez zmian w ich kolejności/nazwach/fragmentach. current_room_index
-## rośnie 0..29 zamiast 0..5; is_random_enemy_room()/current_chapter_index()
-## mówią, co jest w danym slocie.
+## Mapa generowana proceduralnie przy starcie/resecie: START (1 pokój) +
+## RANDOM (24, rosnąca trudność z rooms_cleared_count) + SOUL (6, po jednym
+## na wcielenie, dają fragment duszy) + ALTAR (1, zablokowany dopóki nie
+## zebrano wszystkich 6 fragmentów). Każdy SOUL/ALTAR dołączony jako ślepy
+## zaułek — DOKŁADNIE jedno połączenie z resztą mapy — tak jak drzwi bossa w
+## Isaacu, żeby czuły się jak celowy cel wyprawy, nie przystanek na trasie.
+##
+## Drzwi pokoju z żywym przeciwnikiem (RANDOM/SOUL, niepokonany) są zamknięte —
+## nie da się wyjść, dopóki się go nie pokona (ustalone z autorem, jak w
+## Isaacu). Dzięki temu da się ukończyć grę bez czyszczenia WSZYSTKICH 30
+## pokoi — wystarczy dotrzeć do 6 z duszą i do ołtarza jakąkolwiek ścieżką po
+## siatce, reszta jest opcjonalna.
+
+enum RoomType { START, RANDOM, SOUL, ALTAR }
+
+const NORTH := Vector2i(0, -1)
+const SOUTH := Vector2i(0, 1)
+const WEST := Vector2i(-1, 0)
+const EAST := Vector2i(1, 0)
+const DIRECTIONS: Array[Vector2i] = [NORTH, SOUTH, WEST, EAST]
 
 var SAVE_PATH := "user://gauntlet_progress.json" ## var (nie const) tylko po to, żeby test mógł podmienić ścieżkę na tymczasową
 
@@ -19,12 +31,13 @@ const ROOM_SCENE := "res://rooms/room.tscn"
 const ALTAR_SCENE := "res://rooms/altar.tscn"
 const ARENA_SCENE := "res://arena.tscn"
 
-const ROOMS_PER_CHAPTER := 5 ## 4 losowe pokoje + 1 pokój z wcieleniem
-const CHAPTER_COUNT := 6 ## = INCARNATION_SCENES.size(), razem 30 pokoi
+const RANDOM_ROOM_COUNT := 24
+const CHAPTER_COUNT := 6 ## = INCARNATION_SCENES.size() = liczba pokoi SOUL
 
-## Kolejność wcieleń = kolejność rozdziałów 1-6. Nazwy plików/klas zostały po
-## fazach Nemoraxa (Zalążek/Cisza/Zwłoka/Ciężar/Głód/Zaćmienie) ze starszej wersji
-## dokumentu — nazwy WŁASNE poniżej (INCARNATION_NAMES) to to, co widzi gracz.
+## Kolejność wcieleń = kolejność "rozdziałów" (chapter 0..5). Nazwy plików/klas
+## zostały po fazach Nemoraxa (Zalążek/Cisza/Zwłoka/Ciężar/Głód/Zaćmienie) ze
+## starszej wersji dokumentu — nazwy WŁASNE poniżej (INCARNATION_NAMES) to to,
+## co widzi gracz.
 const INCARNATION_SCENES: Array[String] = [
 	"res://entities/incarnations/zalazek.tscn",
 	"res://entities/incarnations/cisza_incarnation.tscn",
@@ -45,18 +58,21 @@ const INCARNATION_NAMES: Array[String] = [
 
 ## TYMCZASOWE: docelowo 7 dedykowanych przeciwników (4 wręcz + 3 dystansowych,
 ## patrz PLAN_LOSOWYCH_POKOI.md) — jeszcze nie wygenerowane. Reużywam sceny
-## wcieleń jako zastępcze losowe przeciwniki, żeby 30-pokojowy przebieg był
-## grywalny już teraz; podmienić na docelową listę 7 ścieżek, gdy assety będą
-## gotowe (patrz PLAN_LOSOWYCH_POKOI.md — jedyne miejsce, które trzeba zmienić).
+## wcieleń jako zastępcze losowe przeciwniki, żeby mapa była grywalna już
+## teraz; podmienić na docelową listę 7 ścieżek, gdy assety będą gotowe.
 const RANDOM_ENEMY_SCENES: Array[String] = INCARNATION_SCENES
 
-## Ile % siły dokłada się za KAŻDY ukończony pokój (nie tylko losowy) — patrz
-## room.gd._spawn_random_enemy(), Incarnation.apply_difficulty_scale().
+## Ile % siły dokłada się za KAŻDY wyczyszczony pokój (nie tylko losowy) —
+## patrz room.gd, Incarnation.apply_difficulty_scale().
 const RANDOM_ENEMY_DIFFICULTY_STEP := 0.08
 
-var current_room_index: int = 0 ## 0..(total_room_count()-1) — indeks aktualnego pokoju
-var last_random_enemy_index: int = -1 ## pilnuje, żeby losowy przeciwnik nie powtórzył się dwa pokoje z rzędu
+var room_map: Dictionary = {} ## Vector2i -> {"type","chapter","enemy_index","cleared"}
+var current_room_pos: Vector2i = Vector2i.ZERO
+var entry_direction: Vector2i = Vector2i.ZERO ## kierunek ruchu, którym gracz trafił do current_room_pos; ZERO w pokoju startowym
+var visited_rooms: Dictionary = {} ## Vector2i -> true, do mgły wojny na minimapie (ui.gd)
+var rooms_cleared_count: int = 0 ## napędza rosnącą trudność losowych przeciwników
 var fragments_collected: Array[String] = [] ## nazwy zebranych fragmentów, w kolejności
+var reached_arena: bool = false ## true po przejściu ołtarza — patrz resume_scene_path()
 
 ## Migawka statystyk gracza z chwili przejścia do kolejnego pokoju (na życzenie
 ## autora: "postać odradza się w kolejnym z takimi samymi statystykami") — puste
@@ -64,7 +80,142 @@ var fragments_collected: Array[String] = [] ## nazwy zebranych fragmentów, w ko
 var saved_player_state: Dictionary = {}
 
 func _ready() -> void:
-	_load_progress()
+	if not _load_progress():
+		_generate_map()
+
+## Rozrost losowego błądzenia od pokoju startowego (24 RANDOM), potem 6 SOUL +
+## 1 ALTAR dołączone jako ślepe zaułki do już postawionych pokoi — dokładnie
+## jedno połączenie każdy, żeby czuły się jak cel, a nie przystanek.
+func _generate_map() -> void:
+	room_map.clear()
+	visited_rooms.clear()
+	current_room_pos = Vector2i.ZERO
+	entry_direction = Vector2i.ZERO
+	room_map[Vector2i.ZERO] = {"type": RoomType.START, "chapter": -1, "enemy_index": -1, "cleared": true}
+	visited_rooms[Vector2i.ZERO] = true
+
+	var frontier: Array[Vector2i] = _neighbors_of(Vector2i.ZERO)
+	var placed := 0
+	var last_enemy := -1
+	while placed < RANDOM_ROOM_COUNT and not frontier.is_empty():
+		var idx := randi() % frontier.size()
+		var pos: Vector2i = frontier[idx]
+		frontier.remove_at(idx)
+		if room_map.has(pos):
+			continue
+		var enemy_index := randi() % RANDOM_ENEMY_SCENES.size()
+		if RANDOM_ENEMY_SCENES.size() > 1:
+			while enemy_index == last_enemy:
+				enemy_index = randi() % RANDOM_ENEMY_SCENES.size()
+		last_enemy = enemy_index
+		room_map[pos] = {"type": RoomType.RANDOM, "chapter": -1, "enemy_index": enemy_index, "cleared": false}
+		placed += 1
+		for n in _neighbors_of(pos):
+			if not room_map.has(n):
+				frontier.append(n)
+
+	for chapter in range(CHAPTER_COUNT):
+		var attach = _pick_leaf_attachment_point()
+		if attach == null:
+			break
+		room_map[attach] = {"type": RoomType.SOUL, "chapter": chapter, "enemy_index": -1, "cleared": false}
+
+	var altar_pos = _pick_leaf_attachment_point()
+	if altar_pos != null:
+		room_map[altar_pos] = {"type": RoomType.ALTAR, "chapter": -1, "enemy_index": -1, "cleared": false}
+
+func _neighbors_of(pos: Vector2i) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for d in DIRECTIONS:
+		result.append(pos + d)
+	return result
+
+## Losowy JUŻ POSTAWIONY pokój z co najmniej jednym pustym sąsiadem, i losowy
+## z tych pustych sąsiadów — ale TYLKO jeśli ten sąsiad sam ma dokładnie
+## JEDNEGO zajętego sąsiada (czyli właśnie "pos"). Bez tego drugiego warunku
+## kandydat mógłby przypadkiem stykać się też z innym, już postawionym
+## pokojem (np. losowym z wcześniejszej fazy) i po postawieniu tam pokoju z
+## duszą/ołtarza wyszedłby z 2+ połączeniami zamiast ślepego zaułka —
+## dokładnie to złapał test_soul_and_altar_rooms_are_dead_ends.
+func _pick_leaf_attachment_point():
+	var positions := room_map.keys()
+	positions.shuffle()
+	for pos in positions:
+		# Pokój z duszą/ołtarz NIGDY nie może być "rodzicem" kolejnego
+		# specjalnego pokoju — inaczej sam zyskałby drugie połączenie i
+		# przestał być ślepym zaułkiem. Tylko START/RANDOM mogą się rozgałęziać.
+		if room_map[pos]["type"] in [RoomType.SOUL, RoomType.ALTAR]:
+			continue
+		var candidates: Array[Vector2i] = []
+		for n in _neighbors_of(pos):
+			if room_map.has(n):
+				continue
+			var occupied_neighbors := 0
+			for nn in _neighbors_of(n):
+				if room_map.has(nn):
+					occupied_neighbors += 1
+			if occupied_neighbors == 1:
+				candidates.append(n)
+		if not candidates.is_empty():
+			return candidates[randi() % candidates.size()]
+	return null
+
+func current_room_data() -> Dictionary:
+	return room_map.get(current_room_pos, {})
+
+func has_neighbor(direction: Vector2i) -> bool:
+	return room_map.has(current_room_pos + direction)
+
+func neighbor_data(direction: Vector2i) -> Dictionary:
+	return room_map.get(current_room_pos + direction, {})
+
+## Czy dana ściana OBECNEGO pokoju ma teraz przejście, którym da się wyjść —
+## fałsz gdy: sąsiada nie ma; obecny pokój ma jeszcze żywego przeciwnika
+## (blokada na czas walki, jak w Isaacu — dotyczy WSZYSTKICH ścian naraz);
+## sąsiadem jest ołtarz, a fragmentów wciąż brakuje (drzwi bossa, zablokowane
+## do klucza — tu: do kompletu fragmentów).
+func is_direction_open(direction: Vector2i) -> bool:
+	if not has_neighbor(direction):
+		return false
+	var current := current_room_data()
+	if current.get("type") in [RoomType.RANDOM, RoomType.SOUL] and not current.get("cleared", false):
+		return false
+	var neighbor := neighbor_data(direction)
+	if neighbor.get("type") == RoomType.ALTAR and fragments_collected.size() < CHAPTER_COUNT:
+		return false
+	return true
+
+const WALL_FOR_DIRECTION := {
+	Vector2i(0, -1): "top",
+	Vector2i(0, 1): "bottom",
+	Vector2i(-1, 0): "left",
+	Vector2i(1, 0): "right",
+}
+const OPPOSITE_WALL_FOR_DIRECTION := {
+	Vector2i(0, -1): "bottom", # przyszedł z północy -> pojawia się przy południowej (dolnej) ścianie
+	Vector2i(0, 1): "top",
+	Vector2i(-1, 0): "right",
+	Vector2i(1, 0): "left",
+}
+
+## Ściana, przez którą wychodzi się w danym kierunku (Walls.wall_point()).
+func wall_for_direction(direction: Vector2i) -> String:
+	return WALL_FOR_DIRECTION.get(direction, "bottom")
+
+## Ściana, przy której gracz powinien się pojawić w NOWYM pokoju po wejściu w
+## danym kierunku — przeciwna do kierunku ruchu (wszedł od północy -> ląduje
+## przy południowej ścianie nowego pokoju, twarzą z powrotem do wyjścia).
+func opposite_wall_for_direction(direction: Vector2i) -> String:
+	return OPPOSITE_WALL_FOR_DIRECTION.get(direction, "bottom")
+
+func current_incarnation_scene_path() -> String:
+	return INCARNATION_SCENES[current_room_data().get("chapter", 0)]
+
+func current_incarnation_name() -> String:
+	return INCARNATION_NAMES[current_room_data().get("chapter", 0)]
+
+func current_random_enemy_scene_path() -> String:
+	return RANDOM_ENEMY_SCENES[current_room_data().get("enemy_index", 0)]
 
 func capture_player_state(player: Player) -> void:
 	saved_player_state = {
@@ -104,94 +255,117 @@ func apply_player_state(player: Player) -> void:
 	player.set_heal_stacks(int(saved_player_state.get("heal_stacks", 0)))
 	player.current_weapon = saved_player_state.get("current_weapon", player.current_weapon)
 
-func total_room_count() -> int:
-	return ROOMS_PER_CHAPTER * CHAPTER_COUNT
-
-## Indeks rozdziału (0..CHAPTER_COUNT-1) obecnego pokoju — sensowny w OBU
-## typach pokoju (losowy i wcielenie), bo rozdział obejmuje oba naraz.
-func current_chapter_index() -> int:
-	@warning_ignore("integer_division") # celowe dzielenie całkowite — indeks rozdziału to podłoga
-	return current_room_index / ROOMS_PER_CHAPTER
-
-## true = obecny slot to jeden z 4 losowych przeciwników danego rozdziału,
-## false = to pokój z wcieleniem/duszą (ostatni slot rozdziału).
-func is_random_enemy_room() -> bool:
-	return current_room_index % ROOMS_PER_CHAPTER < ROOMS_PER_CHAPTER - 1
-
-## Losuje ścieżkę sceny losowego przeciwnika (bez powtórzenia poprzedniego,
-## ta sama zasada co ataki bossa/umiejętności wcieleń) — wołane TYLKO gdy
-## is_random_enemy_room() == true.
-func choose_random_enemy_scene_path() -> String:
-	var index := randi() % RANDOM_ENEMY_SCENES.size()
-	if RANDOM_ENEMY_SCENES.size() > 1:
-		while index == last_random_enemy_index:
-			index = randi() % RANDOM_ENEMY_SCENES.size()
-	last_random_enemy_index = index
-	return RANDOM_ENEMY_SCENES[index]
-
-func current_incarnation_scene_path() -> String:
-	return INCARNATION_SCENES[current_chapter_index()]
-
-func current_incarnation_name() -> String:
-	return INCARNATION_NAMES[current_chapter_index()]
-
 ## Scena, do której trzeba wrócić przy starcie gry, jeśli jest zapisany
 ## przebieg w toku — np. jeśli gracz zamknął grę już po ołtarzu, wraca się
-## prosto do walki z Nemoraksem, nie do pokoju 1 (patrz menu.gd).
+## prosto do walki z Nemoraksem, nie do pokoju startowego (patrz menu.gd).
 func resume_scene_path() -> String:
-	return ROOM_SCENE if current_room_index < total_room_count() else ARENA_SCENE
+	return ARENA_SCENE if reached_arena else ROOM_SCENE
 
-## Wywoływane przez room.gd, gdy gracz pokona przeciwnika w aktualnym
-## pomieszczeniu — fragment duszy TYLKO za wcielenie, losowi przeciwnicy nie
-## dają fragmentów (ustalone z autorem, system fragmentów zostaje bez zmian).
-func complete_current_room() -> void:
-	if not is_random_enemy_room():
-		fragments_collected.append(INCARNATION_NAMES[current_chapter_index()])
-	current_room_index += 1
+## Wywoływane przez room.gd po pokonaniu przeciwnika w bieżącym pokoju —
+## odblokowuje jego drzwi, dolicza fragment duszy (TYLKO SOUL — losowi
+## przeciwnicy nie dają fragmentów, ustalone z autorem) i podbija licznik
+## trudności.
+func clear_current_room() -> void:
+	var data := current_room_data()
+	if data.is_empty():
+		return
+	data["cleared"] = true
+	rooms_cleared_count += 1
+	if data.get("type") == RoomType.SOUL:
+		fragments_collected.append(INCARNATION_NAMES[data.get("chapter", 0)])
 	_save_progress()
-	if current_room_index >= total_room_count():
-		get_tree().change_scene_to_file(ALTAR_SCENE)
-	else:
-		get_tree().reload_current_scene() # ten sam room.tscn, kolejne wcielenie
+
+## Wywoływane przez room.gd, gdy gracz przechodzi przez drzwi w danym
+## kierunku (jeden z NORTH/SOUTH/WEST/EAST) — przenosi na sąsiedni pokój.
+func move_to_neighbor(direction: Vector2i) -> void:
+	current_room_pos += direction
+	entry_direction = direction
+	visited_rooms[current_room_pos] = true
+	_save_progress()
+	get_tree().reload_current_scene()
+
+## Wywoływane przez room.gd, gdy gracz przechodzi przez drzwi prowadzące do
+## ołtarza — osobna, stała scena (rooms/altar.tscn), nie generyczny room.tscn.
+func enter_altar() -> void:
+	_save_progress()
+	get_tree().change_scene_to_file(ALTAR_SCENE)
 
 ## Wywoływane przez altar.gd po złożeniu wszystkich fragmentów.
 func complete_altar() -> void:
+	reached_arena = true
+	_save_progress()
 	get_tree().change_scene_to_file(ARENA_SCENE)
 
-## Do restartu całego przebiegu od zera — po PRZEGRANEJ z Nemoraksem
-## (patrz arena.gd) wraca się tu, do pokoju sprzed pierwszego bossa.
+## Do restartu całego przebiegu od zera — po PRZEGRANEJ z Nemoraksem (patrz
+## arena.gd) wraca się tu, do świeżo wygenerowanej mapy od pokoju startowego.
 ## Zwycięstwo NIE resetuje przebiegu — to prawdziwy koniec (ekran endgame).
 func reset_run() -> void:
-	current_room_index = 0
-	last_random_enemy_index = -1
+	rooms_cleared_count = 0
 	fragments_collected.clear()
 	saved_player_state.clear()
+	reached_arena = false
+	_generate_map()
 	_save_progress()
 
-func _load_progress() -> void:
+## Zwraca true, jeśli udało się wczytać PRAWDZIWY zapis mapy — false (i wtedy
+## wołający musi wygenerować nową mapę) dla braku pliku, błędu odczytu, albo
+## starego zapisu sprzed tego systemu (brak klucza "rooms").
+func _load_progress() -> bool:
 	if not FileAccess.file_exists(SAVE_PATH):
-		return
+		return false
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
 	if file == null:
 		# open() zwraca null zamiast rzucać wyjątek (Godot 4) — bez tej kontroli
-		# get_as_text() poniżej wywaliłoby się na null-referencji. Zostają
-		# domyślne wartości ustawione wyżej (current_room_index=0 itd.).
+		# get_as_text() poniżej wywaliłoby się na null-referencji.
 		push_warning("GameFlow: nie udało się otworzyć zapisu do odczytu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
-		return
+		return false
 	var data = JSON.parse_string(file.get_as_text())
-	if typeof(data) != TYPE_DICTIONARY:
-		return
-	current_room_index = clampi(int(data.get("current_room_index", 0)), 0, total_room_count())
-	last_random_enemy_index = int(data.get("last_random_enemy_index", -1))
+	if typeof(data) != TYPE_DICTIONARY or not data.has("rooms"):
+		return false
+
+	room_map.clear()
+	for entry in data["rooms"]:
+		var pos := Vector2i(int(entry.get("x", 0)), int(entry.get("y", 0)))
+		room_map[pos] = {
+			"type": int(entry.get("type", RoomType.RANDOM)),
+			"chapter": int(entry.get("chapter", -1)),
+			"enemy_index": int(entry.get("enemy_index", -1)),
+			"cleared": bool(entry.get("cleared", false)),
+		}
+	var pos_data: Dictionary = data.get("current_room_pos", {})
+	current_room_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
+	var dir_data: Dictionary = data.get("entry_direction", {})
+	entry_direction = Vector2i(int(dir_data.get("x", 0)), int(dir_data.get("y", 0)))
+	visited_rooms.clear()
+	for v in data.get("visited_rooms", []):
+		visited_rooms[Vector2i(int(v.get("x", 0)), int(v.get("y", 0)))] = true
+	rooms_cleared_count = int(data.get("rooms_cleared_count", 0))
 	var loaded_fragments: Array = data.get("fragments_collected", [])
 	fragments_collected.assign(loaded_fragments)
+	reached_arena = bool(data.get("reached_arena", false))
 	saved_player_state = data.get("saved_player_state", {})
+	return true
 
 func _save_progress() -> void:
+	var rooms_array := []
+	for pos in room_map.keys():
+		var d: Dictionary = room_map[pos]
+		rooms_array.append({
+			"x": pos.x, "y": pos.y,
+			"type": d["type"], "chapter": d["chapter"],
+			"enemy_index": d["enemy_index"], "cleared": d["cleared"],
+		})
+	var visited_array := []
+	for pos in visited_rooms.keys():
+		visited_array.append({"x": pos.x, "y": pos.y})
 	var data := {
-		"current_room_index": current_room_index,
-		"last_random_enemy_index": last_random_enemy_index,
+		"rooms": rooms_array,
+		"current_room_pos": {"x": current_room_pos.x, "y": current_room_pos.y},
+		"entry_direction": {"x": entry_direction.x, "y": entry_direction.y},
+		"visited_rooms": visited_array,
+		"rooms_cleared_count": rooms_cleared_count,
 		"fragments_collected": fragments_collected,
+		"reached_arena": reached_arena,
 		"saved_player_state": saved_player_state,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)

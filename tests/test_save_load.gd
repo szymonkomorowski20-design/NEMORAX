@@ -17,19 +17,26 @@ func test_gameflow_round_trip(_root: Node) -> void:
 	GameFlow.SAVE_PATH = TEST_GAMEFLOW_PATH
 	_cleanup(TEST_GAMEFLOW_PATH)
 
-	GameFlow.current_room_index = 3
+	GameFlow.room_map = {Vector2i.ZERO: {"type": GameFlow.RoomType.START, "chapter": -1, "enemy_index": -1, "cleared": true}}
+	GameFlow.current_room_pos = Vector2i(2, -1)
+	GameFlow.rooms_cleared_count = 3
 	GameFlow.fragments_collected = ["A", "B"]
 	GameFlow.saved_player_state = {"health": 42.0}
 	GameFlow._save_progress()
 
-	GameFlow.current_room_index = 0
+	GameFlow.room_map = {}
+	GameFlow.current_room_pos = Vector2i.ZERO
+	GameFlow.rooms_cleared_count = 0
 	GameFlow.fragments_collected = []
 	GameFlow.saved_player_state = {}
-	GameFlow._load_progress()
+	var loaded := GameFlow._load_progress()
 
-	NemoraxTest.assert_eq(GameFlow.current_room_index, 3, "current_room_index po round-tripie")
+	NemoraxTest.assert_true(loaded, "_load_progress() powinno zwrócić true dla prawdziwego zapisu")
+	NemoraxTest.assert_eq(GameFlow.current_room_pos, Vector2i(2, -1), "current_room_pos po round-tripie")
+	NemoraxTest.assert_eq(GameFlow.rooms_cleared_count, 3, "rooms_cleared_count po round-tripie")
 	NemoraxTest.assert_eq(GameFlow.fragments_collected, ["A", "B"], "fragments_collected po round-tripie")
 	NemoraxTest.assert_eq(GameFlow.saved_player_state.get("health"), 42.0, "saved_player_state po round-tripie")
+	NemoraxTest.assert_true(GameFlow.room_map.has(Vector2i.ZERO), "mapa pokoi powinna się odtworzyć")
 
 	_cleanup(TEST_GAMEFLOW_PATH)
 	GameFlow.SAVE_PATH = original_path
@@ -40,9 +47,10 @@ func test_gameflow_missing_file_keeps_defaults(_root: Node) -> void:
 	GameFlow.SAVE_PATH = "user://test_gauntlet_progress_nieistnieje.json"
 	_cleanup(GameFlow.SAVE_PATH)
 
-	GameFlow.current_room_index = 5
-	GameFlow._load_progress() # plik nie istnieje -> wczesny return, stan bez zmian
-	NemoraxTest.assert_eq(GameFlow.current_room_index, 5, "brak pliku nie powinien nadpisywać stanu w pamięci")
+	GameFlow.current_room_pos = Vector2i(5, 5)
+	var loaded := GameFlow._load_progress() # plik nie istnieje -> false, stan bez zmian
+	NemoraxTest.assert_true(not loaded, "brak pliku powinien zwrócić false")
+	NemoraxTest.assert_eq(GameFlow.current_room_pos, Vector2i(5, 5), "brak pliku nie powinien nadpisywać stanu w pamięci")
 
 	GameFlow.SAVE_PATH = original_path
 	GameFlow.reset_run()
@@ -56,9 +64,10 @@ func test_gameflow_open_failure_no_crash(_root: Node) -> void:
 	var original_path := GameFlow.SAVE_PATH
 	GameFlow.SAVE_PATH = dir_path
 
-	GameFlow.current_room_index = 2
-	GameFlow._load_progress() # file_exists(dir)==true, ale open() zwraca null
-	NemoraxTest.assert_eq(GameFlow.current_room_index, 2, "błąd otwarcia nie powinien crashować ani nadpisywać stanu")
+	GameFlow.current_room_pos = Vector2i(1, 1)
+	var loaded := GameFlow._load_progress() # file_exists(dir)==true, ale open() zwraca null
+	NemoraxTest.assert_true(not loaded, "błąd otwarcia powinien zwrócić false, nie crashować")
+	NemoraxTest.assert_eq(GameFlow.current_room_pos, Vector2i(1, 1), "błąd otwarcia nie powinien nadpisywać stanu")
 	GameFlow._save_progress() # też nie powinno crashować (open() do zapisu też zwróci null na katalogu)
 
 	GameFlow.SAVE_PATH = original_path

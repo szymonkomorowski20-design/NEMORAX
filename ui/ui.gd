@@ -223,35 +223,55 @@ func _draw() -> void:
 	_draw_heal_stack_count()
 	_draw_minimap()
 
-## Minimapa liniowa (na życzenie autora, "żeby wiedzieć gdzie się było") — 30
-## pokoi jako siatka 6 rzędów (rozdziały) × 5 kolumn (4 losowe + 1 z duszą,
-## ostatnia kolumna z obwódką). Bieżący pokój podświetlony, ukończone pokoje z
-## duszą kolorowane wg Palette.PHASE_COLORS tego rozdziału, reszta ukończonych
-## na szaro, nieodwiedzone prawie niewidoczne.
+## Minimapa w stylu "The Binding of Isaac" (na życzenie autora) — siatka 2D z
+## game_flow.gd zamiast dawnej liniowej sekwencji. Bieżący pokój zawsze
+## wyśrodkowany, mgła wojny: pokoje odwiedzone w pełnym kolorze, sąsiedzi
+## odwiedzonych (znani, ale nieodwiedzeni) jako przygaszony zarys, reszta w
+## ogóle nierysowana. Ołtarz i pokoje z duszą dostają dodatkową obwódkę, żeby
+## wyróżniały się jako cel, nie przystanek.
 func _draw_minimap() -> void:
 	if not show_minimap or hide_all or _overlay_active:
 		return
 	var pip_size := 12.0
-	var gap := 3.0
-	var cols := GameFlow.ROOMS_PER_CHAPTER
-	var rows := GameFlow.CHAPTER_COUNT
-	var total_width := cols * pip_size + (cols - 1) * gap
-	var origin := Vector2(VIEWPORT_SIZE.x - total_width - 20.0, 20.0)
-	for chapter in range(rows):
-		for slot in range(cols):
-			var room_index := chapter * cols + slot
-			var is_soul_slot := slot == cols - 1
-			var pos := origin + Vector2(slot * (pip_size + gap), chapter * (pip_size + gap))
-			var color: Color
-			if room_index < GameFlow.current_room_index:
-				color = Palette.PHASE_COLORS[chapter] if is_soul_slot else Color(Palette.PLAYER_BODY, 0.55)
-			elif room_index == GameFlow.current_room_index:
-				color = Palette.HIT_FLASH
-			else:
-				color = Color(1.0, 1.0, 1.0, 0.15)
-			draw_rect(Rect2(pos, Vector2(pip_size, pip_size)), color, true)
-			if is_soul_slot:
-				draw_rect(Rect2(pos, Vector2(pip_size, pip_size)), Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
+	var gap := 4.0
+	var spacing := pip_size + gap
+	var box_size := Vector2(6, 6) * spacing
+	var anchor := Vector2(VIEWPORT_SIZE.x - box_size.x - 20.0, 20.0) + box_size * 0.5 - Vector2(pip_size, pip_size) * 0.5
+
+	var revealed := {}
+	for pos in GameFlow.visited_rooms.keys():
+		revealed[pos] = true
+		for d in GameFlow.DIRECTIONS:
+			var n: Vector2i = pos + d
+			if GameFlow.room_map.has(n):
+				revealed[n] = true
+
+	for pos in revealed.keys():
+		var data: Dictionary = GameFlow.room_map.get(pos, {})
+		if data.is_empty():
+			continue
+		var offset := Vector2(pos.x - GameFlow.current_room_pos.x, pos.y - GameFlow.current_room_pos.y) * spacing
+		var draw_pos := anchor + offset
+		var visited: bool = GameFlow.visited_rooms.has(pos)
+		draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), _minimap_pip_color(data, visited), true)
+		if pos == GameFlow.current_room_pos:
+			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Palette.HIT_FLASH, false, 2.0)
+		elif data.get("type") in [GameFlow.RoomType.SOUL, GameFlow.RoomType.ALTAR]:
+			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
+
+func _minimap_pip_color(data: Dictionary, visited: bool) -> Color:
+	if not visited:
+		return Color(1.0, 1.0, 1.0, 0.12) # znany (sąsiad odwiedzonego), ale jeszcze nieodwiedzony
+	match data.get("type"):
+		GameFlow.RoomType.START:
+			return Color(1.0, 1.0, 1.0, 0.5)
+		GameFlow.RoomType.SOUL:
+			var base_color: Color = Palette.PHASE_COLORS[data.get("chapter", 0)]
+			return base_color if data.get("cleared", false) else Color(base_color, 0.4)
+		GameFlow.RoomType.ALTAR:
+			return Color(1.0, 0.9, 0.5, 1.0) if GameFlow.fragments_collected.size() >= GameFlow.CHAPTER_COUNT else Color(1.0, 0.9, 0.5, 0.3)
+		_: # RANDOM
+			return Color(Palette.PLAYER_BODY, 0.55) if data.get("cleared", false) else Color(Palette.PLAYER_BODY, 0.25)
 
 ## Liczba zbankowanych stacków leczenia (0-max_heal_stacks) obok ikony — bez
 ## tego gracz nie ma jak poznać, ile ma zapasu poza samą jasnością ikony
