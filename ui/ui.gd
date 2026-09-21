@@ -50,10 +50,16 @@ const HEAL_ICON_CONTENT := Rect2(158.0, 150.0, 706.0, 698.0)
 # modulate — jeden wygenerowany obrazek na pasek, nie osobna para pusty/pełny
 # (patrz PROMPTY_FINALNE_WSZYSTKO.md sekcja E).
 const UNDER_MODULATE := Color(1.0, 1.0, 1.0, 0.25)
+## Brak dedykowanej grafiki paska expa — rysowany kodem (_draw_xp_bar()), jak
+## entities/enemy_health_bar.gd, zamiast rozciągać za ciężkie na to tekstury
+## staminy/many (1536x1024) na coś, co nigdy nie miało własnej grafiki.
+const XP_BAR_BG := Color(0.04, 0.03, 0.06, 0.85)
+const XP_BAR_FILL := Color("#5BE0C8") # Palette.PLAYER_BODY — progresja postaci, spójne z tytułami menu
 
 @export var player_bar_size: Vector2 = Vector2(200.0, 20.0)
 @export var resource_bar_size: Vector2 = Vector2(200.0, 8.0)
-@export var resource_bar_gap: float = 4.0 ## px, odstęp między paskami staminy/many/życia
+@export var resource_bar_gap: float = 4.0 ## px, odstęp między paskami staminy/many/życia/expa
+@export var xp_bar_size: Vector2 = Vector2(200.0, 6.0)
 @export var boss_bar_height: float = 16.0
 @export var dash_icon_size: float = 20.0
 @export var heal_icon_size: float = 20.0
@@ -75,6 +81,7 @@ var _overlay_text: String = ""
 var _overlay_active: bool = false
 
 var _heal_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do rysowania liczby stacków obok ikony leczenia
+var _xp_bar_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do _draw_xp_bar()
 
 @onready var player_bar_under: Sprite2D = $PlayerBarUnder
 @onready var player_bar: Sprite2D = $PlayerBar
@@ -102,6 +109,8 @@ func _ready() -> void:
 
 	var mana_pos := stamina_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
 	_setup_bar(mana_bar_under, mana_bar, TEX_MANA_BAR, MANA_BAR_CONTENT, mana_pos, resource_bar_size, Color.WHITE)
+
+	_xp_bar_pos = mana_pos - Vector2(0.0, resource_bar_gap + xp_bar_size.y)
 
 	var boss_pos := Vector2(ARENA_LEFT, 20.0)
 	_setup_bar(boss_bar_under, boss_bar, TEX_BOSS_BAR, BOSS_BAR_CONTENT, boss_pos, Vector2(ARENA_WIDTH, boss_bar_height), Color.WHITE)
@@ -196,8 +205,14 @@ func _update_bars() -> void:
 	for node in [player_bar_under, player_bar, stamina_bar_under, stamina_bar,
 			mana_bar_under, mana_bar, dash_icon, dash_lock_cross, heal_icon]:
 		node.visible = show_bars
-	boss_bar_under.visible = show_bars and boss != null
-	boss_bar.visible = show_bars and boss != null
+	# Pasek na górze ekranu TYLKO dla prawdziwego Bossa (Nemorax) — Incarnation
+	# (6 wcieleń + 11 wrogów losowych) ma teraz własny pasek nad głową
+	# (entities/enemy_health_bar.gd), na życzenie autora. room.gd wciąż
+	# ustawia `ui.boss = incarnation` (nieszkodliwie, po prostu odfiltrowane
+	# tutaj) — Boss to jedyna klasa w grze, dla której `boss is Boss` da true.
+	var show_boss_bar := show_bars and boss != null and boss is Boss
+	boss_bar_under.visible = show_boss_bar
+	boss_bar.visible = show_boss_bar
 
 	if not show_bars:
 		return
@@ -212,7 +227,7 @@ func _update_bars() -> void:
 
 		heal_icon.modulate = Color(1.0, 1.0, 1.0, 1.0 if player.is_heal_ready() else 0.4 + 0.3 * player.heal_charge_ratio())
 
-	if boss != null:
+	if show_boss_bar:
 		_update_bar_fill(boss_bar, BOSS_BAR_CONTENT, boss.health / boss.max_health)
 		boss_bar.modulate = boss.current_color
 
@@ -221,7 +236,21 @@ func _draw() -> void:
 		_draw_overlay()
 	_draw_center_message()
 	_draw_heal_stack_count()
+	_draw_xp_bar()
 	_draw_minimap()
+
+## Wcześniej nigdzie niewidoczny — level/xp istniały tylko jako liczby w
+## ekranie statystyk (Tab), bez własnego paska w HUD-zie.
+func _draw_xp_bar() -> void:
+	if player == null or hide_all or _overlay_active:
+		return
+	var ratio: float = clamp(player.xp / player.xp_per_level, 0.0, 1.0) if player.level < player.max_level else 1.0
+	draw_rect(Rect2(_xp_bar_pos, xp_bar_size), XP_BAR_BG, true)
+	draw_rect(Rect2(_xp_bar_pos, Vector2(xp_bar_size.x * ratio, xp_bar_size.y)), XP_BAR_FILL, true)
+	var font := ThemeDB.fallback_font
+	var label := "Lv %d" % player.level
+	draw_string(font, _xp_bar_pos + Vector2(xp_bar_size.x + 8.0, xp_bar_size.y + 2.0), label,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 
 ## Minimapa w stylu "The Binding of Isaac" (na życzenie autora) — siatka 2D z
 ## game_flow.gd zamiast dawnej liniowej sekwencji. Bieżący pokój zawsze

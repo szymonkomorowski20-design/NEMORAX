@@ -5,7 +5,8 @@ extends Node2D
 ## screenów przed/po bez przechodzenia całej gry. Składa w jednym kadrze:
 ## gracza, małego wroga, ciężkiego wroga, drzwi, skrzynię, pocisk w locie,
 ## aktywną strefę obszarową i lokalne światło, na tych samych komponentach
-## co prawdziwy rooms/room.gd (RoomAtmosphere/ContactShadow/WorldAmbient/Walls).
+## co prawdziwy rooms/room.gd (RoomAtmosphere/ContactShadow/WorldAmbient/Walls),
+## plus prawdziwy HUD (ui/ui.tscn) do oceny pasków/XP/paska bossa naraz z resztą.
 
 const ARENA_RECT := Rect2(90, 60, 1100, 600)
 const WALL_THICKNESS := 20.0
@@ -22,6 +23,7 @@ const ChestScene := preload("res://rooms/chest.tscn")
 const EnemyProjectileScene := preload("res://entities/enemy_projectile.tscn")
 const DamageZoneScene := preload("res://entities/damage_zone.tscn")
 const RoomAtmosphereScene := preload("res://rooms/room_atmosphere.gd")
+const UiScene := preload("res://ui/ui.tscn")
 
 func _ready() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
@@ -50,6 +52,14 @@ func _ready() -> void:
 	tank.arena_rect = ARENA_RECT
 	tank.global_position = Vector2(880, 420)
 	tank._start_telegraph() # zamrożone w zapowiedzi ataku na potrzeby screena
+	tank.health = tank.max_health * 0.4 # nie 100% — inaczej nie widać, że pasek nad głową w ogóle reaguje na obrażenia
+
+	var ui_layer := UiScene.instantiate()
+	add_child(ui_layer)
+	var ui: GameUI = ui_layer.get_node("UI")
+	ui.player = player
+	ui.boss = tank # Incarnation, NIE Boss — pasek na górze MA zostać ukryty (patrz ui/ui.gd)
+	player.gain_xp(2.0) # częściowo zapełniony pasek expa, nie 0% ani 100%
 
 	var door := DoorScene.instantiate()
 	add_child(door)

@@ -134,6 +134,9 @@ func _ready() -> void:
 	contact_shadow.position = Vector2(0.0, 48.0)
 	contact_shadow.configure(radius * 1.15, radius * 0.28, 0.48) # wyraźniejszy (KIERUNEK_WIZUALNY_REFERENCJE.md)
 	add_child(contact_shadow)
+	var health_bar := EnemyHealthBar.new()
+	add_child(health_bar)
+	health_bar.configure(self)
 	if elite_aura:
 		elite_aura.texture = TEX_ELITE_AURA
 		elite_aura.scale = Vector2(sprite_scale, sprite_scale)
