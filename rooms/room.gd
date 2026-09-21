@@ -174,6 +174,8 @@ func _spawn_enemy(scene_path: String, is_random: bool) -> void:
 		# (ustalone z autorem) — wcielenia z duszami zachowują swoje ręcznie
 		# dobrane, stałe statystyki, więc ta gałąź ich nie dotyczy.
 		incarnation.apply_difficulty_scale(1.0 + GameFlow.rooms_cleared_count * GameFlow.RANDOM_ENEMY_DIFFICULTY_STEP)
+		if randf() < GameFlow.elite_chance_for_current_progress():
+			incarnation.apply_elite_modifier()
 	ui.boss = incarnation
 
 ## Drzwi zamknięte na czas walki (jak w Isaacu, ustalone z autorem) — dopiero

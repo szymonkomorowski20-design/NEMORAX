@@ -63,11 +63,33 @@ const INCARNATION_NAMES: Array[String] = [
 	"Orryx Cień-Nicości",
 ]
 
-## TYMCZASOWE: docelowo 7 dedykowanych przeciwników (4 wręcz + 3 dystansowych,
-## patrz PLAN_LOSOWYCH_POKOI.md) — jeszcze nie wygenerowane. Reużywam sceny
-## wcieleń jako zastępcze losowe przeciwniki, żeby mapa była grywalna już
-## teraz; podmienić na docelową listę 7 ścieżek, gdy assety będą gotowe.
-const RANDOM_ENEMY_SCENES: Array[String] = INCARNATION_SCENES
+## 11 archetypów wrogów losowych (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 6) —
+## mechanika/statystyki już wdrożone (entities/random_enemies/*.gd), grafika
+## TYMCZASOWO reużywa istniejące sprite'y wcieleń (patrz komentarze w każdym
+## pliku) do czasu, aż dedykowana grafika wróci z GPT
+## (PROMPTY_WROGOW_LOSOWYCH_I_SKRZYNI.md sekcja A) — podmiana wtedy dotyczy
+## WYŁĄCZNIE stałych TEX_* w tych 11 plikach, nie tej listy ani reszty systemu.
+const RANDOM_ENEMY_SCENES: Array[String] = [
+	"res://entities/random_enemies/chaser.tscn",
+	"res://entities/random_enemies/striker.tscn",
+	"res://entities/random_enemies/shooter.tscn",
+	"res://entities/random_enemies/charger.tscn",
+	"res://entities/random_enemies/orbiter.tscn",
+	"res://entities/random_enemies/dasher.tscn",
+	"res://entities/random_enemies/ambusher.tscn",
+	"res://entities/random_enemies/zoner.tscn",
+	"res://entities/random_enemies/summoner.tscn",
+	"res://entities/random_enemies/tank.tscn",
+	"res://entities/random_enemies/support.tscn",
+]
+
+## Szansa, że nowo postawiony pokój RANDOM dostanie Elite Modifier na swoim
+## przeciwniku (dokument sekcja 6.2/18) — rośnie z postępem w przebiegu
+## (rooms_cleared_count), tak jak zwykłe skalowanie trudności, żeby elity
+## pojawiały się częściej w późniejszej fazie rundy, nie od pierwszego pokoju.
+const ELITE_BASE_CHANCE := 0.05
+const ELITE_CHANCE_PER_ROOM_CLEARED := 0.01
+const ELITE_MAX_CHANCE := 0.35
 
 ## Ile % siły dokłada się za KAŻDY wyczyszczony pokój (nie tylko losowy) —
 ## patrz room.gd, Incarnation.apply_difficulty_scale().
@@ -272,6 +294,12 @@ func current_incarnation_name() -> String:
 
 func current_random_enemy_scene_path() -> String:
 	return RANDOM_ENEMY_SCENES[current_room_data().get("enemy_index", 0)]
+
+## Szansa na Elite Modifier dla przeciwnika w BIEŻĄCYM pokoju — patrz stałe
+## ELITE_* powyżej. Wydzielone dla testowalności (czysta arytmetyka, bez
+## losowania) — room.gd sam rzuca kością i porównuje z tym wynikiem.
+func elite_chance_for_current_progress() -> float:
+	return min(ELITE_MAX_CHANCE, ELITE_BASE_CHANCE + rooms_cleared_count * ELITE_CHANCE_PER_ROOM_CLEARED)
 
 func capture_player_state(player: Player) -> void:
 	saved_player_state = {

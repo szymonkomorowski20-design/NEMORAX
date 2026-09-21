@@ -70,6 +70,18 @@ var _knockback_velocity: Vector2 = Vector2.ZERO ## ustawiane z zewnątrz przez b
 @export var walk_cycle_speed: float = 6.0 ## pełnych cykli/s
 var _walk_cycle_phase: float = 0.0
 
+# --- Rozszerzenia pod 12 archetypów wrogów losowych (CLAUDE_CODE_GAME_CONTENT_BIBLE.md
+# sekcja 6) — domyślne wartości zachowują dokładnie stare zachowanie (wręcz,
+# zawsze do kontaktu, zero odporności na odepchnięcie), więc 6 istniejących
+# wcieleń z duszami nie zmienia się w niczym.
+@export var keep_distance_range: float = -1.0 ## -1 = wręcz, zawsze idzie do kontaktu (domyślne); >=0 = trzyma ten dystans zamiast zbliżać się do zera (dystansowi/kontrolujący obszar)
+@export var keep_distance_tolerance: float = 20.0 ## px, martwa strefa wokół keep_distance_range, żeby nie drgał w miejscu
+@export var orbit_mode: bool = false ## true = krąży STYCZNIE w paśmie dystansu zamiast stać w miejscu
+var orbit_direction: float = 1.0 ## losowane raz w _ready() podklasy (1.0 albo -1.0), żeby różne instancje krążyły w różne strony
+@export var knockback_resistance: float = 0.0 ## 0..1, mnożnik REDUKCJI odepchnięcia otrzymywanego (dokument: "KB resist")
+
+@export var is_elite: bool = false ## ustawiane przez apply_elite_modifier(), nie ręcznie
+
 ## Skalowanie trudności dla pokoi z losowymi przeciwnikami (nie wcieleniami z
 ## duszami, które mają ręcznie dobrane, stałe statystyki na życzenie autora) —
 ## mnożnik rośnie z numerem pokoju w GameFlow, patrz room.gd._spawn_random_enemy().
@@ -79,6 +91,20 @@ func apply_difficulty_scale(multiplier: float) -> void:
 	max_health *= multiplier
 	health = max_health
 	contact_damage *= multiplier
+
+## Modyfikator Elite (dokument sekcja 6.2) — na start tylko "Hardened", jedyny
+## pakiet niewymagający dodatkowych haków per-atak (RapidCadence/Aftershock/
+## RelentlessRecovery mają sens dopiero przy realnych wielo-wrogowych falach,
+## których dziś nie ma — każdy RANDOM pokój ma dokładnie jednego przeciwnika).
+## Wołane PO add_child(), jak apply_difficulty_scale() — z tego samego powodu
+## (health już ustawione przez _ready() na bazowe max_health).
+func apply_elite_modifier() -> void:
+	is_elite = true
+	max_health *= 1.30
+	health = max_health
+	contact_damage *= 1.15
+	drift_speed *= 1.08
+	knockback_resistance = min(1.0, knockback_resistance + 0.15)
 
 func _ready() -> void:
 	health = max_health
@@ -122,13 +148,33 @@ func _walk_cycle_frame() -> int:
 
 ## Wywoływane z zewnątrz (blok gracza pod PPM) — odpycha wcielenie na chwilę.
 func apply_knockback(impulse: Vector2) -> void:
-	_knockback_velocity = impulse
+	_knockback_velocity = impulse * (1.0 - knockback_resistance)
 
+## Wręcz (keep_distance_range < 0, domyślne): zawsze idzie wprost do kontaktu —
+## dokładnie stare zachowanie, bez zmian. Dystansowi/kontrolujący obszar
+## (keep_distance_range >= 0): podchodzi gdy za daleko, cofa się gdy za blisko,
+## a w paśmie dystansu albo stoi (orbit_mode=false), albo krąży stycznie
+## (orbit_mode=true) — patrz PLAN_LOSOWYCH_POKOI.md, uwaga o "keep_distance"
+## dla przeciwników dystansowych.
 func _drift_towards_player(delta: float) -> void:
 	var to_player: Vector2 = player.global_position - global_position
-	if to_player.length() > 1.0:
-		_facing_direction = to_player
+	if to_player.length() < 1.0:
+		return
+	_facing_direction = to_player
+	if keep_distance_range < 0.0:
 		global_position += to_player.normalized() * drift_speed * delta
+		return
+	var distance := to_player.length()
+	var radial := to_player.normalized()
+	var move := Vector2.ZERO
+	if distance > keep_distance_range + keep_distance_tolerance:
+		move = radial * drift_speed
+	elif distance < keep_distance_range - keep_distance_tolerance:
+		move = -radial * drift_speed
+	elif orbit_mode:
+		move = radial.rotated(PI * 0.5 * orbit_direction) * drift_speed
+	if move != Vector2.ZERO:
+		global_position = _clamp_to_arena(global_position + move * delta)
 
 ## Dotyk ciała zawsze rani (ta sama konwencja co Nemorax) — throttlowane przez
 ## nietykalność gracza po trafieniu.
