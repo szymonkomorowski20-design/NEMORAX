@@ -244,8 +244,8 @@ func _spawn_doors_for_open_directions() -> void:
 		var pos := Walls.wall_point(ARENA_RECT, wall_side)
 		var neighbor := GameFlow.neighbor_data(direction)
 		var callback := _on_altar_door_entered if neighbor.get("type") == GameFlow.RoomType.ALTAR else _on_move_door_entered.bind(direction)
-		# Drzwi stoją wewnątrz pokoju, nie na granicy kamery/ściany — dzięki temu
-		# czytają się jako obiekt świata, a nie element ramki ekranu.
+		# Stabilny wariant, dopóki nie dostarczymy osobnych assetów poziomych i
+		# pionowych przejść: drzwi stoją tuż wewnątrz pokoju.
 		_spawn_door(pos - Vector2(direction) * 26.0, callback)
 
 func _spawn_door(pos: Vector2, on_entered: Callable) -> void:

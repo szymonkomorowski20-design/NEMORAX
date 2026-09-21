@@ -6,6 +6,8 @@ class_name Door
 
 signal entered
 
+# Stabilna wersja aktywna. Wersja embedded_v2 zostaje w katalogu tylko jako
+# odrzucony prototyp: duży fragment ściany nie może być obracany na boki.
 const TEX_DOOR := preload("res://assets/sprites/pokoje/obiekty/rift_doorway.png")
 const SPRITE_SCALE := 0.12
 
