@@ -7,6 +7,8 @@ class_name Orbiter
 ## (jeden statyczny obraz na wszystkie pozy na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/orbiter/orbiter_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/orbiter_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/orbiter_skill.png")
 
 @export var arc_shot_radius: float = 90.0
 
@@ -30,4 +32,6 @@ func _ready() -> void:
 	}
 
 func _skill_arc_shot() -> void:
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position, 0.4, 0.35)
 	_damage_pulse(arc_shot_radius, contact_damage)
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.3, 0.22)

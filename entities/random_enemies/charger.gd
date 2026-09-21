@@ -5,6 +5,8 @@ class_name Charger
 ## dedykowany base art z GPT (jeden statyczny obraz na wszystkie pozy na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/charger/charger_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/charger_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/charger_skill.png")
 
 @export var charge_speed: float = 300.0
 @export var charge_duration: float = 0.8
@@ -27,4 +29,9 @@ func _ready() -> void:
 	}
 
 func _skill_charge() -> void:
+	var dir: Vector2 = player.global_position - global_position
+	var angle := dir.angle() if dir.length() > 0.01 else 0.0
+	# Tor ładowania (skill) narysowany wzdłuż kierunku szarży, trwa tyle co sam wypad.
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position + dir.normalized() * 120.0, charge_duration, 0.45, angle)
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.3, 0.35, angle)
 	_lunge_toward_player(charge_speed, charge_duration)

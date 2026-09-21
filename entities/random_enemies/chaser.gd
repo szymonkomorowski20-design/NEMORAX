@@ -7,6 +7,8 @@ class_name Chaser
 ## wszystkie pozy — pełny zestaw kierunkowy/pozowy jeszcze nie wygenerowany).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/chaser/chaser_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/chaser_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/chaser_skill.png")
 
 @export var swipe_range: float = 42.0 ## dokument: "engage 42"
 
@@ -27,4 +29,6 @@ func _ready() -> void:
 	}
 
 func _skill_swipe() -> void:
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position, 0.3, 0.28)
 	_damage_pulse(swipe_range, contact_damage)
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.25, 0.25)

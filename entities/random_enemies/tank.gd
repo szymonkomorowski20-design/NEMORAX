@@ -7,6 +7,8 @@ class_name Tank
 ## na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/tank/tank_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/tank_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/tank_skill.png")
 
 @export var slam_range: float = 72.0 ## dokument: "range 72"
 
@@ -28,4 +30,6 @@ func _ready() -> void:
 	}
 
 func _skill_slam() -> void:
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position, 0.4, 0.4)
 	_damage_pulse(slam_range, contact_damage)
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.3, 0.32)

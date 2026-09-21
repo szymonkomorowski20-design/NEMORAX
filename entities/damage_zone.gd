@@ -6,8 +6,8 @@ class_name DamageZone
 ## czas trwania" — stąd nowa, mała scena zamiast naciągania jednej z tamtych
 ## pod coś, do czego nie została zaprojektowana.
 
-const TEX_ZONE := preload("res://assets/sprites/ataki_bossa/sixth_rhythm_seal.png") # TYMCZASOWE: brak dedykowanej grafiki strefy Zonera
-const ZONE_CONTENT_SIZE := 882.0 ## ten sam plik/pomiar co entities/seal.gd
+const TEX_ZONE := preload("res://assets/sprites/enemy_vfx/zoner_skill.png") # dedykowana grafika strefy Zonera (KIERUNEK_WIZUALNY_REFERENCJE.md)
+const ZONE_CONTENT_SIZE := 900.0 ## szacunkowy zasięg widocznej treści w kanwie 1024px
 
 @export var zone_radius: float = 64.0
 @export var telegraph_duration: float = 0.9

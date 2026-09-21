@@ -140,7 +140,10 @@ func test_shooter_fires_projectile_toward_player(root: Node) -> void:
 	shooter._skill_fire()
 	var after := root.get_children().size()
 
-	NemoraxTest.assert_eq(after, before + 1, "_skill_fire() powinno zespawnować dokładnie jeden pocisk")
+	# +2, nie +1: pocisk (EnemyProjectile) ORAZ czysto wizualny błysk wystrzału
+	# (AttackVfx, KIERUNEK_WIZUALNY_REFERENCJE.md/enemy_vfx) — ten drugi sam się
+	# usuwa przez tween po chwili i nie uczestniczy w żadnej mechanice.
+	NemoraxTest.assert_eq(after, before + 2, "_skill_fire() powinno zespawnować pocisk i błysk wystrzału")
 	_cleanup(shooter, root)
 	_cleanup(player, root)
 

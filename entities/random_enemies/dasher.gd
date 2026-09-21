@@ -6,6 +6,8 @@ class_name Dasher
 ## (jeden statyczny obraz na wszystkie pozy na razie).
 
 const TEX_BASE := preload("res://assets/sprites/random_enemies/dasher/dasher_base.png")
+const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/dasher_attack.png")
+const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/dasher_skill.png")
 
 @export var dash_speed: float = 350.0
 @export var dash_distance: float = 130.0 ## dokument: "dash 130"
@@ -28,4 +30,9 @@ func _ready() -> void:
 	}
 
 func _skill_dash() -> void:
+	var dir: Vector2 = player.global_position - global_position
+	var angle := dir.angle() if dir.length() > 0.01 else 0.0
+	# Znacznik lądowania (skill) na docelowej pozycji wypadu, cios (attack) przy sobie.
+	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position + dir.normalized() * dash_distance, 0.35, 0.3)
+	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.3, 0.3, angle)
 	_lunge_toward_player(dash_speed, dash_distance / dash_speed)
