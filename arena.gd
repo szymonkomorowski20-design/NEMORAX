@@ -119,14 +119,16 @@ func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) 
 	if rule_name != "":
 		ui.show_form_name(rule_name)
 	match phase_index:
-		1: # Cisza — dźwięk wyciszony do końca walki
+		1: # Force (dawniej Cisza) — dźwięk wyciszony do końca walki. Nazwa/grafika
+			# fazy się zmieniły (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 13), ta
+			# reguła "łamania zasad" (poza dokumentem) zostaje na tym samym indeksie.
 			AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), true)
-		2: # Zwłoka — dash_cooldown x2
+		2: # Instinct (dawniej Zwłoka) — dash_cooldown x2
 			player.dash_cooldown *= 2.0
-		3: # Ciężar — stałe przyciąganie w stronę bossa
+		3: # Dominion (dawniej Ciężar) — stałe przyciąganie w stronę bossa
 			player.pull_source = boss
 			player.pull_strength = boss.gravity_pull_strength
-		5: # Zaćmienie — ciemność poza kręgiem wokół gracza
+		5: # Sovereignty (dawniej Zaćmienie) — ciemność poza kręgiem wokół gracza
 			_eclipse_active = true
 			eclipse_rect.visible = true
 

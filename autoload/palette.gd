@@ -11,23 +11,28 @@ const DANGER := Color("#FFC857") # wyłącznie to, co zadaje obrażenia
 const VOID_INTERIOR := Color("#0B0810")
 const HIT_FLASH := Color("#FFFFFF")
 
-# Kolory kolejnych faz bossa (sekcja 7) — każdy inny, w kolejności od 600 HP do 0 HP.
+# Kolory sześciu faz Nemoraksa — CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 13
+# (Motion/Force/Instinct/Dominion/Ruin/Sovereignty, na życzenie autora zamiast
+# Cisza/Zwłoka/Ciężar/Głód/Zaćmienie). TYMCZASOWE dobranie kolorów — grafika i
+# tak idzie osobno przez GPT (PLAN_ANIMACJE_KIERUNKOWE.md), te wartości można
+# swobodnie zmienić bez wpływu na kod (arena.gd przełącza po indeksie, nie po
+# kolorze/nazwie — patrz tests/test_boss_phases.gd).
 const PHASE_COLORS := [
-	Color("#F0447A"), # bez formy (faza nauki)
-	Color("#9B4DFF"), # Cisza — dopasowane do grafiki Mordratha (fioletowa, nie pomarańczowa)
-	Color("#C44FD6"), # Zwłoka
-	Color("#6C63FF"), # Ciężar
-	Color("#E8524A"), # Głód — dopasowane do grafiki Thal'Gora (czerwona, nie zielona)
-	Color("#8C9AC2"), # Zaćmienie — dopasowane do grafiki Orryxa (chłodny błękit, nie beż)
+	Color("#4FC3E8"), # Motion — chłodny błękit, kinetyczny
+	Color("#E8622E"), # Force — pomarańcz uderzenia
+	Color("#9B4DFF"), # Instinct — fiolet, nieprzewidywalność
+	Color("#4FA65E"), # Dominion — zieleń kontroli terenu
+	Color("#D63B3B"), # Ruin — czerwień agresji
+	Color("#E8C547"), # Sovereignty — złoto, kulminacja
 ]
 
 const PHASE_NAMES := [
-	"",
-	"Cisza",
-	"Zwłoka",
-	"Ciężar",
-	"Głód",
-	"Zaćmienie",
+	"Motion",
+	"Force",
+	"Instinct",
+	"Dominion",
+	"Ruin",
+	"Sovereignty",
 ]
 
 func _ready() -> void:
