@@ -34,6 +34,13 @@ const ARENA_SCENE := "res://arena.tscn"
 const RANDOM_ROOM_COUNT := 24
 const CHAPTER_COUNT := 6 ## = INCARNATION_SCENES.size() = liczba pokoi SOUL
 
+## Skrzynie z ulepszeniami (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 9) —
+## dokument umieszcza je w oknach numerów pokoi, co nie ma odpowiednika na
+## losowej siatce (adaptacja ustalona z autorem); tutaj 5 z 24 pokoi RANDOM,
+## wybranych raz przy generacji mapy, dostaje skrzynię PO oczyszczeniu.
+## Nigdy w SOUL/ALTAR/START, zgodnie z duchem dokumentu (nie w pokoju bossa).
+const CHEST_COUNT := 5
+
 ## Kolejność wcieleń = kolejność "rozdziałów" (chapter 0..5). Nazwy plików/klas
 ## zostały po fazach Nemoraxa (Zalążek/Cisza/Zwłoka/Ciężar/Głód/Zaćmienie) ze
 ## starszej wersji dokumentu — nazwy WŁASNE poniżej (INCARNATION_NAMES) to to,
@@ -125,7 +132,7 @@ func _generate_map() -> void:
 	visited_rooms.clear()
 	current_room_pos = Vector2i.ZERO
 	entry_direction = Vector2i.ZERO
-	room_map[Vector2i.ZERO] = {"type": RoomType.START, "chapter": -1, "enemy_index": -1, "cleared": true}
+	room_map[Vector2i.ZERO] = {"type": RoomType.START, "chapter": -1, "enemy_index": -1, "cleared": true, "has_chest": false, "chest_opened": false}
 	visited_rooms[Vector2i.ZERO] = true
 
 	var frontier: Array[Vector2i] = _neighbors_of(Vector2i.ZERO)
@@ -142,7 +149,7 @@ func _generate_map() -> void:
 			while enemy_index == last_enemy:
 				enemy_index = randi() % RANDOM_ENEMY_SCENES.size()
 		last_enemy = enemy_index
-		room_map[pos] = {"type": RoomType.RANDOM, "chapter": -1, "enemy_index": enemy_index, "cleared": false}
+		room_map[pos] = {"type": RoomType.RANDOM, "chapter": -1, "enemy_index": enemy_index, "cleared": false, "has_chest": false, "chest_opened": false}
 		placed += 1
 		for n in _neighbors_of(pos):
 			if not room_map.has(n):
@@ -152,11 +159,26 @@ func _generate_map() -> void:
 		var attach = _pick_leaf_attachment_point()
 		if attach == null:
 			break
-		room_map[attach] = {"type": RoomType.SOUL, "chapter": chapter, "enemy_index": -1, "cleared": false}
+		room_map[attach] = {"type": RoomType.SOUL, "chapter": chapter, "enemy_index": -1, "cleared": false, "has_chest": false, "chest_opened": false}
 
 	var altar_pos = _pick_leaf_attachment_point()
 	if altar_pos != null:
-		room_map[altar_pos] = {"type": RoomType.ALTAR, "chapter": -1, "enemy_index": -1, "cleared": false}
+		room_map[altar_pos] = {"type": RoomType.ALTAR, "chapter": -1, "enemy_index": -1, "cleared": false, "has_chest": false, "chest_opened": false}
+
+	_assign_chest_rooms()
+
+## Skrzynie (dokument sekcja 9, zaadaptowane na siatkę — patrz stała
+## CHEST_COUNT): wybiera CHEST_COUNT z JUŻ postawionych pokoi RANDOM, raz, na
+## starcie przebiegu — nigdy nie losuje ponownie przy wejściu/wyjściu z pokoju.
+func _assign_chest_rooms() -> void:
+	var random_positions: Array[Vector2i] = []
+	for pos in room_map.keys():
+		if room_map[pos]["type"] == RoomType.RANDOM:
+			random_positions.append(pos)
+	random_positions.shuffle()
+	var count: int = mini(CHEST_COUNT, random_positions.size())
+	for i in range(count):
+		room_map[random_positions[i]]["has_chest"] = true
 
 func _neighbors_of(pos: Vector2i) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
@@ -263,6 +285,7 @@ func capture_player_state(player: Player) -> void:
 		"xp": player.xp,
 		"unspent_stat_points": player.unspent_stat_points,
 		"stat_points": player.stat_points.duplicate(),
+		"owned_upgrades": player.owned_upgrades.duplicate(),
 	}
 
 ## Wywoływane w room.gd zaraz po zespawnowaniu gracza — działa zarówno przy
@@ -280,6 +303,8 @@ func apply_player_state(player: Player) -> void:
 	var loaded_points: Dictionary = saved_player_state.get("stat_points", {})
 	for key in player.stat_points.keys():
 		player.stat_points[key] = int(loaded_points.get(key, 0))
+	var loaded_upgrades: Array = saved_player_state.get("owned_upgrades", [])
+	player.owned_upgrades.assign(loaded_upgrades) # PRZED _recompute_effective_stats(): Iron Heart/Razor Wind czytają has_upgrade()
 	player._recompute_effective_stats()
 
 	player.health = saved_player_state.get("health", player.health)
@@ -307,6 +332,15 @@ func clear_current_room() -> void:
 	rooms_cleared_count += 1
 	if data.get("type") == RoomType.SOUL:
 		fragments_collected.append(INCARNATION_NAMES[data.get("chapter", 0)])
+	_save_progress()
+
+## Wywoływane przez room.gd po otwarciu skrzyni w bieżącym pokoju — bez tego
+## re-wejście do pokoju (retry po śmierci itd.) spawnowałoby ją ponownie.
+func mark_chest_opened() -> void:
+	var data := current_room_data()
+	if data.is_empty():
+		return
+	data["chest_opened"] = true
 	_save_progress()
 
 ## Wywoływane przez room.gd, gdy gracz przechodzi przez drzwi w danym
@@ -365,6 +399,8 @@ func _load_progress() -> bool:
 			"chapter": int(entry.get("chapter", -1)),
 			"enemy_index": int(entry.get("enemy_index", -1)),
 			"cleared": bool(entry.get("cleared", false)),
+			"has_chest": bool(entry.get("has_chest", false)),
+			"chest_opened": bool(entry.get("chest_opened", false)),
 		}
 	var pos_data: Dictionary = data.get("current_room_pos", {})
 	current_room_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
@@ -388,6 +424,7 @@ func _save_progress() -> void:
 			"x": pos.x, "y": pos.y,
 			"type": d["type"], "chapter": d["chapter"],
 			"enemy_index": d["enemy_index"], "cleared": d["cleared"],
+			"has_chest": d.get("has_chest", false), "chest_opened": d.get("chest_opened", false),
 		})
 	var visited_array := []
 	for pos in visited_rooms.keys():

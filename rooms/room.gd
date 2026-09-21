@@ -19,6 +19,7 @@ const WALL_THICKNESS := 20.0
 
 const DoorScene := preload("res://rooms/door.tscn")
 const SoulScene := preload("res://rooms/soul.tscn")
+const ChestScene := preload("res://rooms/chest.tscn")
 
 const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
 # W kolejności GameFlow.INCARNATION_SCENES (Vhar'Nokh...Orryx) — indeksowane
@@ -189,6 +190,7 @@ func _on_incarnation_died(fragment_name: String) -> void:
 		# Losowi przeciwnicy nie dają fragmentów/dusz do podniesienia (ustalone
 		# z autorem) — od razu otwarte drzwi, bez kroku z podnoszeniem duszy.
 		_spawn_doors_for_open_directions()
+		_maybe_spawn_chest()
 		return
 	var soul: Soul = SoulScene.instantiate()
 	soul.color = incarnation.current_color
@@ -199,7 +201,28 @@ func _on_incarnation_died(fragment_name: String) -> void:
 
 func _on_soul_collected(fragment_name: String) -> void:
 	ui.show_taunt("Zdobyto fragment duszy: %s" % fragment_name, 2.0)
+	# Soul Bond (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 8) — aktywuje się w
+	# chwili PODNIESIENIA duszy (nie samego pokonania wcielenia), stąd tutaj a
+	# nie w _on_incarnation_died(). Nic nie robi, jeśli gracz nie ma Soul Bond.
+	player.activate_soul_bond(_room_data.get("chapter", -1))
 	_spawn_doors_for_open_directions()
+
+## Skrzynie (dokument sekcja 9, zaadaptowane na siatkę pokoi) — TYLKO w
+## pokojach RANDOM oznaczonych przy generacji mapy (GameFlow._assign_chest_rooms),
+## dopiero po oczyszczeniu, i tylko raz (chest_opened pilnuje retry po śmierci
+## w tym samym pokoju nie dawał drugiej skrzyni za darmo).
+func _maybe_spawn_chest() -> void:
+	if not _room_data.get("has_chest", false) or _room_data.get("chest_opened", false):
+		return
+	var chest: Chest = ChestScene.instantiate()
+	chest.player = player
+	chest.global_position = ARENA_RECT.get_center() + incarnation_spawn_offset
+	chest.opened.connect(_on_chest_opened)
+	add_child(chest)
+
+func _on_chest_opened(upgrade_id: String) -> void:
+	GameFlow.mark_chest_opened()
+	ui.show_taunt("Zdobyto ulepszenie: %s" % Player.UPGRADE_LABELS.get(upgrade_id, upgrade_id), 2.5)
 
 func _on_move_door_entered(direction: Vector2i) -> void:
 	GameFlow.capture_player_state(player)

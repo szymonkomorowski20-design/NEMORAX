@@ -102,7 +102,10 @@ func play_sfx_at(stream: AudioStream, world_position: Vector2, bus: String = "SF
 	player.stream = stream
 	player.bus = bus
 	player.global_position = world_position
-	get_tree().current_scene.add_child(player)
+	# current_scene może być null (np. testy bez realnej sceny, albo w trakcie
+	# przejścia między scenami) — root jako zapasowy rodzic zamiast crasha.
+	var parent: Node = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
+	parent.add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
 

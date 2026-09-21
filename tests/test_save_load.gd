@@ -17,7 +17,10 @@ func test_gameflow_round_trip(_root: Node) -> void:
 	GameFlow.SAVE_PATH = TEST_GAMEFLOW_PATH
 	_cleanup(TEST_GAMEFLOW_PATH)
 
-	GameFlow.room_map = {Vector2i.ZERO: {"type": GameFlow.RoomType.START, "chapter": -1, "enemy_index": -1, "cleared": true}}
+	GameFlow.room_map = {
+		Vector2i.ZERO: {"type": GameFlow.RoomType.START, "chapter": -1, "enemy_index": -1, "cleared": true, "has_chest": false, "chest_opened": false},
+		Vector2i(1, 0): {"type": GameFlow.RoomType.RANDOM, "chapter": -1, "enemy_index": 0, "cleared": true, "has_chest": true, "chest_opened": true},
+	}
 	GameFlow.current_room_pos = Vector2i(2, -1)
 	GameFlow.rooms_cleared_count = 3
 	GameFlow.fragments_collected = ["A", "B"]
@@ -37,6 +40,8 @@ func test_gameflow_round_trip(_root: Node) -> void:
 	NemoraxTest.assert_eq(GameFlow.fragments_collected, ["A", "B"], "fragments_collected po round-tripie")
 	NemoraxTest.assert_eq(GameFlow.saved_player_state.get("health"), 42.0, "saved_player_state po round-tripie")
 	NemoraxTest.assert_true(GameFlow.room_map.has(Vector2i.ZERO), "mapa pokoi powinna się odtworzyć")
+	NemoraxTest.assert_true(GameFlow.room_map[Vector2i(1, 0)]["has_chest"], "has_chest po round-tripie")
+	NemoraxTest.assert_true(GameFlow.room_map[Vector2i(1, 0)]["chest_opened"], "chest_opened po round-tripie")
 
 	_cleanup(TEST_GAMEFLOW_PATH)
 	GameFlow.SAVE_PATH = original_path

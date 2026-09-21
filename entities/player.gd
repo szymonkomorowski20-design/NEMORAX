@@ -83,7 +83,8 @@ var max_speed: float ## efektywna wartość — base_max_speed * (1 + punkty*spe
 @export var attack_windup: float = 0.08 ## s, zamach przed trafieniem (telegraf)
 @export var attack_active: float = 0.10 ## s, okno, w którym atak faktycznie trafia
 @export var attack_recovery: float = 0.22 ## s, bezwładność po ataku
-@export var attack_range: float = 70.0 ## px, zasięg wycinka koła ataku
+@export var base_attack_range: float = 70.0 ## px, zasięg wycinka koła ataku przed bonusem z Razor Wind
+var attack_range: float ## efektywna wartość — base_attack_range * (1 + Razor Wind), patrz _recompute_effective_stats()
 @export var attack_angle_degrees: float = 100.0 ## stopnie, szerokość wycinka ataku
 @export var base_attack_damage: float = 10.0 ## obrażenia zadawane trafionemu celowi, przed bonusem z punktów "atak"
 var attack_damage: float ## efektywna wartość — base_attack_damage * (1 + punkty*damage_bonus_per_point)
@@ -164,6 +165,103 @@ var stat_points: Dictionary = {"health": 0, "stamina": 0, "mana": 0, "damage": 0
 # --- Odepchnięcie (dodane na życzenie autora) ---
 @export var knockback_recovery_duration: float = 0.15 ## s, jak długo po odepchnięciu nie steruje się ruchem
 
+# --- Ulepszenia ze skrzyń (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 8) ---
+# Wszystkie 10 jest nie-stackowalnych (dokument) — każde zaczepione o JUŻ
+# istniejący hak (register_hit_on_enemy, gain_xp, take_damage, _start_attack/
+# _process_attack_phase, _process_dash, apply_knockback) zamiast osobnego
+# systemu zdarzeń/rejestru, bo nic takiego nie istnieje gdzie indziej w tym
+# projekcie — leveling/stacki leczenia też mieszkają wprost na Playerze.
+const UPGRADE_IDS: Array[String] = [
+	"blood_edge", "void_step", "soul_echo", "iron_heart", "razor_wind",
+	"hunters_mark", "second_impact", "momentum", "last_resolve", "soul_bond",
+]
+const UPGRADE_LABELS := {
+	"blood_edge": "Blood Edge",
+	"void_step": "Void Step",
+	"soul_echo": "Soul Echo",
+	"iron_heart": "Iron Heart",
+	"razor_wind": "Razor Wind",
+	"hunters_mark": "Hunter's Mark",
+	"second_impact": "Second Impact",
+	"momentum": "Momentum",
+	"last_resolve": "Last Resolve",
+	"soul_bond": "Soul Bond",
+}
+var owned_upgrades: Array[String] = []
+
+@export var blood_edge_bonus: float = 0.20 ## +20% obrażeń na zamach zbrojony przez poprzednie trafienie
+@export var blood_edge_arm_duration: float = 4.0 ## s, jak długo uzbrojenie czeka na zużycie
+var _blood_edge_armed: bool = false
+var _blood_edge_timer: float = 0.0
+
+@export var void_step_speed_bonus: float = 0.15 ## +15% prędkości biegu po dashu
+@export var void_step_speed_duration: float = 1.25
+@export var void_step_range_bonus: float = 0.20 ## +20% zasięgu na najbliższy zamach po dashu
+@export var void_step_range_duration: float = 3.0
+@export var void_step_cooldown: float = 2.0 ## s, od zakończenia dasha do kolejnego naładowania Void Step
+var _void_step_speed_timer: float = 0.0
+var _void_step_range_timer: float = 0.0
+var _void_step_cooldown_timer: float = 0.0
+
+@export var soul_echo_proc_chance: float = 0.25 ## szansa na +damage po zabójstwie
+@export var soul_echo_bonus: float = 0.15
+@export var soul_echo_duration: float = 4.0
+var _soul_echo_timer: float = 0.0
+
+@export var iron_heart_health_bonus: float = 0.20 ## +20% max zdrowia, trwałe po zdobyciu
+@export var iron_heart_knockback_reduction: float = 0.25 ## -25% odepchnięcia OTRZYMYWANEGO
+
+@export var razor_wind_range_bonus: float = 0.18 ## +18% zasięgu ataku, trwałe po zdobyciu
+
+@export var hunters_mark_duration: float = 5.0 ## s, jak długo znak trzyma się na celu
+@export var hunters_mark_bonus: float = 0.12 ## +12% obrażeń w kolejne trafienia OZNACZONEGO celu
+var _marked_target: Node = null
+var _marked_until_msec: int = 0 ## Time.get_ticks_msec(), niezależne od Engine.time_scale/hitstopu
+
+@export var second_impact_chance: float = 0.30 ## szansa na opóźnione drugie trafienie
+@export var second_impact_delay: float = 0.22 ## s, opóźnienie drugiego trafienia
+@export var second_impact_damage_fraction: float = 0.45 ## ułamek obrażeń PIERWSZEGO trafienia
+@export var second_impact_knockback_strength: float = 250.0 ## px/s, odepchnięcie celu drugim trafieniem
+@export var second_impact_global_cooldown: float = 0.35 ## s, minimalny odstęp między kolejnymi procami
+var _second_impact_cooldown_timer: float = 0.0
+
+@export var momentum_stack_interval: float = 2.0 ## s bez obrażeń na jeden stack
+@export var momentum_speed_per_stack: float = 0.02 ## +2% prędkości za stack
+@export var momentum_max_stacks: int = 5
+var _momentum_stacks: int = 0
+var _momentum_timer: float = 0.0
+
+@export var last_resolve_threshold: float = 0.30 ## aktywacja przy HP <= 30% max
+@export var last_resolve_hysteresis: float = 0.35 ## dezaktywacja dopiero powyżej 35% max
+@export var last_resolve_damage_bonus: float = 0.20
+@export var last_resolve_attack_speed_bonus: float = 0.10
+var _last_resolve_active: bool = false
+
+## Soul Bond (dokument): każda z 6 dusz daje inny, tematyczny bonus na
+## soul_bond_duration sekund od chwili PODNIESIENIA (nie samego pokonania
+## wcielenia) — indeksowane "chapter" tak jak GameFlow.INCARNATION_NAMES
+## (0=Vhar'Nokh/Motion .. 5=Orryx/Sovereignty, przypisanie kolejności własne,
+## poza dokumentem, bo zachowujemy istniejące wcielenia zamiast bossów z dokumentu).
+const SOUL_BOND_EFFECTS: Array[Dictionary] = [
+	{"move": 0.12},
+	{"knockback_dealt": 0.15},
+	{"attack_speed": 0.10},
+	{"dash_cooldown": -0.20},
+	{"damage": 0.15},
+	{"move": 0.06, "damage": 0.06, "attack_speed": 0.06},
+]
+@export var soul_bond_duration: float = 8.0
+var _soul_bond_timer: float = 0.0
+var _soul_bond_effect: Dictionary = {}
+
+## Ustalane raz na cały zamach w _start_attack() (Blood Edge/Last
+## Resolve/Soul Echo/Soul Bond nie mogą się różnić trafienie-do-trafienia w
+## OBRĘBIE jednego zamachu miecza, patrz dokument: "consume once per attack
+## ID, not per target") — _check_attack_hits()/projectile.gd czytają je zamiast
+## attack_damage/attack_range wprost.
+var _current_attack_damage: float = 0.0
+var _current_attack_range: float = 0.0
+
 var stamina: float
 var mana: float
 var _heal_charge_hits: int = 0 ## postęp w stronę NASTĘPNEGO stacka (0..heal_hits_per_stack-1)
@@ -224,6 +322,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_tick_timers(delta)
+	_tick_upgrade_timers(delta)
 	_handle_weapon_switch()
 	_handle_dash_input(delta)
 	_handle_attack_input(delta) # niezależne od stanu ruchu — da się zacząć w trakcie dasha
@@ -252,6 +351,35 @@ func _tick_timers(delta: float) -> void:
 	_heal_visual_timer = max(0.0, _heal_visual_timer - delta)
 	if _flash_frames > 0:
 		_flash_frames -= 1
+
+## Timery/warunki wszystkich 10 ulepszeń ze skrzyń naraz — osobno od
+## _tick_timers(), żeby nie mieszać "rdzenia" gracza (poza dokumentem) z tym,
+## co dokument opisuje. Tanie nawet gdy żadne ulepszenie nie jest posiadane
+## (same odejmowania/porównania, bez skanowania drzewa sceny).
+func _tick_upgrade_timers(delta: float) -> void:
+	if _blood_edge_timer > 0.0:
+		_blood_edge_timer -= delta
+		if _blood_edge_timer <= 0.0:
+			_blood_edge_armed = false
+	_void_step_speed_timer = max(0.0, _void_step_speed_timer - delta)
+	_void_step_range_timer = max(0.0, _void_step_range_timer - delta)
+	_void_step_cooldown_timer = max(0.0, _void_step_cooldown_timer - delta)
+	_soul_echo_timer = max(0.0, _soul_echo_timer - delta)
+	_second_impact_cooldown_timer = max(0.0, _second_impact_cooldown_timer - delta)
+	_soul_bond_timer = max(0.0, _soul_bond_timer - delta)
+
+	if has_upgrade("momentum") and state != State.DEAD:
+		_momentum_timer += delta
+		if _momentum_timer >= momentum_stack_interval:
+			_momentum_timer = 0.0
+			_momentum_stacks = mini(_momentum_stacks + 1, momentum_max_stacks)
+
+	if has_upgrade("last_resolve") and max_health > 0.0:
+		var ratio := health / max_health
+		if _last_resolve_active and ratio > last_resolve_hysteresis:
+			_last_resolve_active = false
+		elif not _last_resolve_active and ratio <= last_resolve_threshold:
+			_last_resolve_active = true
 
 ## Stamina regeneruje się, gdy nie dashuję i nie macham mieczem (mana NIE regeneruje
 ## się z czasem w ogóle — wyłącznie za trafienia, patrz register_hit_on_enemy()).
@@ -298,9 +426,18 @@ func _handle_dash_input(delta: float) -> void:
 	state = State.DASHING
 	stamina -= dash_stamina_cost
 	_dash_timer = dash_duration
-	_dash_cooldown_timer = dash_cooldown
+	_dash_cooldown_timer = _effective_dash_cooldown()
 	_trail_spawn_timer = 0.0
 	_play_sfx(SND_DASH_START)
+
+## Void Step (dokument): -20% cooldownu dasha, patrz Soul Bond/Dominion —
+## SOUL_BOND_EFFECTS trzyma to jako wartość UJEMNĄ (mnożnik, nie procent do
+## odjęcia ręcznie), więc zwykłe (1+x) działa tak samo jak przy bonusach dodatnich.
+func _effective_dash_cooldown() -> float:
+	var cd := dash_cooldown
+	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("dash_cooldown"):
+		cd *= (1.0 + _soul_bond_effect["dash_cooldown"])
+	return cd
 
 func _process_dash(delta: float) -> void:
 	_dash_timer -= delta
@@ -308,6 +445,13 @@ func _process_dash(delta: float) -> void:
 	if _dash_timer <= 0.0:
 		state = State.NORMAL
 		velocity = Vector2.ZERO
+		# Void Step (dokument): "on successful dash end" — dash zawsze faktycznie
+		# się zaczął, żeby dotrzeć tutaj (stan DASHING wchodzi się tylko przez
+		# udany start w _handle_dash_input), więc nie trzeba osobno tego sprawdzać.
+		if has_upgrade("void_step") and _void_step_cooldown_timer <= 0.0:
+			_void_step_speed_timer = void_step_speed_duration
+			_void_step_range_timer = void_step_range_duration
+			_void_step_cooldown_timer = void_step_cooldown
 
 func _process_normal_movement(delta: float) -> void:
 	if _knockback_timer > 0.0:
@@ -321,9 +465,9 @@ func _process_normal_movement(delta: float) -> void:
 	if input_dir.length() > 0.01:
 		_last_move_direction = input_dir
 
-	var target_speed := max_speed
+	var target_speed := max_speed * _upgrade_speed_multiplier()
 	if _attack_phase != "":
-		target_speed = max_speed * attack_move_speed_fraction
+		target_speed *= attack_move_speed_fraction
 
 	var target_velocity := input_dir * target_speed
 
@@ -337,6 +481,37 @@ func _process_normal_movement(delta: float) -> void:
 
 	var rate := acceleration if input_dir.length() > 0.01 else friction
 	velocity = velocity.move_toward(target_velocity, rate * delta)
+
+## Void Step (prędkość po dashu), Momentum (stacki za unikanie obrażeń) i
+## Soul Bond/Motion (+ruch) mnożą się RAZEM, nie zastępują — gracz może mieć
+## wszystkie trzy naraz.
+func _upgrade_speed_multiplier() -> float:
+	var mult := 1.0
+	if has_upgrade("void_step") and _void_step_speed_timer > 0.0:
+		mult *= (1.0 + void_step_speed_bonus)
+	if has_upgrade("momentum"):
+		mult *= (1.0 + _momentum_stacks * momentum_speed_per_stack)
+	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("move"):
+		mult *= (1.0 + _soul_bond_effect["move"])
+	return mult
+
+## Last Resolve (niskie HP) i Soul Bond/Instinct (+szybkość ataku) skracają
+## czas trwania faz ataku (windup/active/recovery) — "szybszy atak" = krótsze
+## fazy, stąd dzielenie, nie mnożenie, w miejscach, gdzie się to stosuje.
+func _attack_speed_multiplier() -> float:
+	var mult := 1.0
+	if has_upgrade("last_resolve") and _last_resolve_active:
+		mult *= (1.0 + last_resolve_attack_speed_bonus)
+	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("attack_speed"):
+		mult *= (1.0 + _soul_bond_effect["attack_speed"])
+	return mult
+
+## Soul Bond/Force (+odepchnięcie ZADAWANE) — dotyczy bloku i Second Impact;
+## odepchnięcie OTRZYMYWANE (Iron Heart) jest osobne, patrz apply_knockback().
+func _knockback_dealt_multiplier() -> float:
+	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("knockback_dealt"):
+		return 1.0 + _soul_bond_effect["knockback_dealt"]
+	return 1.0
 
 func _can_afford_attack() -> bool:
 	if current_weapon == "wand":
@@ -387,6 +562,7 @@ func _handle_block_input() -> void:
 
 func _perform_block_push() -> void:
 	var pushed_something := false
+	var knockback_strength := block_knockback_strength * _knockback_dealt_multiplier()
 	for target in get_tree().get_nodes_in_group("hittable"):
 		var to_target: Vector2 = target.global_position - global_position
 		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
@@ -394,7 +570,7 @@ func _perform_block_push() -> void:
 			continue
 		if target.has_method("apply_knockback"):
 			var dir := to_target.normalized() if to_target.length() > 0.01 else Vector2.RIGHT
-			target.apply_knockback(dir * block_knockback_strength)
+			target.apply_knockback(dir * knockback_strength)
 			pushed_something = true
 	if pushed_something:
 		_play_sfx(SND_BLOCK_PUSH_HIT)
@@ -441,6 +617,11 @@ func set_heal_stacks(value: int) -> void:
 ## zabójstwo domyślnie. Po max_level nic już nie robi (pasek levela to twardy
 ## sufit, nie licznik totalnych zabójstw w przebiegu).
 func gain_xp(amount: float = 1.0) -> void:
+	# Soul Echo (dokument): proc jest o SAMYM ZABÓJSTWIE, nie o ilości XP ani
+	# o poziomie — rzucane przed twardym sufitem max_level, żeby dalej działało
+	# nawet gdy XP samo w sobie już nic nie daje.
+	if has_upgrade("soul_echo") and randf() < soul_echo_proc_chance:
+		_soul_echo_timer = soul_echo_duration
 	if level >= max_level:
 		return
 	xp += amount
@@ -473,17 +654,23 @@ func spend_stat_point(stat_key: String) -> bool:
 ## efektywne statystyki cofałyby się do bazowych przy każdym wejściu do pokoju.
 func _recompute_effective_stats() -> void:
 	max_health = base_max_health + stat_points["health"] * health_per_point
+	if has_upgrade("iron_heart"):
+		max_health *= (1.0 + iron_heart_health_bonus)
 	max_stamina = base_max_stamina + stat_points["stamina"] * stamina_per_point
 	max_mana = base_max_mana + stat_points["mana"] * mana_per_point
 	max_speed = base_max_speed * (1.0 + stat_points["speed"] * speed_bonus_per_point)
 	stamina_regen_rate = base_stamina_regen_rate * (1.0 + stat_points["stamina_regen"] * stamina_regen_bonus_per_point)
 	attack_damage = base_attack_damage * (1.0 + stat_points["damage"] * damage_bonus_per_point)
 	wand_damage = base_wand_damage * (1.0 + stat_points["damage"] * damage_bonus_per_point)
+	attack_range = base_attack_range * (1.0 + (razor_wind_range_bonus if has_upgrade("razor_wind") else 0.0))
 
 ## Wywoływane z zewnątrz (bossa/void_zone itd.) — odpycha gracza i na chwilę
 ## odbiera mu sterowanie, żeby kopnięcie było wyczuwalne (patrz _process_normal_movement).
 func apply_knockback(impulse: Vector2) -> void:
-	velocity = impulse
+	var final_impulse := impulse
+	if has_upgrade("iron_heart"):
+		final_impulse *= (1.0 - iron_heart_knockback_reduction)
+	velocity = final_impulse
 	_knockback_timer = knockback_recovery_duration
 	_play_sfx(SND_KNOCKBACK)
 
@@ -495,9 +682,32 @@ func _start_attack() -> void:
 	else:
 		stamina -= sword_stamina_cost
 	_attack_phase = "windup"
-	_attack_timer = wand_windup if _swing_weapon == "wand" else attack_windup
+	_attack_timer = (wand_windup if _swing_weapon == "wand" else attack_windup) / _attack_speed_multiplier()
 	_attack_direction = (get_global_mouse_position() - global_position).normalized()
 	_attack_hit_targets.clear()
+	_current_attack_damage = _compute_attack_start_damage()
+	_current_attack_range = attack_range
+	if has_upgrade("void_step") and _void_step_range_timer > 0.0:
+		_current_attack_range *= (1.0 + void_step_range_bonus)
+		_void_step_range_timer = 0.0 # zużyte, jednorazowo (dokument: "one range charge")
+
+## Wołane RAZ na cały zamach (nie per-cel) — Blood Edge/Last Resolve/Soul
+## Echo/Soul Bond nie mogą się różnić trafienie-do-trafienia w obrębie
+## JEDNEGO machnięcia mieczem (dokument: "one boosted attack snapshot").
+## Hunter's Mark jest wyjątkiem: zależy od KONKRETNEGO celu, więc liczy się
+## osobno w resolve_hit_damage() w chwili trafienia, nie tutaj.
+func _compute_attack_start_damage() -> float:
+	var base := wand_damage if _swing_weapon == "wand" else attack_damage
+	if has_upgrade("last_resolve") and _last_resolve_active:
+		base *= (1.0 + last_resolve_damage_bonus)
+	if has_upgrade("soul_echo") and _soul_echo_timer > 0.0:
+		base *= (1.0 + soul_echo_bonus)
+	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("damage"):
+		base *= (1.0 + _soul_bond_effect["damage"])
+	if has_upgrade("blood_edge") and _blood_edge_armed:
+		base *= (1.0 + blood_edge_bonus)
+		_blood_edge_armed = false # zamach, który konsumuje uzbrojenie, zużywa je JEDNORAZOWO
+	return base
 
 ## Faza ataku (windup/active/recovery) — CELOWO osobno od ruchu/dasha, żeby dało
 ## się machnąć mieczem albo strzelić z różdżki w dowolnym momencie dasha.
@@ -513,7 +723,7 @@ func _process_attack_phase(delta: float) -> void:
 	match _attack_phase:
 		"windup":
 			_attack_phase = "active"
-			_attack_timer = attack_active if is_sword else wand_active
+			_attack_timer = (attack_active if is_sword else wand_active) / _attack_speed_multiplier()
 			if is_sword:
 				_play_sfx(SND_SWORD_SWING)
 				_check_attack_hits()
@@ -522,7 +732,7 @@ func _process_attack_phase(delta: float) -> void:
 				_play_sfx(SND_WAND_FIRE)
 		"active":
 			_attack_phase = "recovery"
-			_attack_timer = attack_recovery if is_sword else wand_recovery
+			_attack_timer = (attack_recovery if is_sword else wand_recovery) / _attack_speed_multiplier()
 			if is_sword and _attack_hit_targets.is_empty():
 				_play_sfx(SND_SWORD_MISS)
 		_:
@@ -531,7 +741,7 @@ func _process_attack_phase(delta: float) -> void:
 func _fire_projectile() -> void:
 	var projectile = ProjectileScene.instantiate()
 	projectile.direction = _attack_direction
-	projectile.damage = wand_damage
+	projectile.damage = _current_attack_damage
 	projectile.speed = wand_projectile_speed
 	projectile.lifetime = wand_projectile_lifetime
 	projectile.shooter = self # żeby pocisk mógł oddać manę za trafienie
@@ -554,6 +764,106 @@ func register_hit_on_enemy() -> void:
 	else:
 		_play_sfx(SND_HEAL_CHARGE_TICK)
 
+# --- Ulepszenia ze skrzyń: haki trafienia (Sekcja 8) ---
+
+func has_upgrade(id: String) -> bool:
+	return id in owned_upgrades
+
+## Wołane z rooms/chest.gd po wybraniu nagrody. Nieznane/już posiadane ID nic
+## nie robi i zwraca false — wszystkie 10 jest nie-stackowalnych (dokument).
+func acquire_upgrade(id: String) -> bool:
+	if id not in UPGRADE_IDS or has_upgrade(id):
+		return false
+	owned_upgrades.append(id)
+	if id == "iron_heart":
+		# "add new max-health delta to current HP, not full heal" (dokument) —
+		# _recompute_effective_stats() jest idempotentne, więc bezpiecznie
+		# przeliczyć od razu i dolić RÓŻNICĘ, a nie leczyć do pełna.
+		var old_max := max_health
+		_recompute_effective_stats()
+		health += (max_health - old_max)
+	elif id == "razor_wind":
+		_recompute_effective_stats()
+	return true
+
+## Publiczne — wołane też z projectile.gd (pocisk różdżki trafia z opóźnieniem
+## po wystrzale, więc stan znaku celu do Hunter's Mark można sprawdzić dopiero
+## TERAZ, nie w chwili strzału). Dolicza WYŁĄCZNIE bonus zależny od
+## KONKRETNEGO celu — Blood Edge/Last Resolve/Soul Echo/Soul Bond są już
+## wliczone w `base_damage` (ustalane raz na cały zamach, patrz
+## _compute_attack_start_damage()).
+func resolve_hit_damage(target: Node, base_damage: float) -> float:
+	if has_upgrade("hunters_mark"):
+		return _apply_hunters_mark(target, base_damage)
+	return base_damage
+
+## Pierwsze trafienie NIEOZNACZONEGO celu zakłada znak (bez własnego bonusu);
+## kolejne trafienia w TEN SAM, wciąż oznaczony cel dostają +12%. Aktywny znak
+## na INNYM celu nie przeskakuje na nowy cel, dopóki sam nie wygaśnie
+## (dokument: "moves mark only if current mark expired").
+func _apply_hunters_mark(target: Node, base_damage: float) -> float:
+	var now := Time.get_ticks_msec()
+	var mark_expired := _marked_target == null or not is_instance_valid(_marked_target) or now >= _marked_until_msec
+	if not mark_expired and _marked_target == target:
+		return base_damage * (1.0 + hunters_mark_bonus)
+	if mark_expired:
+		_marked_target = target
+		_marked_until_msec = now + int(hunters_mark_duration * 1000.0)
+	return base_damage
+
+## Wspólny "po trafieniu" hak dla OBU broni — miecz woła to wprost z
+## _check_attack_hits(), różdżka przez projectile.gd (bo tam faktycznie
+## rejestruje się trafienie pocisku, z opóźnieniem od wystrzału). Zastępuje
+## dawne bezpośrednie wywołanie register_hit_on_enemy() z obu miejsc, żeby
+## Blood Edge/Second Impact też odpalały się identycznie dla obu broni.
+func on_hit_confirmed(target: Node, damage_dealt: float) -> void:
+	register_hit_on_enemy()
+	if has_upgrade("blood_edge"):
+		_blood_edge_armed = true
+		_blood_edge_timer = blood_edge_arm_duration
+	if has_upgrade("second_impact"):
+		_maybe_schedule_second_impact(target, damage_dealt)
+
+## 30% szansy na kolejne, opóźnione trafienie za 45% obrażeń pierwszego —
+## globalny cooldown (nie per-cel) pilnuje, żeby nie odpalało się bez końca
+## przy szybkich wielotrafieniowych zamachach.
+func _maybe_schedule_second_impact(target: Node, base_damage: float) -> void:
+	if _second_impact_cooldown_timer > 0.0:
+		return
+	if randf() >= second_impact_chance:
+		return
+	_second_impact_cooldown_timer = second_impact_global_cooldown
+	var impact_damage := base_damage * second_impact_damage_fraction
+	get_tree().create_timer(second_impact_delay).timeout.connect(
+		_fire_second_impact.bind(target, impact_damage, global_position)
+	)
+
+## Rewaliduje cel przy odpaleniu (dokument: "revalidate target/location at
+## fire") — mógł umrzeć albo zniknąć (queue_free/reset pokoju) w tym
+## opóźnieniu. Nie woła on_hit_confirmed() ponownie: drugie trafienie nie może
+## samo siebie/Blood Edge/Second Impact ponownie uzbroić (dokument).
+func _fire_second_impact(target: Node, damage: float, origin_pos: Vector2) -> void:
+	if not is_instance_valid(target):
+		return
+	if target.get("is_dead") == true:
+		return
+	Juice.apply_hit(target, damage)
+	if target.has_method("apply_knockback"):
+		var dir: Vector2 = target.global_position - origin_pos
+		var strength := second_impact_knockback_strength * _knockback_dealt_multiplier()
+		target.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * strength)
+
+## Soul Bond (dokument): wołane z room.gd w chwili PODNIESIENIA duszy (nie
+## samego pokonania wcielenia) — nowa dusza NADPISUJE poprzedni bonus
+## ("new soul replaces previous"), nie sumuje się z nim.
+func activate_soul_bond(chapter: int) -> void:
+	if not has_upgrade("soul_bond"):
+		return
+	if chapter < 0 or chapter >= SOUL_BOND_EFFECTS.size():
+		return
+	_soul_bond_effect = SOUL_BOND_EFFECTS[chapter]
+	_soul_bond_timer = soul_bond_duration
+
 func _check_attack_hits() -> void:
 	var half_angle := deg_to_rad(attack_angle_degrees) * 0.5
 	for target in get_tree().get_nodes_in_group("hittable"):
@@ -565,7 +875,7 @@ func _check_attack_hits() -> void:
 		# kola (np. bossa) nie zaliczałoby się, bo tylko środek byłby "w zasięgu".
 		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
 
-		if distance > attack_range + target_radius:
+		if distance > _current_attack_range + target_radius:
 			continue
 
 		if distance > target_radius:
@@ -578,8 +888,9 @@ func _check_attack_hits() -> void:
 				continue
 
 		_attack_hit_targets.append(target)
-		Juice.apply_hit(target, attack_damage)
-		register_hit_on_enemy()
+		var damage := resolve_hit_damage(target, _current_attack_damage)
+		Juice.apply_hit(target, damage)
+		on_hit_confirmed(target, damage)
 		_play_sfx(SND_SWORD_HIT)
 
 func _read_input_vector() -> Vector2:
@@ -618,6 +929,9 @@ func take_damage(amount: float) -> void:
 	if state == State.DASHING or _invuln_timer > 0.0:
 		return
 	health -= amount
+	if has_upgrade("momentum"):
+		_momentum_stacks = 0
+		_momentum_timer = 0.0
 	_invuln_timer = damage_invulnerability
 	_flash_frames = 2
 	Juice.hitstop(Juice.player_hit_hitstop)
@@ -684,7 +998,7 @@ func _update_visuals() -> void:
 	slash_arc.visible = showing_slash
 	if showing_slash:
 		slash_arc.rotation = _attack_direction.angle()
-		slash_arc.position = _attack_direction * (attack_range * 0.5)
+		slash_arc.position = _attack_direction * (_current_attack_range * 0.5)
 		slash_arc.modulate.a = 0.5 if _attack_phase == "windup" else 1.0
 
 	var showing_wand := _attack_phase != "" and _swing_weapon == "wand"
