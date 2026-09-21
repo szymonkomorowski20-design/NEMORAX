@@ -26,6 +26,12 @@ const SOCKET_COLORS := [
 const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
 const FLOOR_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_floor.png")
 const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_wall.png")
+const RoomAtmosphereScene := preload("res://rooms/room_atmosphere.gd")
+## Ta sama zasada co rooms/room.gd (KIERUNEK_WIZUALNY_REFERENCJE.md) — ściana/
+## otchłań przyciemnione względem podłogi, żeby czytały się jako granica sali,
+## nie rama tej samej tekstury.
+const WALL_MODULATE := Color(0.45, 0.45, 0.52, 1.0)
+const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 const SOCKET_TEXTURE := preload("res://assets/sprites/pokoje/obiekty/altar_socket.png")
 const SOCKET_SPRITE_SCALE := 0.054
 const SOCKET_FILLED_BRIGHTNESS := 1.6 ## mnożnik modulate przy aktywacji — "ten sam obrazek z dodanym blaskiem" (brak dedykowanej grafiki "zapełnione")
@@ -41,9 +47,12 @@ var state: AltarState = AltarState.LOCKED
 var _sockets: Array[Sprite2D] = []
 
 func _ready() -> void:
-	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
+	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
 	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE)
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE, WALL_MODULATE)
+	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
+	atmosphere.configure(ARENA_RECT)
+	add_child(atmosphere)
 	_spawn_sockets()
 	player.global_position = ARENA_RECT.get_center() + Vector2(0, 200)
 	ui.player = player

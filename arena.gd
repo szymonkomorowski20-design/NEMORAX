@@ -17,6 +17,10 @@ const BossScene := preload("res://entities/boss.tscn")
 const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
 const FLOOR_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_floor.png")
 const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_wall.png")
+const RoomAtmosphereScene := preload("res://rooms/room_atmosphere.gd")
+## Ta sama zasada co rooms/room.gd i rooms/altar.gd (KIERUNEK_WIZUALNY_REFERENCJE.md).
+const WALL_MODULATE := Color(0.45, 0.45, 0.52, 1.0)
+const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 
 @export var body_fade_duration: float = 2.0 ## s, ekran gaśnie po "śmierci" dużej formy (sekcja 8)
 @export var finale_taunt_duration: float = 4.0 ## s, jak długo wisi pytanie finałowe
@@ -82,9 +86,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		stats_screen.open(player)
 
 func _build_walls() -> void:
-	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
+	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
 	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE)
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE, WALL_MODULATE)
+	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
+	atmosphere.configure(ARENA_RECT)
+	add_child(atmosphere)
 
 ## Zaćmienie (faza 6, sekcja 7): ekran ciemnieje poza kręgiem wokół gracza. Godot 2D
 ## nie ma wbudowanego "otworu" w wypełnieniu, więc prościej jest o mały shader niż
