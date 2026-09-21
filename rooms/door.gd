@@ -6,41 +6,39 @@ class_name Door
 
 signal entered
 
-# rotatable_v3 — symetryczny łuk z klejnotami na wszystkich 4 krawędziach,
-# bezpiecznie obracalny pod każdą ścianę. Poprzedni embedded_v2 miał wtopiony
-# fragment ściany, który nie dawał się obrócić na boki — odrzucony, zostaje
-# w katalogu jako historia. rift_doorway.png (jeszcze wcześniejsza wersja)
-# też zostaje jako rollback.
-const TEX_DOOR := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_rotatable_v3.png")
+## Każda ściana ma własną perspektywę przejścia. Nie obracamy jednego PNG.
+const TEX_TOP := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_top_v4.png")
+const TEX_BOTTOM := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_bottom_v4.png")
+const TEX_LEFT := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_left_v4.png")
+const TEX_RIGHT := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_right_v4.png")
 const SPRITE_SCALE := 0.12
 
 @export var trigger_range: float = 40.0
 @export var door_color: Color = Color("#C9C2B4")
 
 var player: Player = null
-## Ustawiane przez Room. Ten sam symetryczny asset obraca się poprawnie pod
-## każdą ścianę zamiast leżeć płasko na podłodze.
+## Ustawiane przez Room. Każdy bok wybiera własny asset.
 var wall_side: String = "top"
 var _triggered: bool = false
 
 @onready var sprite: Sprite2D = $Sprite
 
 func _ready() -> void:
-	sprite.texture = TEX_DOOR
+	z_index = -3 # nad ścianą, pod postaciami i VFX
+	sprite.texture = _texture_for_wall_side()
 	sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
 	sprite.modulate = door_color
-	sprite.rotation = _rotation_for_wall_side()
 	var contact_shadow := ContactShadow.new()
 	contact_shadow.position = _threshold_offset()
 	contact_shadow.configure(64.0, 16.0, 0.46) # wyraźniejszy — portal ma wyglądać na osadzony w ścianie, nie naklejony (KIERUNEK_WIZUALNY_REFERENCJE.md)
 	add_child(contact_shadow)
 
-func _rotation_for_wall_side() -> float:
+func _texture_for_wall_side() -> Texture2D:
 	match wall_side:
-		"bottom": return PI
-		"left": return -PI * 0.5
-		"right": return PI * 0.5
-		_: return 0.0 # top
+		"bottom": return TEX_BOTTOM
+		"left": return TEX_LEFT
+		"right": return TEX_RIGHT
+		_: return TEX_TOP
 
 func _threshold_offset() -> Vector2:
 	match wall_side:

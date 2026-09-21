@@ -16,6 +16,7 @@ mono_crash.*.json
 *_chroma.png
 *_chroma.png.import
 /output/
+/tmp/
 
 # System
 .DS_Store
