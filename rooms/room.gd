@@ -42,6 +42,30 @@ const ROOM_WALL_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/sprites/pokoje/tekstury/orryx_wall.png"),
 ]
 
+# 8 dedykowanych motywów pokoi RANDOM (PROMPTY_WROGOW_LOSOWYCH_I_SKRZYNI.md
+# sekcja C, w kolejności C1-C8) — zastępuje dawne tymczasowe reużycie
+# tekstur wcieleń dla pokoi RANDOM.
+const RANDOM_ROOM_FLOOR_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/flooded_catacombs_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/sunken_library_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/frozen_crypt_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/blood_ritual_hall_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/overgrown_ruins_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/ash_battlefield_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/rusted_machine_hall_floor.png"),
+]
+const RANDOM_ROOM_WALL_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/flooded_catacombs_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/sunken_library_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/frozen_crypt_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/blood_ritual_hall_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/overgrown_ruins_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/ash_battlefield_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/rusted_machine_hall_wall.png"),
+]
+
 # Na życzenie autora: losowy utwór z tej puli przy KAŻDYM wejściu do pokoju
 # (nie stały przydział pokój->utwór) — scena się przeładowuje przy każdym
 # przejściu, więc losowanie w _ready() samo daje inny utwór za każdym razem.
@@ -82,13 +106,9 @@ func _ready() -> void:
 		floor_tex = ROOM_FLOOR_TEXTURES[chapter]
 		wall_tex = ROOM_WALL_TEXTURES[chapter]
 	elif _room_data.get("type") == GameFlow.RoomType.RANDOM:
-		# TYMCZASOWE: docelowo 8 par podłoga/ściana dedykowanych pokojom z
-		# losowymi przeciwnikami (patrz PLAN_LOSOWYCH_POKOI.md) — reużywam na
-		# razie tekstury pokoi wcieleń, żeby mapa była grywalna, zanim te 16
-		# assetów powstaną.
-		var theme_index: int = int(_room_data.get("enemy_index", 0)) % ROOM_FLOOR_TEXTURES.size()
-		floor_tex = ROOM_FLOOR_TEXTURES[theme_index]
-		wall_tex = ROOM_WALL_TEXTURES[theme_index]
+		var theme_index: int = int(_room_data.get("enemy_index", 0)) % RANDOM_ROOM_FLOOR_TEXTURES.size()
+		floor_tex = RANDOM_ROOM_FLOOR_TEXTURES[theme_index]
+		wall_tex = RANDOM_ROOM_WALL_TEXTURES[theme_index]
 	else: # START — bez dedykowanego wyglądu, reużywam pierwszy motyw jako placeholder
 		floor_tex = ROOM_FLOOR_TEXTURES[0]
 		wall_tex = ROOM_WALL_TEXTURES[0]

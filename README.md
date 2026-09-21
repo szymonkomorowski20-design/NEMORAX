@@ -96,10 +96,12 @@ starcie gry.
 
 Cała mechanika opisana wyżej jest zaimplementowana i pokryta testami
 automatycznymi (uruchamianymi headless w Godocie). Grafika i dźwięk gracza,
-sześciu wcieleń i map pokoi z duszami są w pełni podpięte. 12 archetypów
-wrogów losowych, skrzynie i nowe fazy Nemoraksa działają dziś na
-tymczasowej, reużytej grafice — docelowe assety są w trakcie generowania,
-pełny spis promptów i kolejność w
+sześciu wcieleń, map pokoi z duszami, wszystkich 6 faz Nemoraksa, 11
+archetypów wrogów losowych (+ poświata modyfikatora Elite), skrzyni i 8
+motywów pokoi RANDOM są już podpięte na dedykowanych, wygenerowanych
+assetach. Zostają do wygenerowania pełne zestawy kierunkowe/pozowe (dziś
+każdy z 11 archetypów ma jeden statyczny obraz na wszystkie pozy) — pełny
+spis promptów i kolejność w
 [PACZKA_DLA_GPT_NEMORAX_I_RESZTA.md](PACZKA_DLA_GPT_NEMORAX_I_RESZTA.md),
 [PROMPTY_WROGOW_LOSOWYCH_I_SKRZYNI.md](PROMPTY_WROGOW_LOSOWYCH_I_SKRZYNI.md)
 i [PLAN_ANIMACJE_KIERUNKOWE.md](PLAN_ANIMACJE_KIERUNKOWE.md).

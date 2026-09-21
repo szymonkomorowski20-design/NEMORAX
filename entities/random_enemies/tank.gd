@@ -3,15 +3,10 @@ class_name Tank
 ## Archetyp 10/12: Tank (dokument sekcja 6.1) — kotwica/blokada, nie gąbka na
 ## obrażenia: wysokie HP i odporność na odepchnięcie, ale wolny i z czytelnym
 ## telegrafem przed uderzeniem obszarowym. Wręcz (keep_distance domyślne).
-## Grafika: TYMCZASOWO Nekravor.
+## Grafika: dedykowany base art z GPT (jeden statyczny obraz na wszystkie pozy
+## na razie).
 
-const TEX_WALK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back.png")
-const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_side.png")
-const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_telegraph.png")
-const TEX_PULSE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_cast-pulse.png")
-const TEX_HIT := preload("res://assets/sprites/wcielenia/nekravor/nekravor_hit.png")
-const TEX_DEATH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_death.png")
+const TEX_BASE := preload("res://assets/sprites/random_enemies/tank/tank_base.png")
 
 @export var slam_range: float = 72.0 ## dokument: "range 72"
 
@@ -28,8 +23,7 @@ func _ready() -> void:
 	fragment_name = "Tank"
 	_skills = [_skill_slam]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
-		"telegraph": TEX_TELEGRAPH, "pulse": TEX_PULSE, "hit": TEX_HIT, "death": TEX_DEATH,
+		"walk": TEX_BASE, "telegraph": TEX_BASE, "pulse": TEX_BASE, "hit": TEX_BASE, "death": TEX_BASE,
 	}
 
 func _skill_slam() -> void:

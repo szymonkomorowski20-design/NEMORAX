@@ -2,15 +2,9 @@ extends Incarnation
 class_name Zoner
 ## Archetyp 8/12: Zoner (dokument sekcja 6.1) — kontrola obszaru, rzuca strefę
 ## okresowych obrażeń (entities/damage_zone.gd) na pozycję gracza. Grafika:
-## TYMCZASOWO Mordrath.
+## dedykowany base art z GPT (jeden statyczny obraz na wszystkie pozy na razie).
 
-const TEX_WALK := preload("res://assets/sprites/wcielenia/mordrath/mordrath_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/mordrath/mordrath_walk_back.png")
-const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/mordrath/mordrath_walk_side.png")
-const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/mordrath/mordrath_telegraph.png")
-const TEX_PULSE := preload("res://assets/sprites/wcielenia/mordrath/mordrath_cast-pulse.png")
-const TEX_HIT := preload("res://assets/sprites/wcielenia/mordrath/mordrath_hit.png")
-const TEX_DEATH := preload("res://assets/sprites/wcielenia/mordrath/mordrath_death.png")
+const TEX_BASE := preload("res://assets/sprites/random_enemies/zoner/zoner_base.png")
 
 const DamageZoneScene := preload("res://entities/damage_zone.tscn")
 
@@ -31,8 +25,7 @@ func _ready() -> void:
 	fragment_name = "Zoner"
 	_skills = [_skill_place_zone]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
-		"telegraph": TEX_TELEGRAPH, "pulse": TEX_PULSE, "hit": TEX_HIT, "death": TEX_DEATH,
+		"walk": TEX_BASE, "telegraph": TEX_BASE, "pulse": TEX_BASE, "hit": TEX_BASE, "death": TEX_BASE,
 	}
 
 ## Rzuca na AKTUALNĄ pozycję gracza ("predicted space" z dokumentu uproszczone

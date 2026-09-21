@@ -3,15 +3,10 @@ class_name Orbiter
 ## Archetyp 5/12: Orbiter (dokument sekcja 6.1) — presja kątowa, krąży
 ## stycznie wokół gracza zamiast podchodzić/uciekać po prostej (orbit_mode,
 ## patrz entities/incarnation.gd). Kierunek krążenia losowany raz, żeby różne
-## instancje nie kręciły się identycznie. Grafika: TYMCZASOWO Thal'Gor.
+## instancje nie kręciły się identycznie. Grafika: dedykowany base art z GPT
+## (jeden statyczny obraz na wszystkie pozy na razie).
 
-const TEX_WALK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk_back.png")
-const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk_side.png")
-const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_telegraph.png")
-const TEX_PULSE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_cast-pulse.png")
-const TEX_HIT := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_hit.png")
-const TEX_DEATH := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_death.png")
+const TEX_BASE := preload("res://assets/sprites/random_enemies/orbiter/orbiter_base.png")
 
 @export var arc_shot_radius: float = 90.0
 
@@ -30,8 +25,7 @@ func _ready() -> void:
 	fragment_name = "Orbiter"
 	_skills = [_skill_arc_shot]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
-		"telegraph": TEX_TELEGRAPH, "pulse": TEX_PULSE, "hit": TEX_HIT, "death": TEX_DEATH,
+		"walk": TEX_BASE, "telegraph": TEX_BASE, "pulse": TEX_BASE, "hit": TEX_BASE, "death": TEX_BASE,
 	}
 
 func _skill_arc_shot() -> void:

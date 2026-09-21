@@ -1,5 +1,16 @@
 # NEMORAX — pełna paczka dla GPT: co się zmieniło, co generować, w jakiej kolejności
 
+> **AKTUALIZACJA (2026-09-21)**: 5 obrazków Nemoraksa z sekcji 2 (Force/
+> Instinct/Dominion/Ruin/Sovereignty) DOTARŁY i są już podpięte w kodzie pod
+> tymi samymi ścieżkami plików — mechanika ich nie potrzebuje dotykać.
+> Analogicznie dotarła i jest podpięta cała paczka z
+> `PROMPTY_WROGOW_LOSOWYCH_I_SKRZYNI.md`: skrzynia (2 obrazki), base art
+> wszystkich 11 archetypów + poświata Elite, i 16 tekstur 8 motywów pokoi
+> RANDOM. Zostało do wygenerowania: pełne zestawy kierunkowe/pozowe dla 11
+> archetypów (dziś każdy ma TYLKO jeden statyczny obraz na wszystkie pozy —
+> patrz `PLAN_ANIMACJE_KIERUNKOWE.md` Faza 3-5) oraz Nemoraksa (patrz sekcja
+> 2 niżej, wciąż aktualna dla ewentualnych dodatkowych wariantów pozowych).
+
 Ten plik zastępuje potrzebę posiadania `CLAUDE_CODE_GAME_CONTENT_BIBLE.md` —
 streszcza wszystko, co z niego faktycznie trafiło do gry, i mówi dokładnie,
 co jest DZIŚ potrzebne graficznie, po tym jak cała mechanika (Nemorax,

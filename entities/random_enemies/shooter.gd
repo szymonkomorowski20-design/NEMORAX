@@ -3,15 +3,10 @@ class_name Shooter
 ## Archetyp 3/12: Shooter (dokument sekcja 6.1) — presja dystansowa, trzyma
 ## się z dala i strzela. Pierwszy archetyp korzystający z keep_distance_range
 ## (patrz PLAN_LOSOWYCH_POKOI.md, uwaga o przeciwnikach dystansowych) zamiast
-## nadpisywać _drift_towards_player ręcznie. Grafika: TYMCZASOWO Zha'Ruun.
+## nadpisywać _drift_towards_player ręcznie. Grafika: dedykowany base art z GPT
+## (jeden statyczny obraz na wszystkie pozy na razie).
 
-const TEX_WALK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back.png")
-const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_side.png")
-const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph.png")
-const TEX_PULSE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse.png")
-const TEX_HIT := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_hit.png")
-const TEX_DEATH := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_death.png")
+const TEX_BASE := preload("res://assets/sprites/random_enemies/shooter/shooter_base.png")
 
 const EnemyProjectileScene := preload("res://entities/enemy_projectile.tscn")
 
@@ -32,8 +27,7 @@ func _ready() -> void:
 	fragment_name = "Shooter"
 	_skills = [_skill_fire]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
-		"telegraph": TEX_TELEGRAPH, "pulse": TEX_PULSE, "hit": TEX_HIT, "death": TEX_DEATH,
+		"walk": TEX_BASE, "telegraph": TEX_BASE, "pulse": TEX_BASE, "hit": TEX_BASE, "death": TEX_BASE,
 	}
 
 func _skill_fire() -> void:

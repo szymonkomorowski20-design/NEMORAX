@@ -6,15 +6,10 @@ class_name Summoner
 ## POKOJU (get_parent()), nie tego wroga, i ich `died` NIE jest podpięte pod
 ## room.gd._on_incarnation_died — dokument: "summoned units default to 0 XP",
 ## co osiąga się tu za darmo (nikt nie słucha ich sygnału, więc śmierć dodatku
-## nie liczy się do wyczyszczenia pokoju ani nie daje XP). Grafika: TYMCZASOWO Zha'Ruun.
+## nie liczy się do wyczyszczenia pokoju ani nie daje XP). Grafika: dedykowany
+## base art z GPT (jeden statyczny obraz na wszystkie pozy na razie).
 
-const TEX_WALK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back.png")
-const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_side.png")
-const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph.png")
-const TEX_PULSE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse.png")
-const TEX_HIT := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_hit.png")
-const TEX_DEATH := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_death.png")
+const TEX_BASE := preload("res://assets/sprites/random_enemies/summoner/summoner_base.png")
 
 const ChaserScene := preload("res://entities/random_enemies/chaser.tscn")
 
@@ -34,8 +29,7 @@ func _ready() -> void:
 	fragment_name = "Summoner"
 	_skills = [_skill_summon]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
-		"telegraph": TEX_TELEGRAPH, "pulse": TEX_PULSE, "hit": TEX_HIT, "death": TEX_DEATH,
+		"walk": TEX_BASE, "telegraph": TEX_BASE, "pulse": TEX_BASE, "hit": TEX_BASE, "death": TEX_BASE,
 	}
 
 func _skill_summon() -> void:

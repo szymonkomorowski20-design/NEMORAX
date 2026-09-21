@@ -2,15 +2,9 @@ extends Incarnation
 class_name Charger
 ## Archetyp 4/12: Charger (dokument sekcja 6.1) — zagrożenie liniowe, odsuwa
 ## się na dystans, potem ładuje po prostej z dużą prędkością. Grafika:
-## TYMCZASOWO Nekravor.
+## dedykowany base art z GPT (jeden statyczny obraz na wszystkie pozy na razie).
 
-const TEX_WALK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_back.png")
-const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_walk_side.png")
-const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_telegraph.png")
-const TEX_LUNGE := preload("res://assets/sprites/wcielenia/nekravor/nekravor_lunge.png")
-const TEX_HIT := preload("res://assets/sprites/wcielenia/nekravor/nekravor_hit.png")
-const TEX_DEATH := preload("res://assets/sprites/wcielenia/nekravor/nekravor_death.png")
+const TEX_BASE := preload("res://assets/sprites/random_enemies/charger/charger_base.png")
 
 @export var charge_speed: float = 300.0
 @export var charge_duration: float = 0.8
@@ -28,8 +22,7 @@ func _ready() -> void:
 	fragment_name = "Charger"
 	_skills = [_skill_charge]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
-		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE, "hit": TEX_HIT, "death": TEX_DEATH,
+		"walk": TEX_BASE, "telegraph": TEX_BASE, "lunge": TEX_BASE, "hit": TEX_BASE, "death": TEX_BASE,
 	}
 
 func _skill_charge() -> void:

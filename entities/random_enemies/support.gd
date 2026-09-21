@@ -6,15 +6,10 @@ class_name Support
 ## dosłownie z dokumentu nie ma czego zrobić. Uczciwa adaptacja: buffuje SAM
 ## SIEBIE (prędkość) na czas trwania, zamiast udawać sojusznika, którego nie
 ## ma. Do rewizji, jeśli kiedyś powstaną wieloosobowe fale w jednym pokoju.
-## Grafika: TYMCZASOWO Thal'Gor.
+## Grafika: dedykowany base art z GPT (jeden statyczny obraz na wszystkie pozy
+## na razie).
 
-const TEX_WALK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk.png")
-const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk_back.png")
-const TEX_WALK_SIDE := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_walk_side.png")
-const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_telegraph.png")
-const TEX_PULL := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_pull.png")
-const TEX_HIT := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_hit.png")
-const TEX_DEATH := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor_death.png")
+const TEX_BASE := preload("res://assets/sprites/random_enemies/support/support_base.png")
 
 @export var buff_move_bonus: float = 0.15 ## dokument: "+15% move"
 @export var buff_duration: float = 3.0
@@ -36,8 +31,7 @@ func _ready() -> void:
 	fragment_name = "Support"
 	_skills = [_skill_self_buff]
 	_sprite_textures = {
-		"walk": {"front": TEX_WALK, "back": TEX_WALK_BACK, "side": TEX_WALK_SIDE},
-		"telegraph": TEX_TELEGRAPH, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
+		"walk": TEX_BASE, "telegraph": TEX_BASE, "pull": TEX_BASE, "hit": TEX_BASE, "death": TEX_BASE,
 	}
 
 func _physics_process(delta: float) -> void:

@@ -24,6 +24,14 @@ signal died(fragment_name: String)
 @export var sprite_scale: float = 0.27 ## wcielenia wobec oryginalnych plików ~1024-1254px (cel: 200-300px, LORE_I_ASSETY.md)
 @export var skill_pose_duration: float = 0.4 ## s, jak długo trzyma się poza umiejętności po jej użyciu
 
+## Poświata Elite (dokument sekcja 6.2, pakiet "Hardened") — jedyny wizualny
+## znacznik dziś istniejącego modyfikatora Elite (patrz apply_elite_modifier()),
+## który wcześniej był całkowicie niewidoczny (tylko liczby). Węzeł "EliteAura"
+## istnieje TYLKO w scenach 11 archetypów losowych (rooms nigdy nie elituje
+## sześciu nazwanych wcieleń, patrz room.gd._spawn_enemy) — get_node_or_null,
+## bo bazowa klasa Incarnation jest współdzielona z tymi, które go nie mają.
+const TEX_ELITE_AURA := preload("res://assets/sprites/random_enemies/elite/elite_aura.png")
+
 const SND_TELEGRAPH := preload("res://assets/audio/sfx/wcielenia/I01_telegraph.wav")
 const SND_DAMAGE_PULSE := preload("res://assets/audio/sfx/wcielenia/I02_damage_pulse.wav")
 const SND_LUNGE_START := preload("res://assets/audio/sfx/wcielenia/I04_lunge_start.wav")
@@ -33,6 +41,7 @@ const SND_DEATH := preload("res://assets/audio/sfx/wcielenia/I08_incarnation_dea
 
 @onready var sprite: Sprite2D = $Sprite
 @onready var sfx: AudioStreamPlayer2D = $Sfx
+@onready var elite_aura: Sprite2D = get_node_or_null("EliteAura")
 
 var current_color: Color = Color.WHITE ## ustawiane przez podklasę
 var fragment_name: String = "" ## ustawiane przez podklasę — nazwa fragmentu duszy
@@ -112,6 +121,8 @@ func apply_elite_modifier() -> void:
 	contact_damage *= 1.15
 	drift_speed *= 1.08
 	knockback_resistance = min(1.0, knockback_resistance + 0.15)
+	if elite_aura:
+		elite_aura.visible = true
 
 func _ready() -> void:
 	health = max_health
@@ -119,6 +130,10 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player") as Player
 	_attack_timer = attack_interval
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	if elite_aura:
+		elite_aura.texture = TEX_ELITE_AURA
+		elite_aura.scale = Vector2(sprite_scale, sprite_scale)
+		elite_aura.visible = false
 
 func _physics_process(delta: float) -> void:
 	if player == null:
