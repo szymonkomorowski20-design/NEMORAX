@@ -61,6 +61,7 @@ func _ready() -> void:
 
 	ui.player = player
 	ui.boss = boss
+	player.resource_denied.connect(ui.flash_resource_denied) # krok 8, patrz room.gd (identyczne podpięcie)
 
 func _process(delta: float) -> void:
 	if not _battle_over:

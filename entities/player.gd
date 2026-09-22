@@ -7,6 +7,14 @@ class_name Player
 ## Broń (miecz/różdżka), blok i leczenie to dodatki na życzenie autora, poza dokumentem.
 
 signal died
+## Komunikaty w walce, krok 8 (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md /
+## PLAN_UI_UX_NAGRODY_DLA_CLAUDE.md): "błąd/brak zasobu — przy odpowiednim
+## pasku HUD". Player nie zna ui.gd (osobna scena/warstwa) — arena.gd/room.gd
+## łączą to z GameUI.flash_resource_denied(). `kind` to "stamina"/"mana"/"heal",
+## dopasowane do tego, KTÓRY pasek/ikonę podświetlić. Dash pominięty — jego
+## odmowa ma trzy różne przyczyny (cooldown/void-lock/stamina) zlane w jeden
+## dźwięk, więc podświetlanie paska staminy byłoby czasem po prostu błędne.
+signal resource_denied(kind: String)
 
 enum State { NORMAL, DASHING, DEAD }
 
@@ -644,6 +652,7 @@ func _handle_attack_input(delta: float) -> void:
 		_buffered_attack_timer = input_buffer_window
 		if _attack_phase == "" and not _can_afford_attack():
 			_play_sfx(SND_ATTACK_DENIED)
+			resource_denied.emit("mana" if current_weapon == "wand" else "stamina")
 	elif _buffered_attack_timer > 0.0:
 		_buffered_attack_timer -= delta
 
@@ -664,6 +673,7 @@ func _handle_block_input() -> void:
 	var cost := max_stamina * block_stamina_cost_fraction
 	if stamina < cost:
 		_play_sfx(SND_ATTACK_DENIED)
+		resource_denied.emit("stamina")
 		return
 	stamina -= cost
 	_invuln_timer = max(_invuln_timer, block_invuln_duration)
@@ -697,10 +707,19 @@ func _handle_heal_input() -> void:
 		return
 	if _heal_stacks <= 0:
 		_play_sfx(SND_ATTACK_DENIED)
+		resource_denied.emit("heal")
 		return
 	_heal_stacks -= 1
 	_heal_visual_timer = heal_visual_duration
+	var health_before := health
 	health = min(max_health, health + max_health * heal_amount_fraction)
+	# Krok 8: "heal/odzyskanie — nad graczem, turkus/kość" — dotąd leczenie nie
+	# miało ŻADNEGO wizualnego dowodu poza jaśniejącą ikonką (stan naładowania,
+	# nie sam moment użycia). Reużywa DamageNumber (Second Impact, autoload/
+	# juice.gd) z kolorem gracza zamiast Palette.DANGER — ten kolor jest
+	# zarezerwowany dla obrażeń ZADAWANYCH, nie dla odzyskanego zdrowia.
+	if get_parent() != null:
+		DamageNumber.spawn(get_parent(), global_position + Vector2(0.0, -70.0), health - health_before, Palette.PLAYER_BODY)
 	_play_sfx(SND_HEAL_USE)
 
 func is_heal_ready() -> bool:
@@ -1057,12 +1076,23 @@ func _spawn_trail_ghost() -> void:
 
 ## Wywoływane z zewnątrz (pieczęcie, cień, kontakt) — jedna, wspólna brama obrażeń,
 ## dzięki której nietykalność po trafieniu działa tak samo niezależnie od źródła.
+## #D63B3B — sam kolor co entities/enemy_health_bar.gd FILL_COLOR ("osobny od
+## Palette.DANGER, ten zarezerwowany dla obrażeń ZADAWANYCH") — jeden spójny
+## odcień dla "obrażeń OTRZYMYWANYCH" w całej grze, nie import między plikami
+## dla jednej stałej.
+const RECEIVED_DAMAGE_COLOR := Color("#D63B3B")
+
 func take_damage(amount: float) -> void:
 	if state == State.DEAD:
 		return
 	if state == State.DASHING or _invuln_timer > 0.0:
 		return
 	health -= amount
+	# Krok 8 komunikatów w walce: "obrażenia gracza" dotąd nie miały ŻADNEJ
+	# liczby przy samym graczu (tylko flash_white+hitstop) — DamageNumber
+	# (Second Impact) generalizuje się tu jeden do jednego.
+	if get_parent() != null:
+		DamageNumber.spawn(get_parent(), global_position + Vector2(0.0, -70.0), amount, RECEIVED_DAMAGE_COLOR)
 	if has_upgrade("momentum"):
 		_momentum_stacks = 0
 		_momentum_timer = 0.0

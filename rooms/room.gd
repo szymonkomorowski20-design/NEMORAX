@@ -141,6 +141,16 @@ func _ready() -> void:
 
 	ui.player = player
 	ui.show_minimap = true
+	player.resource_denied.connect(ui.flash_resource_denied)
+
+	# Krok 8 (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): "krótki tytuł miejsca /
+	# wejście przez drzwi" — górny środek, ta sama, przelotna ścieżka co
+	# baner fazy bossa w arena.gd (osobna scena, więc nigdy się nie zderzą) —
+	# tylko mniejszą czcionką (show_taunt, nie show_form_name) i krócej (1,2s
+	# z dokumentu zamiast 2s domyślnych dla "ciężkiego" tytułu fazy).
+	var room_title := _room_display_name()
+	if room_title != "":
+		ui.show_taunt(room_title, 1.2)
 
 	# Pokój już wyczyszczony (gracz wrócił po fakcie przez inne drzwi na siatce
 	# — możliwe, bo to graf, nie jednokierunkowy korytarz) NIE respawnuje
@@ -164,6 +174,22 @@ func _ready() -> void:
 			_spawn_doors_for_open_directions()
 			if not GameFlow.has_seen_prolog():
 				_play_prolog()
+
+## Krok 8: tytuł banera wejścia do pokoju. SOUL pokazuje imię wcielenia
+## (GameFlow.INCARNATION_NAMES, ta sama lista co INCARNATION_DEATH_LINES niżej
+## — gracz i tak zobaczy przeciwnika natychmiast po wejściu, więc to nie jest
+## spoiler) — Ołtarz nazwany wprost w LORE_I_ASSETY.md ("Pokój 7 — Ołtarz").
+## START pomija baner (pierwszy pokój ma już własny prolog).
+func _room_display_name() -> String:
+	match _room_data.get("type"):
+		GameFlow.RoomType.SOUL:
+			return GameFlow.INCARNATION_NAMES[_room_data.get("chapter", 0)]
+		GameFlow.RoomType.ALTAR:
+			return "Ołtarz"
+		GameFlow.RoomType.RANDOM:
+			return "Komnata"
+		_: # START
+			return ""
 
 ## Pokój startowy (entry_direction == ZERO) nie ma "kierunku, z którego
 ## przyszliśmy", więc gracz staje po prostu na środku. W każdym innym pokoju
@@ -312,9 +338,14 @@ func _maybe_spawn_chest() -> void:
 	chest.opened.connect(_on_chest_opened)
 	add_child(chest)
 
+## Krok 8: "ulepszenie — dolny środek" (osobny kanał od show_taunt, który
+## dzieli górny środek z fazą bossa/nazwą pokoju/kwestiami wcieleń) —
+## show_upgrade_toast zamiast show_taunt. Wciąż zwykły tekst, nie pełna karta
+## relikwii (ikona+nazwa+zdanie) — krok 4 tego samego dokumentu, wstrzymany do
+## czasu ikon relikwii.
 func _on_chest_opened(upgrade_id: String) -> void:
 	GameFlow.mark_chest_opened()
-	ui.show_taunt("Zdobyto ulepszenie: %s" % Player.UPGRADE_LABELS.get(upgrade_id, upgrade_id), 2.5)
+	ui.show_upgrade_toast("Zdobyto ulepszenie: %s" % Player.UPGRADE_LABELS.get(upgrade_id, upgrade_id), 2.5)
 
 func _on_move_door_entered(direction: Vector2i) -> void:
 	GameFlow.capture_player_state(player)

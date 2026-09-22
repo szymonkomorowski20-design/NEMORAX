@@ -107,6 +107,24 @@ var _center_message: String = ""
 var _center_message_timer: float = 0.0
 var _center_message_font_size: int = 32
 
+## Krok 8 (komunikaty w walce): "ulepszenie — dolny środek", osobno od
+## _center_message (górny środek, dzielony przez fazę bossa/nazwę pokoju/
+## kwestie) — dokument wprost zabrania jednego globalnego Labela na środku
+## ekranu do WSZYSTKICH zdarzeń. Docelowo (krok 4, na razie wstrzymany do
+## czasu ikon relikwii) to miejsce dostanie pełną kartę relikwii; już teraz
+## chest.gd/room.gd nie powinno walczyć o ten sam kanał co baner bossa.
+var _bottom_message: String = ""
+var _bottom_message_timer: float = 0.0
+
+## Krok 8: "błąd/brak zasobu — przy odpowiednim pasku HUD, mały, nie czerwony
+## ekran". `kind` to "stamina"/"mana"/"heal" — dopasowane 1:1 do
+## Player.resource_denied (entities/player.gd). Pulsuje krótko czerwienią na
+## "under" danego paska/ikony zamiast dodawać osobny tekst.
+const RESOURCE_FLASH_DURATION := 0.5
+const RESOURCE_FLASH_COLOR := Color(1.0, 0.3, 0.3, 1.0)
+var _resource_flash_kind: String = ""
+var _resource_flash_timer: float = 0.0
+
 var _overlay_text: String = ""
 var _overlay_active: bool = false
 
@@ -219,6 +237,12 @@ func _process(delta: float) -> void:
 		_center_message_timer -= delta
 		if _center_message_timer <= 0.0:
 			_center_message = ""
+	if _bottom_message_timer > 0.0:
+		_bottom_message_timer -= delta
+		if _bottom_message_timer <= 0.0:
+			_bottom_message = ""
+	if _resource_flash_timer > 0.0:
+		_resource_flash_timer = max(0.0, _resource_flash_timer - delta)
 	_update_bars(delta)
 	queue_redraw()
 
@@ -231,6 +255,17 @@ func show_taunt(text: String, duration: float) -> void:
 	_center_message = text
 	_center_message_timer = duration
 	_center_message_font_size = taunt_font_size
+
+## Krok 8: kanał "dolny środek" dla ulepszeń — patrz komentarz przy
+## _bottom_message. room.gd woła to zamiast show_taunt() z _on_chest_opened().
+func show_upgrade_toast(text: String, duration: float) -> void:
+	_bottom_message = text
+	_bottom_message_timer = duration
+
+## Krok 8: podpięte przez room.gd/arena.gd pod Player.resource_denied.
+func flash_resource_denied(kind: String) -> void:
+	_resource_flash_kind = kind
+	_resource_flash_timer = RESOURCE_FLASH_DURATION
 
 func show_overlay(text: String, kind: String = "death") -> void:
 	_overlay_text = text
@@ -274,21 +309,34 @@ func _update_bars(delta: float) -> void:
 		_update_bar_fill(player_bar_shadow, PLAYER_BAR_CONTENT, _player_hp_shadow_ratio)
 		_update_bar_fill(stamina_bar, STAMINA_BAR_CONTENT, player.stamina / player.max_stamina)
 		_update_bar_fill(mana_bar, MANA_BAR_CONTENT, player.mana / player.max_mana)
+		stamina_bar_under.modulate = _resource_flash_modulate(UNDER_MODULATE, "stamina")
+		mana_bar_under.modulate = _resource_flash_modulate(UNDER_MODULATE, "mana")
 
 		dash_icon.modulate = Color(1.0, 1.0, 1.0, 0.35 if player.is_dash_on_cooldown() else 1.0)
 		dash_lock_cross.visible = player.is_dash_locked_by_void()
 
-		heal_icon.modulate = Color(1.0, 1.0, 1.0, 1.0 if player.is_heal_ready() else 0.4 + 0.3 * player.heal_charge_ratio())
+		var heal_base := Color(1.0, 1.0, 1.0, 1.0 if player.is_heal_ready() else 0.4 + 0.3 * player.heal_charge_ratio())
+		heal_icon.modulate = _resource_flash_modulate(heal_base, "heal")
 
 	if show_boss_bar:
 		_update_bar_fill(boss_bar, BOSS_BAR_CONTENT, boss.health / boss.max_health)
 		boss_bar.modulate = boss.current_color
+
+## `base` to modulate danego elementu, gdyby NIE trwał flash — flash_resource_denied
+## łagodnie odpływa od RESOURCE_FLASH_COLOR z powrotem do `base` w ciągu
+## RESOURCE_FLASH_DURATION, zamiast twardo przełączać kolor na jedną klatkę.
+func _resource_flash_modulate(base: Color, kind: String) -> Color:
+	if _resource_flash_timer <= 0.0 or _resource_flash_kind != kind:
+		return base
+	var t: float = _resource_flash_timer / RESOURCE_FLASH_DURATION
+	return base.lerp(RESOURCE_FLASH_COLOR, t)
 
 func _draw() -> void:
 	_draw_reliquary_panel() # PIERWSZE — rodzic rysuje się POD swoimi dziećmi (paski/ikony), więc to zawsze wyląduje w tle
 	if _overlay_active:
 		_draw_overlay()
 	_draw_center_message()
+	_draw_bottom_message()
 	_draw_heal_stack_count()
 	_draw_xp_bar()
 	_draw_player_hp_text()
@@ -430,14 +478,30 @@ func _draw_heal_stack_count() -> void:
 	var pos := _heal_pos + Vector2(heal_icon_size + 2.0, heal_icon_size)
 	draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Palette.HIT_FLASH)
 
+## Krok 8: "tekst nie może leżeć na hitboxie bossa ani na postaci gracza" —
+## dawniej rysowane w PIONOWYM środku ekranu (size.y*0.5), dokładnie tam, gdzie
+## stoi boss/gracz w trakcie walki. Faza bossa i nazwa pokoju mają być "górny
+## środek" (dokument) — przesunięte pod stos nazwa+faza+HP bossa (kończy się
+## ok. boss_bar_height+42 ≈ y=78 przy domyślnych wartościach), z zapasem.
 func _draw_center_message() -> void:
 	if _center_message == "":
 		return
 	var font := ThemeDB.fallback_font
 	var font_size := _center_message_font_size
 	var text_size := font.get_string_size(_center_message, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-	var pos := Vector2((size.x - text_size.x) * 0.5, size.y * 0.5)
+	var pos := Vector2((size.x - text_size.x) * 0.5, size.y * 0.16)
 	draw_string(font, pos, _center_message, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Palette.HIT_FLASH)
+
+## Krok 8: kanał "dolny środek" dla ulepszeń (show_upgrade_toast) — patrz
+## komentarz przy _bottom_message. Ten sam styl (font/kolor) co _center_message,
+## inna pozycja, żeby wizualnie czytały się jako spokrewnione, ale odrębne kanały.
+func _draw_bottom_message() -> void:
+	if _bottom_message == "":
+		return
+	var font := ThemeDB.fallback_font
+	var text_size := font.get_string_size(_bottom_message, HORIZONTAL_ALIGNMENT_CENTER, -1, taunt_font_size)
+	var pos := Vector2((size.x - text_size.x) * 0.5, size.y * 0.82)
+	draw_string(font, pos, _bottom_message, HORIZONTAL_ALIGNMENT_LEFT, -1, taunt_font_size, Palette.HIT_FLASH)
 
 func _draw_overlay() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(Palette.BACKGROUND, 0.85), true)
