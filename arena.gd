@@ -51,6 +51,15 @@ func _ready() -> void:
 
 	player.global_position = ARENA_RECT.get_center() + Vector2(0, 150)
 	player.died.connect(_on_player_died)
+	# Priorytet 1, punkt 5: "wzmocnić gracza podczas bossa — minimalnie wyższy
+	# kontrast sylwetki względem podłogi... bez rozjaśniania całej areny".
+	# Kontaktowy cień gracza już istnieje (entities/player.gd, opacity 0.44,
+	# już "wyraźniejszy" z wcześniejszej fazy) — tu tylko delikatny (+12%)
+	# rozjaśniacz WYŁĄCZNIE sprite'a gracza (nie środowiska), bo nowy, ciemny
+	# obsydianowy shader podłogi (entities/arena_stone_shader.gd) obniżył
+	# ogólną jasność areny i gracz w ciemnym stroju zlewał się z nią bardziej
+	# niż przy starym, jasnoszarym placeholderze.
+	player.sprite.modulate = Color(1.12, 1.12, 1.12)
 
 	boss = BossScene.instantiate() as Boss
 	boss.arena_rect = ARENA_RECT
