@@ -12,6 +12,10 @@ extends Node
 var _hitstop_active := false
 var _shake_time_left := 0.0
 
+## Opcje — Grafika: "screen shake" (włącz/wyłącz). `var`, ustawiane z
+## ui/options_screen.gd i zapisywane w user://settings.json.
+var shake_enabled: bool = true
+
 ## Podgląd na żywo (sekcja Debug Mode) — F3, dotąd nic takiego nie istniało.
 ## Czysto tekstowy odczyt, nie edytor "na żywo": tabelka liczb do tuningu
 ## (stamina/mana/cooldowny/timery bufora/hitstop/shake) zamiast zgadywania z
@@ -64,8 +68,11 @@ func _update_debug_label() -> void:
 
 ## Zatrzymuje grę na `duration` sekund w czasie rzeczywistym. Kolejne wywołanie
 ## w trakcie trwającego hitstopu jest ignorowane (sekcja 4: „nie mogą się nakładać").
+## Opcje — Dostępność: "redukcja migotania" pomija hitstop całkowicie — nagłe
+## zerwanie płynności ruchu na każde trafienie jest tym samym rodzajem
+## bodźca, którego ta opcja ma unikać, nawet jeśli to nie dosłowny "flash".
 func hitstop(duration: float) -> void:
-	if _hitstop_active:
+	if _hitstop_active or Palette.reduce_flashing:
 		return
 	_hitstop_active = true
 	Engine.time_scale = 0.0
@@ -77,6 +84,8 @@ func hitstop(duration: float) -> void:
 
 ## Uruchamia (lub przedłuża) trzęsienie ekranu na `shake_duration` s.
 func screen_shake() -> void:
+	if not shake_enabled:
+		return
 	_shake_time_left = shake_duration
 
 ## Wspólne "trafienie wroga" — ujednolica take_damage+flash_white+hitstop,

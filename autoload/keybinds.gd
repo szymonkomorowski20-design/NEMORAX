@@ -86,8 +86,16 @@ func _load_bindings() -> void:
 			InputMap.action_erase_events(action)
 			InputMap.action_add_event(action, event)
 
+## Wspólny plik z OptionsScreen ("bus_volumes_db", "graphics", "accessibility")
+## — bez wczytania istniejącej zawartości najpierw, ten zapis kasowałby
+## WSZYSTKO poza rebindami przy każdej zmianie klawisza (i odwrotnie, patrz
+## OptionsScreen._save_settings()). Klucze rebindów żyją bezpośrednio w
+## korzeniu dict-a (nie pod "keybinds") z powodów wstecznej zgodności z
+## istniejącymi zapisami graczy sprzed tej poprawki — nowe sekcje (grafika/
+## dostępność) dostały własne, zagnieżdżone klucze, żeby uniknąć kolizji z
+## nazwami akcji.
 func _save_bindings() -> void:
-	var data := {}
+	var data := _read_existing_settings()
 	for action in REBINDABLE_ACTIONS:
 		var events := InputMap.action_get_events(action)
 		if events.is_empty():
@@ -100,6 +108,15 @@ func _save_bindings() -> void:
 		push_warning("Keybinds: nie udało się zapisać ustawień (%s), błąd %d" % [SETTINGS_PATH, FileAccess.get_open_error()])
 		return
 	file.store_string(JSON.stringify(data))
+
+func _read_existing_settings() -> Dictionary:
+	if not FileAccess.file_exists(SETTINGS_PATH):
+		return {}
+	var file := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var data = JSON.parse_string(file.get_as_text())
+	return data if typeof(data) == TYPE_DICTIONARY else {}
 
 func _dict_from_event(event: InputEvent):
 	if event is InputEventKey:

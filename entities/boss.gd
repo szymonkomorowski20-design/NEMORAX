@@ -819,6 +819,8 @@ func delay_next_attack(seconds: float) -> void:
 	_attack_timer = max(_attack_timer, seconds)
 
 func flash_white() -> void:
+	if Palette.reduce_flashing:
+		return
 	_flash_frames = 2
 
 func start_final_phase() -> void:

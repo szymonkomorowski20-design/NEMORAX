@@ -318,6 +318,8 @@ func take_damage(amount: float) -> void:
 		_play_sfx(Palette.MATERIAL_HURT_SOUNDS[hit_material])
 
 func flash_white() -> void:
+	if Palette.reduce_flashing:
+		return
 	_flash_frames = 2
 
 func _set_skill_pose(pose_name: String) -> void:

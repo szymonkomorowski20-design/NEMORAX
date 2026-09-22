@@ -1120,6 +1120,8 @@ func is_invulnerable() -> bool:
 	return state == State.DASHING or _invuln_timer > 0.0
 
 func flash_white() -> void:
+	if Palette.reduce_flashing:
+		return
 	_flash_frames = 2
 
 func _play_sfx(stream: AudioStream) -> void:

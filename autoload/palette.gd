@@ -11,6 +11,14 @@ const DANGER := Color("#FFC857") # wyłącznie to, co zadaje obrażenia
 const VOID_INTERIOR := Color("#0B0810")
 const HIT_FLASH := Color("#FFFFFF")
 
+## Opcje — Dostępność: "redukcja migotania". Jedyny naprawdę powtarzalny,
+## częsty efekt "flash" w grze to biała poza "hit" pokazywana na 2 klatki przy
+## KAŻDYM trafieniu (flash_white() w player.gd/incarnation.gd/boss.gd,
+## patrz komentarz w autoload/juice.gd: "błysk trafienia... 2 klatki na
+## biało") — w długiej walce to dużo migotania. `var`, nie `const`: ustawiane
+## z ui/options_screen.gd i zapisywane w user://settings.json.
+var reduce_flashing: bool = false
+
 ## Faza 2A (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md) — jedna, spisana
 ## konwencja z_index dla całej gry. Wartości poniżej już były w kodzie
 ## (walls.gd, room_atmosphere.gd, door.gd, contact_shadow.gd, attack_vfx.gd,
