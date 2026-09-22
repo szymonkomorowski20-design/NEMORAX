@@ -59,10 +59,27 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 ## Wywoływane przez rodzica (menu.gd/pause_menu.gd), jak KeybindScreen.open().
+## Krok 12 (menu, dokument): "panel opcji wchodzi z dołu lub z prawej" —
+## dawniej to był twardy cut (visible=true w tej samej klatce, bez przejścia).
+## Pozycja to offset PONAD zakotwiczeniem full-rect (anchors_preset=15), więc
+## przesunięcie w dół nadal renderuje się poprawnie, tylko z tymczasowym
+## przesunięciem — ta sama sztuczka co fade_rect w menu.gd.
+const OPEN_SLIDE_DISTANCE := 36.0
+const OPEN_TWEEN_TIME := 0.28 ## dokument: "wejście elementu 0,25-0,4s"
+var _open_tween: Tween
+
 func open() -> void:
 	_category = Category.SOUND
 	_selected_index = 0
 	visible = true
+	modulate.a = 0.0
+	position.y = OPEN_SLIDE_DISTANCE
+	if _open_tween != null and _open_tween.is_valid():
+		_open_tween.kill()
+	_open_tween = create_tween()
+	_open_tween.set_parallel(true)
+	_open_tween.tween_property(self, "modulate:a", 1.0, OPEN_TWEEN_TIME).set_ease(Tween.EASE_OUT)
+	_open_tween.tween_property(self, "position:y", 0.0, OPEN_TWEEN_TIME).set_ease(Tween.EASE_OUT)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or keybind_screen.visible:

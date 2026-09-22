@@ -31,6 +31,7 @@ const ORNAMENT_GAP := 22.0 ## odstęp znaczka ◈ od tekstu
 const HOVER_TWEEN_TIME := 0.15 ## dokument: 0.12-0.18s
 const CLICK_PUNCH_TIME := 0.09 ## dokument: 0.08-0.12s
 const TRANSITION_FADE_TIME := 0.4 ## dokument: 0.35-0.6s
+const ITEMS_FADE_TIME := 0.2 ## dokument: "wejście elementu 0,25-0,4s" — trochę krócej, bo to zniknięcie/powrót, nie pierwsze wejście
 
 @onready var background: TextureRect = $Background
 @onready var logo: TextureRect = $Logo
@@ -45,6 +46,13 @@ var _selected_index: int = 0
 var _item_labels: Array[Label] = []
 var _item_base_x: Array[float] = []
 var _item_tweens: Array[Tween] = []
+## Krok 12 (menu, EXITING): "pojedyncze potwierdzenie wyjścia; żadnego
+## przypadkowego zamknięcia gry przez Esc". Dawniej Escape/"Wyjście" w IDLE
+## zamykały grę NATYCHMIAST, bez pytania — jedno omyłkowe Escape (np. próba
+## cofnięcia się z czegoś innego) kończyło sesję bez ostrzeżenia.
+var _exit_confirm_pending: bool = false
+const HINT_TEXT_DEFAULT := "↑↓ wybór   Enter zatwierdź"
+const HINT_TEXT_CONFIRM_EXIT := "Na pewno wyjść?   Enter — tak    Escape — nie"
 
 func _ready() -> void:
 	var vp_size := get_viewport_rect().size
@@ -67,7 +75,7 @@ func _ready() -> void:
 	hint_label.add_theme_font_override("font", FONT_HINT)
 	hint_label.add_theme_font_size_override("font_size", 15)
 	hint_label.add_theme_color_override("font_color", Color(IDLE_COLOR, 0.55))
-	hint_label.text = "↑↓ wybór   Enter zatwierdź"
+	hint_label.text = HINT_TEXT_DEFAULT
 	hint_label.position = Vector2(0.0, vp_size.y * 0.92)
 	hint_label.size = Vector2(vp_size.x, 24.0)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -110,11 +118,36 @@ func _play_intro() -> void:
 	for i in range(_item_labels.size()):
 		var label := _item_labels[i]
 		tw.tween_property(label, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT).set_delay(i * 0.06)
-	tw.chain().tween_callback(func(): _state = State.IDLE)
+	tw.chain().tween_callback(func():
+		_state = State.IDLE
+		_start_ambient_motion()
+	)
+
+## Krok 12 (tło, dokument): "parallax: 6-16px w ciągu 10-18s, z płynnym
+## powrotem... bardzo delikatny oddech jasności logo co 6-10s, maks. ±5%".
+## Dawniej tło/logo stały nieruchomo po INTRO — jedyny ruch w całym menu był w
+## reakcji na wejście gracza (hover/klik), nic samoistnego w tle. Nieskończone
+## pętle (LOOPS_INFINITE) na osobnych tweenach od hover/klik/przejścia, więc
+## nie kolidują z _item_tweens ani z fade_rect.
+func _start_ambient_motion() -> void:
+	var bg_start_x := background.position.x
+	var bg_drift := create_tween()
+	bg_drift.set_loops()
+	bg_drift.tween_property(background, "position:x", bg_start_x - 6.0, 7.0).set_ease(Tween.EASE_IN_OUT)
+	bg_drift.tween_property(background, "position:x", bg_start_x + 6.0, 14.0).set_ease(Tween.EASE_IN_OUT)
+	bg_drift.tween_property(background, "position:x", bg_start_x, 7.0).set_ease(Tween.EASE_IN_OUT)
+
+	var logo_breathe := create_tween()
+	logo_breathe.set_loops()
+	logo_breathe.tween_property(logo, "modulate", Color(1.05, 1.05, 1.05, 1.0), 4.0).set_ease(Tween.EASE_IN_OUT)
+	logo_breathe.tween_property(logo, "modulate", Color(1.0, 1.0, 1.0, 1.0), 4.0).set_ease(Tween.EASE_IN_OUT)
 
 func _process(_delta: float) -> void:
 	if _state == State.OPTIONS_OPEN and not options_screen.visible:
 		_state = State.IDLE # gracz wyszedł z opcji przez Esc — options_screen.gd sam to obsługuje
+		var fade := create_tween()
+		fade.tween_property(items_container, "modulate:a", 1.0, ITEMS_FADE_TIME).set_ease(Tween.EASE_OUT)
+		queue_redraw() # diament/podkreślenie wracają razem z pozycjami menu
 
 func _unhandled_input(event: InputEvent) -> void:
 	if keybind_screen.visible:
@@ -135,9 +168,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ui_up"):
 		_select_index((_selected_index - 1 + MENU_ITEMS.size()) % MENU_ITEMS.size())
 	elif event.is_action_pressed("ui_accept"):
-		_activate_selected()
+		# Enter podczas "na pewno?" potwierdza wyjście NIEZALEŻNIE od tego, co
+		# akurat jest zaznaczone (Escape, który zadał to pytanie, nie zmienia
+		# _selected_index) — inaczej Enter aktywowałby zaznaczoną pozycję
+		# zamiast odpowiadać na pytanie.
+		if _exit_confirm_pending:
+			_confirm_exit()
+		else:
+			_activate_selected()
 	elif event.is_action_pressed("ui_cancel"):
-		_confirm_exit()
+		if _exit_confirm_pending:
+			_cancel_exit_confirmation()
+		else:
+			_confirm_exit()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K:
 		keybind_screen.open()
 
@@ -155,6 +198,8 @@ func _handle_click(mouse_pos: Vector2) -> void:
 			return
 
 func _select_index(index: int) -> void:
+	if _exit_confirm_pending:
+		_cancel_exit_confirmation() # zmiana wyboru w trakcie "na pewno?" po cichu anuluje pytanie
 	if index == _selected_index:
 		return
 	_selected_index = index
@@ -190,8 +235,8 @@ func _update_selection_visuals(instant: bool) -> void:
 ## które zostaje: dokładny kształt diamentu nie zależy od tego, czy aktualna
 ## czcionka ma taki glif w swoim zestawie znaków.
 func _draw() -> void:
-	if _item_labels.is_empty():
-		return
+	if _item_labels.is_empty() or _state != State.IDLE:
+		return # OPTIONS_OPEN: pozycje menu są przygaszone/niewidoczne, diament/podkreślenie nie mają czego otaczać
 	var label := _item_labels[_selected_index]
 	var label_rect := label.get_rect()
 	var mid_y := label_rect.position.y + label_rect.size.y * 0.5
@@ -213,10 +258,19 @@ func _activate_selected() -> void:
 		0:
 			_transition_to_game()
 		1:
-			_state = State.OPTIONS_OPEN
-			options_screen.open()
+			_open_options()
 		2:
 			_confirm_exit()
+
+## Krok 12 (OPTIONS_OPEN, dokument): "główne pozycje miękko znikają, panel
+## opcji wchodzi z dołu lub z prawej" — dawniej to był twardy cut (options_screen
+## po prostu stawał się visible=true w tej samej klatce, bez żadnego przejścia).
+func _open_options() -> void:
+	_state = State.OPTIONS_OPEN
+	var fade := create_tween()
+	fade.tween_property(items_container, "modulate:a", 0.0, ITEMS_FADE_TIME).set_ease(Tween.EASE_IN)
+	queue_redraw() # chowa diament/podkreślenie natychmiast, nie czeka na koniec tweena pozycji
+	options_screen.open()
 
 ## Stan kliknięcia (dokument, sekcja 4): lekkie zmniejszenie, potem przejście;
 ## wejście blokowane na czas przejścia, żeby podwójny klik/Enter nie wystrzelił
@@ -237,6 +291,17 @@ func _transition_to_game() -> void:
 
 	get_tree().change_scene_to_file(GameFlow.resume_scene_path())
 
+## Krok 12: pierwsze wywołanie tylko PYTA (zmienia podpowiedź na dole, nic
+## więcej) — dopiero DRUGIE wywołanie (Enter na "Wyjście"/Escape jeszcze raz,
+## z _exit_confirm_pending już ustawionym) faktycznie zamyka grę.
 func _confirm_exit() -> void:
-	_state = State.EXITING
-	get_tree().quit()
+	if _exit_confirm_pending:
+		_state = State.EXITING
+		get_tree().quit()
+		return
+	_exit_confirm_pending = true
+	hint_label.text = HINT_TEXT_CONFIRM_EXIT
+
+func _cancel_exit_confirmation() -> void:
+	_exit_confirm_pending = false
+	hint_label.text = HINT_TEXT_DEFAULT
