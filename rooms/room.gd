@@ -47,24 +47,24 @@ const ROOM_WALL_TEXTURES: Array[Texture2D] = [
 # sekcja C, w kolejności C1-C8) — zastępuje dawne tymczasowe reużycie
 # tekstur wcieleń dla pokoi RANDOM.
 const RANDOM_ROOM_FLOOR_TEXTURES: Array[Texture2D] = [
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/flooded_catacombs_floor.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/sunken_library_floor.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/frozen_crypt_floor.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/blood_ritual_hall_floor.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/overgrown_ruins_floor.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/ash_battlefield_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/flooded_catacombs_floor_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/sunken_library_floor_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/frozen_crypt_floor_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/blood_ritual_hall_floor_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/overgrown_ruins_floor_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/ash_battlefield_floor_v2.png"),
 	preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_floor_v2.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/rusted_machine_hall_floor.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/rusted_machine_hall_floor_v2.png"),
 ]
 const RANDOM_ROOM_WALL_TEXTURES: Array[Texture2D] = [
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/flooded_catacombs_wall.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/sunken_library_wall.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/frozen_crypt_wall.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/blood_ritual_hall_wall.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/overgrown_ruins_wall.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/ash_battlefield_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/flooded_catacombs_wall_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/sunken_library_wall_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/frozen_crypt_wall_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/blood_ritual_hall_wall_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/overgrown_ruins_wall_v2.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/ash_battlefield_wall_v2.png"),
 	preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_wall_v2.png"),
-	preload("res://assets/sprites/pokoje/tekstury/random_rooms/rusted_machine_hall_wall.png"),
+	preload("res://assets/sprites/pokoje/tekstury/random_rooms/rusted_machine_hall_wall_v2.png"),
 ]
 
 # Na życzenie autora: losowy utwór z tej puli przy KAŻDYM wejściu do pokoju

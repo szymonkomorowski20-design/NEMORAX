@@ -23,12 +23,40 @@ const TEX_WALK_BACK_DIAGONAL_STRIDE := preload("res://assets/sprites/wcielenia/z
 const TEX_WALK_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back.png")
 const TEX_WALK_BACK_STRIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_walk_back_stride.png")
 const TEX_TELEGRAPH := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph.png")
+const TEX_TELEGRAPH_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph_front_diagonal.png")
+const TEX_TELEGRAPH_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph_side.png")
+const TEX_TELEGRAPH_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph_back_diagonal.png")
+const TEX_TELEGRAPH_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_telegraph_back.png")
 const TEX_LUNGE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_lunge.png")
+const TEX_LUNGE_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_lunge_front_diagonal.png")
+const TEX_LUNGE_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_lunge_side.png")
+const TEX_LUNGE_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_lunge_back_diagonal.png")
+const TEX_LUNGE_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_lunge_back.png")
 const TEX_PULSE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse.png")
+const TEX_PULSE_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse_front_diagonal.png")
+const TEX_PULSE_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse_side.png")
+const TEX_PULSE_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse_back_diagonal.png")
+const TEX_PULSE_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_cast-pulse_back.png")
 const TEX_PULL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_pull.png")
+const TEX_PULL_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_pull_front_diagonal.png")
+const TEX_PULL_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_pull_side.png")
+const TEX_PULL_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_pull_back_diagonal.png")
+const TEX_PULL_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_pull_back.png")
 const TEX_HIT := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_hit.png")
+const TEX_HIT_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_hit_front_diagonal.png")
+const TEX_HIT_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_hit_side.png")
+const TEX_HIT_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_hit_back_diagonal.png")
+const TEX_HIT_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_hit_back.png")
 const TEX_DEATH := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_death.png")
+const TEX_DEATH_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_death_front_diagonal.png")
+const TEX_DEATH_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_death_side.png")
+const TEX_DEATH_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_death_back_diagonal.png")
+const TEX_DEATH_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_death_back.png")
 const TEX_ECHO_PULSE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_echo-pulse.png")
+const TEX_ECHO_PULSE_FRONT_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_echo-pulse_front_diagonal.png")
+const TEX_ECHO_PULSE_SIDE := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_echo-pulse_side.png")
+const TEX_ECHO_PULSE_BACK_DIAGONAL := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_echo-pulse_back_diagonal.png")
+const TEX_ECHO_PULSE_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zha-ruun_echo-pulse_back.png")
 
 func _ready() -> void:
 	super._ready()
@@ -43,9 +71,13 @@ func _ready() -> void:
 			"back_diagonal": [TEX_WALK_BACK_DIAGONAL, TEX_WALK_BACK_DIAGONAL_STRIDE],
 			"back": [TEX_WALK_BACK, TEX_WALK_BACK_STRIDE],
 		},
-		"telegraph": TEX_TELEGRAPH, "lunge": TEX_LUNGE,
-		"pulse": TEX_PULSE, "pull": TEX_PULL, "hit": TEX_HIT, "death": TEX_DEATH,
-		"echo_pulse": TEX_ECHO_PULSE,
+		"telegraph": {"front": TEX_TELEGRAPH, "front_diagonal": TEX_TELEGRAPH_FRONT_DIAGONAL, "side": TEX_TELEGRAPH_SIDE, "back_diagonal": TEX_TELEGRAPH_BACK_DIAGONAL, "back": TEX_TELEGRAPH_BACK},
+		"lunge": {"front": TEX_LUNGE, "front_diagonal": TEX_LUNGE_FRONT_DIAGONAL, "side": TEX_LUNGE_SIDE, "back_diagonal": TEX_LUNGE_BACK_DIAGONAL, "back": TEX_LUNGE_BACK},
+		"pulse": {"front": TEX_PULSE, "front_diagonal": TEX_PULSE_FRONT_DIAGONAL, "side": TEX_PULSE_SIDE, "back_diagonal": TEX_PULSE_BACK_DIAGONAL, "back": TEX_PULSE_BACK},
+		"pull": {"front": TEX_PULL, "front_diagonal": TEX_PULL_FRONT_DIAGONAL, "side": TEX_PULL_SIDE, "back_diagonal": TEX_PULL_BACK_DIAGONAL, "back": TEX_PULL_BACK},
+		"hit": {"front": TEX_HIT, "front_diagonal": TEX_HIT_FRONT_DIAGONAL, "side": TEX_HIT_SIDE, "back_diagonal": TEX_HIT_BACK_DIAGONAL, "back": TEX_HIT_BACK},
+		"death": {"front": TEX_DEATH, "front_diagonal": TEX_DEATH_FRONT_DIAGONAL, "side": TEX_DEATH_SIDE, "back_diagonal": TEX_DEATH_BACK_DIAGONAL, "back": TEX_DEATH_BACK},
+		"echo_pulse": {"front": TEX_ECHO_PULSE, "front_diagonal": TEX_ECHO_PULSE_FRONT_DIAGONAL, "side": TEX_ECHO_PULSE_SIDE, "back_diagonal": TEX_ECHO_PULSE_BACK_DIAGONAL, "back": TEX_ECHO_PULSE_BACK},
 	}
 
 func _skill_echo_pulse() -> void:

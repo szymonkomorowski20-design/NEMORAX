@@ -43,21 +43,71 @@ const TEX_BLOCK := preload("res://assets/sprites/gracz/player_block.png")
 const TEX_HEAL := preload("res://assets/sprites/gracz/player_heal.png")
 const TEX_HIT := preload("res://assets/sprites/gracz/player_hit.png")
 const TEX_DEATH := preload("res://assets/sprites/gracz/player_death.png")
+const TEX_BASE_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_base_front_diagonal.png")
+const TEX_BASE_SIDE := preload("res://assets/sprites/gracz/player_base_side.png")
+const TEX_BASE_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_base_back_diagonal.png")
+const TEX_BASE_BACK := preload("res://assets/sprites/gracz/player_base_back.png")
+const TEX_DASH_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_dash_front_diagonal.png")
+const TEX_DASH_SIDE := preload("res://assets/sprites/gracz/player_dash_side.png")
+const TEX_DASH_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_dash_back_diagonal.png")
+const TEX_DASH_BACK := preload("res://assets/sprites/gracz/player_dash_back.png")
+const TEX_SWORD_WINDUP_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_sword_windup_front_diagonal.png")
+const TEX_SWORD_WINDUP_SIDE := preload("res://assets/sprites/gracz/player_sword_windup_side.png")
+const TEX_SWORD_WINDUP_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_sword_windup_back_diagonal.png")
+const TEX_SWORD_WINDUP_BACK := preload("res://assets/sprites/gracz/player_sword_windup_back.png")
+const TEX_SWORD_ACTIVE_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_sword_active_front_diagonal.png")
+const TEX_SWORD_ACTIVE_SIDE := preload("res://assets/sprites/gracz/player_sword_active_side.png")
+const TEX_SWORD_ACTIVE_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_sword_active_back_diagonal.png")
+const TEX_SWORD_ACTIVE_BACK := preload("res://assets/sprites/gracz/player_sword_active_back.png")
+const TEX_WAND_WINDUP_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_wand_windup_front_diagonal.png")
+const TEX_WAND_WINDUP_SIDE := preload("res://assets/sprites/gracz/player_wand_windup_side.png")
+const TEX_WAND_WINDUP_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_wand_windup_back_diagonal.png")
+const TEX_WAND_WINDUP_BACK := preload("res://assets/sprites/gracz/player_wand_windup_back.png")
+const TEX_WAND_FIRE_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_wand_fire_front_diagonal.png")
+const TEX_WAND_FIRE_SIDE := preload("res://assets/sprites/gracz/player_wand_fire_side.png")
+const TEX_WAND_FIRE_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_wand_fire_back_diagonal.png")
+const TEX_WAND_FIRE_BACK := preload("res://assets/sprites/gracz/player_wand_fire_back.png")
+const TEX_BLOCK_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_block_front_diagonal.png")
+const TEX_BLOCK_SIDE := preload("res://assets/sprites/gracz/player_block_side.png")
+const TEX_BLOCK_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_block_back_diagonal.png")
+const TEX_BLOCK_BACK := preload("res://assets/sprites/gracz/player_block_back.png")
+const TEX_HEAL_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_heal_front_diagonal.png")
+const TEX_HEAL_SIDE := preload("res://assets/sprites/gracz/player_heal_side.png")
+const TEX_HEAL_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_heal_back_diagonal.png")
+const TEX_HEAL_BACK := preload("res://assets/sprites/gracz/player_heal_back.png")
+const TEX_HIT_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_hit_front_diagonal.png")
+const TEX_HIT_SIDE := preload("res://assets/sprites/gracz/player_hit_side.png")
+const TEX_HIT_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_hit_back_diagonal.png")
+const TEX_HIT_BACK := preload("res://assets/sprites/gracz/player_hit_back.png")
+const TEX_DEATH_FRONT_DIAGONAL := preload("res://assets/sprites/gracz/player_death_front_diagonal.png")
+const TEX_DEATH_SIDE := preload("res://assets/sprites/gracz/player_death_side.png")
+const TEX_DEATH_BACK_DIAGONAL := preload("res://assets/sprites/gracz/player_death_back_diagonal.png")
+const TEX_DEATH_BACK := preload("res://assets/sprites/gracz/player_death_back.png")
 
-# Fazy 3-5 (PLAN_ANIMACJE_KIERUNKOWE.md) — na razie każda ma tylko "front"
-# (jedyny plik, jaki istnieje), ale już przechodzi przez Facing.resolve(), więc
-# dowiezienie side/front_diagonal/back_diagonal/back kiedyś wystarczy dopisać
-# jako nowe klucze tutaj, bez dalszych zmian w _update_visuals().
-const TEX_BASE_VARIANTS := {"front": TEX_BASE}
-const TEX_DASH_VARIANTS := {"front": TEX_DASH}
-const TEX_SWORD_WINDUP_VARIANTS := {"front": TEX_SWORD_WINDUP}
-const TEX_SWORD_ACTIVE_VARIANTS := {"front": TEX_SWORD_ACTIVE}
-const TEX_WAND_WINDUP_VARIANTS := {"front": TEX_WAND_WINDUP}
-const TEX_WAND_FIRE_VARIANTS := {"front": TEX_WAND_FIRE}
-const TEX_BLOCK_VARIANTS := {"front": TEX_BLOCK}
-const TEX_HEAL_VARIANTS := {"front": TEX_HEAL}
-const TEX_HIT_VARIANTS := {"front": TEX_HIT}
-const TEX_DEATH_VARIANTS := {"front": TEX_DEATH}
+# Fazy 3-5 (PLAN_ANIMACJE_KIERUNKOWE.md) — pełne 5 kątów na każdą pozę bojową,
+# przechodzą przez Facing.resolve() bez dalszych zmian w _update_visuals().
+const TEX_BASE_VARIANTS := {
+	"front": TEX_BASE,
+	"front_diagonal": TEX_BASE_FRONT_DIAGONAL,
+	"side": TEX_BASE_SIDE,
+	"back_diagonal": TEX_BASE_BACK_DIAGONAL,
+	"back": TEX_BASE_BACK,
+}
+const TEX_DASH_VARIANTS := {
+	"front": TEX_DASH,
+	"front_diagonal": TEX_DASH_FRONT_DIAGONAL,
+	"side": TEX_DASH_SIDE,
+	"back_diagonal": TEX_DASH_BACK_DIAGONAL,
+	"back": TEX_DASH_BACK,
+}
+const TEX_SWORD_WINDUP_VARIANTS := {"front": TEX_SWORD_WINDUP, "front_diagonal": TEX_SWORD_WINDUP_FRONT_DIAGONAL, "side": TEX_SWORD_WINDUP_SIDE, "back_diagonal": TEX_SWORD_WINDUP_BACK_DIAGONAL, "back": TEX_SWORD_WINDUP_BACK}
+const TEX_SWORD_ACTIVE_VARIANTS := {"front": TEX_SWORD_ACTIVE, "front_diagonal": TEX_SWORD_ACTIVE_FRONT_DIAGONAL, "side": TEX_SWORD_ACTIVE_SIDE, "back_diagonal": TEX_SWORD_ACTIVE_BACK_DIAGONAL, "back": TEX_SWORD_ACTIVE_BACK}
+const TEX_WAND_WINDUP_VARIANTS := {"front": TEX_WAND_WINDUP, "front_diagonal": TEX_WAND_WINDUP_FRONT_DIAGONAL, "side": TEX_WAND_WINDUP_SIDE, "back_diagonal": TEX_WAND_WINDUP_BACK_DIAGONAL, "back": TEX_WAND_WINDUP_BACK}
+const TEX_WAND_FIRE_VARIANTS := {"front": TEX_WAND_FIRE, "front_diagonal": TEX_WAND_FIRE_FRONT_DIAGONAL, "side": TEX_WAND_FIRE_SIDE, "back_diagonal": TEX_WAND_FIRE_BACK_DIAGONAL, "back": TEX_WAND_FIRE_BACK}
+const TEX_BLOCK_VARIANTS := {"front": TEX_BLOCK, "front_diagonal": TEX_BLOCK_FRONT_DIAGONAL, "side": TEX_BLOCK_SIDE, "back_diagonal": TEX_BLOCK_BACK_DIAGONAL, "back": TEX_BLOCK_BACK}
+const TEX_HEAL_VARIANTS := {"front": TEX_HEAL, "front_diagonal": TEX_HEAL_FRONT_DIAGONAL, "side": TEX_HEAL_SIDE, "back_diagonal": TEX_HEAL_BACK_DIAGONAL, "back": TEX_HEAL_BACK}
+const TEX_HIT_VARIANTS := {"front": TEX_HIT, "front_diagonal": TEX_HIT_FRONT_DIAGONAL, "side": TEX_HIT_SIDE, "back_diagonal": TEX_HIT_BACK_DIAGONAL, "back": TEX_HIT_BACK}
+const TEX_DEATH_VARIANTS := {"front": TEX_DEATH, "front_diagonal": TEX_DEATH_FRONT_DIAGONAL, "side": TEX_DEATH_SIDE, "back_diagonal": TEX_DEATH_BACK_DIAGONAL, "back": TEX_DEATH_BACK}
 const TEX_SLASH_ARC := preload("res://assets/sprites/ekwipunek/sword_slash_arc.png")
 const TEX_WAND_CHARGE := preload("res://assets/sprites/ekwipunek/wand_charge.png")
 const TEX_DASH_TRAIL := preload("res://assets/sprites/ekwipunek/player_dash_trail.png")
@@ -1033,10 +1083,7 @@ func _apply_facing(variants: Dictionary, direction: Vector2, frame: int = 0) -> 
 
 ## Każda poza przechodzi przez Facing.resolve() z WŁAŚCIWYM dla siebie
 ## źródłem kierunku (dokument, sekcja 2: mysz dla akcji bojowych, WASD dla
-## chodu/dasha) — dziś każdy słownik ma tylko klucz "front", więc wizualnie
-## nic się nie zmienia dopóki nie dowiezie się grafiki na resztę kątów
-## (Facing.resolve() sam degraduje do "front" i NIE odbija fallbacku, patrz
-## facing.gd), ale caly kod jest już gotowy na Fazy 3-5.
+## chodu/dasha) — od Fazy 3-5 każdy słownik ma pełne 5 kątów.
 func _update_visuals() -> void:
 	if state == State.DEAD:
 		_apply_facing(TEX_DEATH_VARIANTS, _last_move_direction)

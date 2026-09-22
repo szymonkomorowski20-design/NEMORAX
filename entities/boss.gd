@@ -73,17 +73,70 @@ const PHASE_BASE_TEXTURES: Array[Dictionary] = [
 	},
 ]
 const TEX_TELEGRAPH := preload("res://assets/sprites/nemorax/nemorax_telegraph.png")
+const TEX_TELEGRAPH_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_telegraph_front_diagonal.png")
+const TEX_TELEGRAPH_SIDE := preload("res://assets/sprites/nemorax/nemorax_telegraph_side.png")
+const TEX_TELEGRAPH_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_telegraph_back_diagonal.png")
+const TEX_TELEGRAPH_BACK := preload("res://assets/sprites/nemorax/nemorax_telegraph_back.png")
 const TEX_LUNGE := preload("res://assets/sprites/nemorax/nemorax_lunge.png")
+const TEX_LUNGE_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_lunge_front_diagonal.png")
+const TEX_LUNGE_SIDE := preload("res://assets/sprites/nemorax/nemorax_lunge_side.png")
+const TEX_LUNGE_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_lunge_back_diagonal.png")
+const TEX_LUNGE_BACK := preload("res://assets/sprites/nemorax/nemorax_lunge_back.png")
 const TEX_CAST_PULSE := preload("res://assets/sprites/nemorax/nemorax_cast-pulse.png")
+const TEX_CAST_PULSE_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_cast-pulse_front_diagonal.png")
+const TEX_CAST_PULSE_SIDE := preload("res://assets/sprites/nemorax/nemorax_cast-pulse_side.png")
+const TEX_CAST_PULSE_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_cast-pulse_back_diagonal.png")
+const TEX_CAST_PULSE_BACK := preload("res://assets/sprites/nemorax/nemorax_cast-pulse_back.png")
 const TEX_PULL := preload("res://assets/sprites/nemorax/nemorax_pull.png")
+const TEX_PULL_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_pull_front_diagonal.png")
+const TEX_PULL_SIDE := preload("res://assets/sprites/nemorax/nemorax_pull_side.png")
+const TEX_PULL_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_pull_back_diagonal.png")
+const TEX_PULL_BACK := preload("res://assets/sprites/nemorax/nemorax_pull_back.png")
 const TEX_HIT := preload("res://assets/sprites/nemorax/nemorax_hit.png")
+const TEX_HIT_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_hit_front_diagonal.png")
+const TEX_HIT_SIDE := preload("res://assets/sprites/nemorax/nemorax_hit_side.png")
+const TEX_HIT_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_hit_back_diagonal.png")
+const TEX_HIT_BACK := preload("res://assets/sprites/nemorax/nemorax_hit_back.png")
 const TEX_PHASE_TRANSFORM := preload("res://assets/sprites/nemorax/nemorax_phase-transform.png")
+const TEX_PHASE_TRANSFORM_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_phase-transform_front_diagonal.png")
+const TEX_PHASE_TRANSFORM_SIDE := preload("res://assets/sprites/nemorax/nemorax_phase-transform_side.png")
+const TEX_PHASE_TRANSFORM_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_phase-transform_back_diagonal.png")
+const TEX_PHASE_TRANSFORM_BACK := preload("res://assets/sprites/nemorax/nemorax_phase-transform_back.png")
 const TEX_LARGE_FORM_COLLAPSE := preload("res://assets/sprites/nemorax/nemorax_large-form-collapse.png")
+const TEX_LARGE_FORM_COLLAPSE_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_large-form-collapse_front_diagonal.png")
+const TEX_LARGE_FORM_COLLAPSE_SIDE := preload("res://assets/sprites/nemorax/nemorax_large-form-collapse_side.png")
+const TEX_LARGE_FORM_COLLAPSE_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_large-form-collapse_back_diagonal.png")
+const TEX_LARGE_FORM_COLLAPSE_BACK := preload("res://assets/sprites/nemorax/nemorax_large-form-collapse_back.png")
 const TEX_SMALL_FORM_REBIRTH := preload("res://assets/sprites/nemorax/nemorax_small-form-rebirth.png")
+const TEX_SMALL_FORM_REBIRTH_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_small-form-rebirth_front_diagonal.png")
+const TEX_SMALL_FORM_REBIRTH_SIDE := preload("res://assets/sprites/nemorax/nemorax_small-form-rebirth_side.png")
+const TEX_SMALL_FORM_REBIRTH_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_small-form-rebirth_back_diagonal.png")
+const TEX_SMALL_FORM_REBIRTH_BACK := preload("res://assets/sprites/nemorax/nemorax_small-form-rebirth_back.png")
 const TEX_SMALL_FORM_TAUNT := preload("res://assets/sprites/nemorax/nemorax_small-form-taunt.png")
+const TEX_SMALL_FORM_TAUNT_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_small-form-taunt_front_diagonal.png")
+const TEX_SMALL_FORM_TAUNT_SIDE := preload("res://assets/sprites/nemorax/nemorax_small-form-taunt_side.png")
+const TEX_SMALL_FORM_TAUNT_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_small-form-taunt_back_diagonal.png")
+const TEX_SMALL_FORM_TAUNT_BACK := preload("res://assets/sprites/nemorax/nemorax_small-form-taunt_back.png")
 const TEX_SMALL_FORM_TRUE_DEATH := preload("res://assets/sprites/nemorax/nemorax_small-form-true-death.png")
+const TEX_SMALL_FORM_TRUE_DEATH_FRONT_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_small-form-true-death_front_diagonal.png")
+const TEX_SMALL_FORM_TRUE_DEATH_SIDE := preload("res://assets/sprites/nemorax/nemorax_small-form-true-death_side.png")
+const TEX_SMALL_FORM_TRUE_DEATH_BACK_DIAGONAL := preload("res://assets/sprites/nemorax/nemorax_small-form-true-death_back_diagonal.png")
+const TEX_SMALL_FORM_TRUE_DEATH_BACK := preload("res://assets/sprites/nemorax/nemorax_small-form-true-death_back.png")
 const TEX_LUNGE_WARNING := preload("res://assets/sprites/ataki_bossa/claw_dash_warning.png")
 const LUNGE_WARNING_CONTENT_HEIGHT := 891.0
+
+# Fazy 3-5 (PLAN_ANIMACJE_KIERUNKOWE.md) — pełne 5 kątów na każdą pozę, wspólne
+# dla wszystkich 6 faz (w przeciwieństwie do PHASE_BASE_TEXTURES).
+const TEX_TELEGRAPH_VARIANTS := {"front": TEX_TELEGRAPH, "front_diagonal": TEX_TELEGRAPH_FRONT_DIAGONAL, "side": TEX_TELEGRAPH_SIDE, "back_diagonal": TEX_TELEGRAPH_BACK_DIAGONAL, "back": TEX_TELEGRAPH_BACK}
+const TEX_LUNGE_VARIANTS := {"front": TEX_LUNGE, "front_diagonal": TEX_LUNGE_FRONT_DIAGONAL, "side": TEX_LUNGE_SIDE, "back_diagonal": TEX_LUNGE_BACK_DIAGONAL, "back": TEX_LUNGE_BACK}
+const TEX_CAST_PULSE_VARIANTS := {"front": TEX_CAST_PULSE, "front_diagonal": TEX_CAST_PULSE_FRONT_DIAGONAL, "side": TEX_CAST_PULSE_SIDE, "back_diagonal": TEX_CAST_PULSE_BACK_DIAGONAL, "back": TEX_CAST_PULSE_BACK}
+const TEX_PULL_VARIANTS := {"front": TEX_PULL, "front_diagonal": TEX_PULL_FRONT_DIAGONAL, "side": TEX_PULL_SIDE, "back_diagonal": TEX_PULL_BACK_DIAGONAL, "back": TEX_PULL_BACK}
+const TEX_HIT_VARIANTS := {"front": TEX_HIT, "front_diagonal": TEX_HIT_FRONT_DIAGONAL, "side": TEX_HIT_SIDE, "back_diagonal": TEX_HIT_BACK_DIAGONAL, "back": TEX_HIT_BACK}
+const TEX_PHASE_TRANSFORM_VARIANTS := {"front": TEX_PHASE_TRANSFORM, "front_diagonal": TEX_PHASE_TRANSFORM_FRONT_DIAGONAL, "side": TEX_PHASE_TRANSFORM_SIDE, "back_diagonal": TEX_PHASE_TRANSFORM_BACK_DIAGONAL, "back": TEX_PHASE_TRANSFORM_BACK}
+const TEX_LARGE_FORM_COLLAPSE_VARIANTS := {"front": TEX_LARGE_FORM_COLLAPSE, "front_diagonal": TEX_LARGE_FORM_COLLAPSE_FRONT_DIAGONAL, "side": TEX_LARGE_FORM_COLLAPSE_SIDE, "back_diagonal": TEX_LARGE_FORM_COLLAPSE_BACK_DIAGONAL, "back": TEX_LARGE_FORM_COLLAPSE_BACK}
+const TEX_SMALL_FORM_REBIRTH_VARIANTS := {"front": TEX_SMALL_FORM_REBIRTH, "front_diagonal": TEX_SMALL_FORM_REBIRTH_FRONT_DIAGONAL, "side": TEX_SMALL_FORM_REBIRTH_SIDE, "back_diagonal": TEX_SMALL_FORM_REBIRTH_BACK_DIAGONAL, "back": TEX_SMALL_FORM_REBIRTH_BACK}
+const TEX_SMALL_FORM_TAUNT_VARIANTS := {"front": TEX_SMALL_FORM_TAUNT, "front_diagonal": TEX_SMALL_FORM_TAUNT_FRONT_DIAGONAL, "side": TEX_SMALL_FORM_TAUNT_SIDE, "back_diagonal": TEX_SMALL_FORM_TAUNT_BACK_DIAGONAL, "back": TEX_SMALL_FORM_TAUNT_BACK}
+const TEX_SMALL_FORM_TRUE_DEATH_VARIANTS := {"front": TEX_SMALL_FORM_TRUE_DEATH, "front_diagonal": TEX_SMALL_FORM_TRUE_DEATH_FRONT_DIAGONAL, "side": TEX_SMALL_FORM_TRUE_DEATH_SIDE, "back_diagonal": TEX_SMALL_FORM_TRUE_DEATH_BACK_DIAGONAL, "back": TEX_SMALL_FORM_TRUE_DEATH_BACK}
 
 const SND_TRANSFORM_ROAR := preload("res://assets/audio/sfx/nemorax/N01_transform_roar.wav")
 const SND_ATTACK_INHALE := preload("res://assets/audio/sfx/nemorax/N02_attack_inhale.wav")
@@ -189,7 +242,7 @@ const PHASE_HP_MULTIPLIERS: Array[float] = [1.00, 1.00, 1.05, 1.10, 1.10, 1.15]
 @onready var sfx: AudioStreamPlayer2D = $Sfx
 
 var _facing_direction: Vector2 = Vector2.ZERO
-var _cast_pose_texture: Texture2D = null
+var _cast_pose_variants: Dictionary = {}
 var _cast_pose_timer: float = 0.0
 var _taunt_pose_active: bool = false
 var _rebirth_pose_timer: float = 0.0
@@ -473,7 +526,7 @@ func _attack_motion_dash_and_strike() -> void:
 	_begin_lunge(player.global_position, motion_dash_speed, motion_dash_duration, motion_dash_damage, motion_dash_telegraph, 0.0)
 	await get_tree().create_timer(motion_dash_telegraph + motion_dash_duration + 0.15).timeout
 	if not is_dead:
-		_set_cast_pose(TEX_CAST_PULSE)
+		_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 		_damage_pulse(motion_short_strike_range, motion_short_strike_damage)
 
 func _attack_motion_dash_through_return() -> void:
@@ -491,7 +544,7 @@ func _build_pattern_groups_force() -> Array[Dictionary]:
 	]
 
 func _attack_force_wide_strike() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	await get_tree().create_timer(0.85).timeout
 	if not is_dead:
 		_damage_pulse(force_wide_strike_range, force_wide_strike_damage)
@@ -500,7 +553,7 @@ func _attack_force_radial_warning() -> void:
 	_launch_seal_attack()
 
 func _attack_force_advance_pressure() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	for i in range(force_advance_steps):
 		await get_tree().create_timer(force_advance_step_delay).timeout
 		if is_dead:
@@ -518,7 +571,7 @@ func _build_pattern_groups_instinct() -> Array[Dictionary]:
 
 func _attack_instinct_reposition_strike() -> void:
 	global_position = _random_arena_point(instinct_reposition_margin)
-	_set_cast_pose(TEX_TELEGRAPH)
+	_set_cast_pose(TEX_TELEGRAPH_VARIANTS)
 	await get_tree().create_timer(instinct_strike_telegraph).timeout
 	if not is_dead:
 		_damage_pulse(instinct_strike_range, instinct_strike_damage)
@@ -526,11 +579,11 @@ func _attack_instinct_reposition_strike() -> void:
 ## Zapowiedź BEZ obrażeń (dokument: "feint cannot itself damage") — czysty test
 ## reakcji gracza, odróżnia fałszywe zagrożenie od prawdziwego ataku.
 func _attack_instinct_feint() -> void:
-	_set_cast_pose(TEX_TELEGRAPH)
+	_set_cast_pose(TEX_TELEGRAPH_VARIANTS)
 	await get_tree().create_timer(instinct_feint_duration).timeout
 
 func _attack_instinct_quick_strike() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	await get_tree().create_timer(instinct_quick_strike_telegraph).timeout
 	if not is_dead:
 		_damage_pulse(instinct_strike_range, instinct_quick_strike_damage)
@@ -550,7 +603,7 @@ func _build_pattern_groups_dominion() -> Array[Dictionary]:
 ## planszy Dominion — jedyny atak w grze, który nie rani, tylko blokuje dash,
 ## dokładnie jak wcześniej) — patrz entities/void_zone.gd.
 func _attack_dominion_void_lock() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	var zone = VoidZoneScene.instantiate()
 	zone.player = player
 	zone.boss = self
@@ -558,7 +611,7 @@ func _attack_dominion_void_lock() -> void:
 	get_parent().add_child(zone)
 
 func _attack_dominion_zone() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	var zone := DamageZoneScene.instantiate()
 	zone.zone_radius = dominion_zone_radius
 	zone.duration = dominion_zone_duration
@@ -567,7 +620,7 @@ func _attack_dominion_zone() -> void:
 	get_parent().add_child(zone)
 
 func _attack_dominion_projectile_fan() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	var to_player: Vector2 = player.global_position - global_position
 	var base_angle := to_player.angle() if to_player.length() > 0.01 else 0.0
 	var spread := deg_to_rad(dominion_fan_spread_degrees)
@@ -587,7 +640,7 @@ func _attack_dominion_projectile_fan() -> void:
 ## default to 0 XP") — ten sam wzorzec co entities/random_enemies/summoner.gd:
 ## `died` celowo nie podpięte pod nic.
 func _attack_dominion_summon() -> void:
-	_set_cast_pose(TEX_PULL)
+	_set_cast_pose(TEX_PULL_VARIANTS)
 	for i in range(dominion_summon_count):
 		var add: Incarnation = ChaserScene.instantiate()
 		var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized() * 80.0
@@ -615,7 +668,7 @@ func _attack_ruin_dash_cleave() -> void:
 	_begin_lunge(player.global_position, ruin_dash_speed, ruin_dash_duration, ruin_dash_damage, 0.42, 0.0)
 
 func _attack_ruin_chain_followup() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	_damage_pulse(ruin_chain_range, ruin_chain_hit_damage)
 	await get_tree().create_timer(ruin_chain_gap).timeout
 	if not is_dead:
@@ -677,13 +730,13 @@ func _attack_sovereignty_crown_sequence() -> void:
 
 # === Ataki dzielone między fazy (pieczęcie/cień) ===
 
-func _set_cast_pose(tex: Texture2D) -> void:
-	_cast_pose_texture = tex
+func _set_cast_pose(variants: Dictionary) -> void:
+	_cast_pose_variants = variants
 	_cast_pose_timer = cast_pose_duration
 	_play_sfx(SND_ATTACK_INHALE)
 
 func _launch_seal_attack() -> void:
-	_set_cast_pose(TEX_CAST_PULSE)
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
 	var probe = SealScene.instantiate()
 	var margin: float = probe.seal_radius
 	probe.free()
@@ -788,21 +841,21 @@ func _update_sprite_state() -> void:
 	var entry
 	var is_walk_pose := false
 	if is_dead:
-		entry = TEX_SMALL_FORM_TRUE_DEATH if is_final_phase else TEX_LARGE_FORM_COLLAPSE
+		entry = TEX_SMALL_FORM_TRUE_DEATH_VARIANTS if is_final_phase else TEX_LARGE_FORM_COLLAPSE_VARIANTS
 	elif _rebirth_pose_timer > 0.0:
-		entry = TEX_SMALL_FORM_REBIRTH
+		entry = TEX_SMALL_FORM_REBIRTH_VARIANTS
 	elif _taunt_pose_active:
-		entry = TEX_SMALL_FORM_TAUNT
+		entry = TEX_SMALL_FORM_TAUNT_VARIANTS
 	elif _invulnerable:
-		entry = TEX_PHASE_TRANSFORM
+		entry = TEX_PHASE_TRANSFORM_VARIANTS
 	elif _flash_frames > 0:
-		entry = TEX_HIT
+		entry = TEX_HIT_VARIANTS
 	elif _cast_pose_timer > 0.0:
-		entry = _cast_pose_texture
+		entry = _cast_pose_variants
 	elif _lunge_state == "telegraph":
-		entry = TEX_TELEGRAPH
+		entry = TEX_TELEGRAPH_VARIANTS
 	elif _lunge_state == "active":
-		entry = TEX_LUNGE
+		entry = TEX_LUNGE_VARIANTS
 	else:
 		entry = PHASE_BASE_TEXTURES[phase_index]
 		is_walk_pose = true
