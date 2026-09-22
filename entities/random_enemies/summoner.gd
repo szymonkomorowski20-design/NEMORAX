@@ -14,9 +14,22 @@ const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/summoner_attack.png"
 const VFX_SKILL := preload("res://assets/sprites/enemy_vfx/summoner_skill.png")
 
 const ChaserScene := preload("res://entities/random_enemies/chaser.tscn")
+const SND_CHANNEL_INTERRUPTED := preload("res://assets/audio/sfx/wcielenia/I09_channel_interrupted.wav") ## plik pusty do uzupełnienia — patrz komentarz przy take_damage()
 
 @export var summon_count: int = 2
 @export var summon_strength_fraction: float = 0.5 ## dokument: "fragile minions"
+
+## Faza 2B (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): "mag/Summoner daje
+## czas na przerwanie czaru" — jedyny skill Summonera to _skill_summon, więc
+## _telegraph_active == true zawsze znaczy "w trakcie kanałowania przywołania",
+## bez potrzeby osobnej flagi na to, KTÓRY skill jest telegrafowany.
+var _channel_interrupted: bool = false
+
+func take_damage(amount: float) -> void:
+	if _telegraph_active and not _channel_interrupted:
+		_channel_interrupted = true
+		_play_sfx(SND_CHANNEL_INTERRUPTED)
+	super.take_damage(amount)
 
 func _ready() -> void:
 	max_health = 58.0
@@ -30,6 +43,7 @@ func _ready() -> void:
 	radius = 42.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#B23A6B")
+	hit_material = Palette.HitMaterial.MAGIC
 	fragment_name = "Summoner"
 	_skills = [_skill_summon]
 	_sprite_textures = {
@@ -37,6 +51,9 @@ func _ready() -> void:
 	}
 
 func _skill_summon() -> void:
+	if _channel_interrupted:
+		_channel_interrupted = false # trafiony podczas kanałowania — przywołanie nie dochodzi do skutku
+		return
 	_set_skill_pose("pulse")
 	# Blask kanałowania (skill) na sobie, portal (attack) pod każdym nowym dodatkiem.
 	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position, telegraph_duration, 0.4)

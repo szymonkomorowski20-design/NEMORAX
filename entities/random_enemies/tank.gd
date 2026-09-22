@@ -23,6 +23,7 @@ func _ready() -> void:
 	sprite_scale = 0.12 # KIERUNEK_WIZUALNY_REFERENCJE.md: ciężki wróg 1.05-1.35 gracza (player.sprite_scale=0.10)
 	super._ready()
 	current_color = Color("#B8622E")
+	hit_material = Palette.HitMaterial.STONE
 	fragment_name = "Tank"
 	_skills = [_skill_slam]
 	_sprite_textures = {

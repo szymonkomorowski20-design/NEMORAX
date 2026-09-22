@@ -27,6 +27,7 @@ func _ready() -> void:
 	radius = 31.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#8A7EA6")
+	hit_material = Palette.HitMaterial.BONE
 	fragment_name = "Ambusher"
 	_skills = [_skill_strike]
 	_sprite_textures = {

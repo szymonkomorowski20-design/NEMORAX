@@ -25,6 +25,7 @@ func _ready() -> void:
 	radius = 31.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#9B4F8C")
+	hit_material = Palette.HitMaterial.MAGIC
 	fragment_name = "Zoner"
 	_skills = [_skill_place_zone]
 	_sprite_textures = {

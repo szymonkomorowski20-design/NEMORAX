@@ -26,6 +26,7 @@ func _ready() -> void:
 	super._ready()
 	orbit_direction = 1.0 if randf() < 0.5 else -1.0
 	current_color = Color("#4FA6A0")
+	hit_material = Palette.HitMaterial.MAGIC
 	fragment_name = "Orbiter"
 	_skills = [_skill_arc_shot]
 	_sprite_textures = {

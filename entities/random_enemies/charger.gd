@@ -23,6 +23,7 @@ func _ready() -> void:
 	radius = 42.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#C4453A")
+	hit_material = Palette.HitMaterial.STONE
 	fragment_name = "Charger"
 	_skills = [_skill_charge]
 	_sprite_textures = {

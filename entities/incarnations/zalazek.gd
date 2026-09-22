@@ -61,6 +61,7 @@ const TEX_TELEPORT_BACK := preload("res://assets/sprites/wcielenia/vhar_nokh/vha
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#F0447A")
+	hit_material = Palette.HitMaterial.MAGIC
 	fragment_name = "Vhar’Nokh, Wygnany z Otchłani" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_teleport_strike, _skill_unstable_burst, _skill_double_blink, _pattern_teleport_and_burst]
 	_sprite_textures = {

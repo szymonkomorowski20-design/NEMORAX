@@ -24,6 +24,7 @@ func _ready() -> void:
 	radius = 26.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#9B6BF0")
+	hit_material = Palette.HitMaterial.MAGIC
 	fragment_name = "Dasher"
 	_skills = [_skill_dash]
 	_sprite_textures = {

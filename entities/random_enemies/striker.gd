@@ -23,6 +23,7 @@ func _ready() -> void:
 	radius = 26.0 # przeliczone proporcjonalnie do nowej sprite_scale (patrz chaser.gd)
 	super._ready()
 	current_color = Color("#E8933D")
+	hit_material = Palette.HitMaterial.METAL
 	fragment_name = "Striker"
 	_skills = [_skill_lunge_strike]
 	_sprite_textures = {

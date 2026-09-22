@@ -61,6 +61,7 @@ const TEX_ECHO_PULSE_BACK := preload("res://assets/sprites/wcielenia/zha_ruun/zh
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#C44FD6")
+	hit_material = Palette.HitMaterial.MAGIC
 	fragment_name = "Zha’Ruun, Pożeracz Granic" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_echo_pulse, _skill_stutter_lunge, _skill_rewind_pull, _pattern_pull_and_stutter]
 	_sprite_textures = {

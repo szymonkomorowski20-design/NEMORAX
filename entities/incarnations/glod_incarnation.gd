@@ -60,6 +60,7 @@ const TEX_BITE_BACK := preload("res://assets/sprites/wcielenia/thal_gor/thal-gor
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#E8524A") # dopasowane do dostarczonej grafiki (czerwona, nie zielona)
+	hit_material = Palette.HitMaterial.BONE
 	fragment_name = "Thal’Gor, Pęknięty Pomiędzy Światami" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_bite, _skill_ravenous_pulse, _skill_pull_and_bite, _pattern_pulse_and_bite]
 	_sprite_textures = {

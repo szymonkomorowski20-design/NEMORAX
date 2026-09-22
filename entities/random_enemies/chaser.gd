@@ -23,6 +23,7 @@ func _ready() -> void:
 	radius = 26.0 # przeliczone z tej samej proporcji co domyślne 95/sprite_scale=0.27 — bez tego hitbox zostałby ze starej, dużej skali mimo mniejszego sprite'a
 	super._ready()
 	current_color = Color("#8FBF6B")
+	hit_material = Palette.HitMaterial.BONE
 	fragment_name = "Chaser"
 	_skills = [_skill_swipe]
 	_sprite_textures = {

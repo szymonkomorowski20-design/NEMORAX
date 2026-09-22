@@ -28,6 +28,29 @@ const HIT_FLASH := Color("#FFFFFF")
 ##     6  paski zdrowia nad głową        (enemy_health_bar.gd)
 ##    10+ HUD i cutscenki                (osobne CanvasLayer, poza z_index)
 
+## Faza 5 (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md sekcja "Dźwięk"):
+## "różne materiały mają różne odpowiedzi: metal, kość, magia, kamień" —
+## wcześniej WSZYSTKIE 17 archetypów (11 losowych + 6 wcieleń) dzieliło jeden
+## wspólny dźwięk trafienia/śmierci. Pliki w assets/audio/sfx/materials/ są
+## na razie CISZĄ — autor gry uzupełni prawdziwe brzmienia sam, w swoim
+## czasie; nie czekaj na to, samo przypisanie kategorii per-archetyp już
+## przygotowuje kod. Nemorax ma własny, unikalny zestaw dźwięków (boss.gd) i
+## celowo NIE korzysta z tej tabeli — nie jest "jednym z wielu materiałów".
+enum HitMaterial { METAL, BONE, MAGIC, STONE }
+
+const MATERIAL_HURT_SOUNDS := {
+	HitMaterial.METAL: preload("res://assets/audio/sfx/materials/metal_hurt.wav"),
+	HitMaterial.BONE: preload("res://assets/audio/sfx/materials/bone_hurt.wav"),
+	HitMaterial.MAGIC: preload("res://assets/audio/sfx/materials/magic_hurt.wav"),
+	HitMaterial.STONE: preload("res://assets/audio/sfx/materials/stone_hurt.wav"),
+}
+const MATERIAL_DEATH_SOUNDS := {
+	HitMaterial.METAL: preload("res://assets/audio/sfx/materials/metal_death.wav"),
+	HitMaterial.BONE: preload("res://assets/audio/sfx/materials/bone_death.wav"),
+	HitMaterial.MAGIC: preload("res://assets/audio/sfx/materials/magic_death.wav"),
+	HitMaterial.STONE: preload("res://assets/audio/sfx/materials/stone_death.wav"),
+}
+
 # Kolory sześciu faz Nemoraksa — CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 13
 # (Motion/Force/Instinct/Dominion/Ruin/Sovereignty, na życzenie autora zamiast
 # Cisza/Zwłoka/Ciężar/Głód/Zaćmienie). TYMCZASOWE dobranie kolorów — grafika i

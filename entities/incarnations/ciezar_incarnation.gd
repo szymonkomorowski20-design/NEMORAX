@@ -62,6 +62,7 @@ const TEX_CRUSH_BACK := preload("res://assets/sprites/wcielenia/nekravor/nekravo
 func _ready() -> void:
 	super._ready()
 	current_color = Color("#6C63FF")
+	hit_material = Palette.HitMaterial.STONE
 	fragment_name = "Nekravor, Ten Którego Odrzucono" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_gravity_pull, _skill_crush_pulse, _skill_gravity_lunge, _pattern_lunge_and_crush]
 	_sprite_textures = {

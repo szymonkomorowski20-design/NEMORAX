@@ -23,6 +23,11 @@ signal died(fragment_name: String)
 @export var knockback_friction: float = 2000.0 ## px/s^2, jak szybko wytraca się odepchnięcie od bloku gracza
 @export var sprite_scale: float = 0.27 ## wcielenia wobec oryginalnych plików ~1024-1254px (cel: 200-300px, LORE_I_ASSETY.md)
 @export var skill_pose_duration: float = 0.4 ## s, jak długo trzyma się poza umiejętności po jej użyciu
+## Faza 5 (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): dźwięk trafienia/śmierci
+## zależny od materiału zamiast jednego wspólnego dla wszystkich 17 archetypów
+## — ustawiane per-podklasa w jej _ready(). Domyślnie BONE, żeby podklasa,
+## która zapomni to ustawić, i tak dostała jakiś rozsądny dźwięk zamiast pustki.
+@export var hit_material: Palette.HitMaterial = Palette.HitMaterial.BONE
 
 ## Poświata Elite (dokument sekcja 6.2, pakiet "Hardened") — jedyny wizualny
 ## znacznik dziś istniejącego modyfikatora Elite (patrz apply_elite_modifier()),
@@ -36,8 +41,6 @@ const SND_TELEGRAPH := preload("res://assets/audio/sfx/wcielenia/I01_telegraph.w
 const SND_DAMAGE_PULSE := preload("res://assets/audio/sfx/wcielenia/I02_damage_pulse.wav")
 const SND_LUNGE_START := preload("res://assets/audio/sfx/wcielenia/I04_lunge_start.wav")
 const SND_CONTACT_HIT := preload("res://assets/audio/sfx/wcielenia/I05_contact_hit.wav")
-const SND_HURT := preload("res://assets/audio/sfx/wcielenia/I07_incarnation_hurt.wav")
-const SND_DEATH := preload("res://assets/audio/sfx/wcielenia/I08_incarnation_death.wav")
 
 @onready var sprite: Sprite2D = $Sprite
 @onready var sfx: AudioStreamPlayer2D = $Sfx
@@ -301,10 +304,10 @@ func take_damage(amount: float) -> void:
 	if health <= 0.0:
 		health = 0.0
 		is_dead = true
-		_play_sfx(SND_DEATH)
+		_play_sfx(Palette.MATERIAL_DEATH_SOUNDS[hit_material])
 		died.emit(fragment_name)
 	else:
-		_play_sfx(SND_HURT)
+		_play_sfx(Palette.MATERIAL_HURT_SOUNDS[hit_material])
 
 func flash_white() -> void:
 	_flash_frames = 2

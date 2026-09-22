@@ -32,6 +32,7 @@ func _ready() -> void:
 	super._ready()
 	_base_drift_speed = drift_speed
 	current_color = Color("#8ED9C9")
+	hit_material = Palette.HitMaterial.MAGIC
 	fragment_name = "Support"
 	_skills = [_skill_self_buff]
 	_sprite_textures = {

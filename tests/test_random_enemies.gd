@@ -186,6 +186,33 @@ func test_summoner_spawns_weaker_adds_not_connected_to_room_clear(root: Node) ->
 	_cleanup(summoner, root)
 	_cleanup(player, root)
 
+## Faza 2B (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): trafienie Summonera W
+## TRAKCIE kanałowania (_telegraph_active) ma zepsuć nadchodzące przywołanie —
+## bez tego "czas na przerwanie czaru" z dokumentu nic by faktycznie nie robił.
+func test_summoner_channel_interrupted_by_damage_cancels_summon(root: Node) -> void:
+	var player := _fresh_player(root)
+	var summoner: Incarnation = load("res://entities/random_enemies/summoner.tscn").instantiate()
+	root.add_child(summoner)
+	summoner.arena_rect = Rect2(0, 0, 2000, 2000)
+	player.global_position = Vector2(1000, 1000)
+	summoner.global_position = Vector2(1000, 1000)
+
+	summoner._telegraph_active = true
+	summoner.take_damage(5.0)
+	NemoraxTest.assert_true(summoner._channel_interrupted, "trafienie w trakcie kanałowania powinno ustawić flagę przerwania")
+
+	var before := root.get_children().size()
+	summoner._skill_summon()
+	NemoraxTest.assert_eq(root.get_children().size(), before, "przerwane kanałowanie nie powinno zespawnować żadnych dodatków")
+	NemoraxTest.assert_true(not summoner._channel_interrupted, "flaga przerwania powinna się skonsumować po nieudanej próbie przywołania")
+
+	# Kolejne, nieprzerwane kanałowanie ma działać normalnie.
+	summoner._skill_summon()
+	NemoraxTest.assert_eq(root.get_children().size(), before + summoner.summon_count * 2 + 1, "kolejne, nieprzerwane przywołanie powinno zadziałać normalnie")
+
+	_cleanup(summoner, root)
+	_cleanup(player, root)
+
 func test_support_self_buffs_move_speed_temporarily(root: Node) -> void:
 	var player := _fresh_player(root)
 	var support: Incarnation = load("res://entities/random_enemies/support.tscn").instantiate()
