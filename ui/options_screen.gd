@@ -255,16 +255,23 @@ func _draw_tabs(viewport_size: Vector2) -> void:
 			draw_rect(Rect2(x, y + 6.0, sizes[i].x, 2.0), SELECTED_COLOR, true)
 		x += sizes[i].x + gap
 
+## Rect pełnej szerokości to WYŁĄCZNIE trafienie myszką (klik gdziekolwiek w
+## poziomym pasie wiersza musi trafić, patrz _handle_click — dla suwaków
+## głośności lewa/prawa połowa TEGO pasa decyduje o kierunku) — samo
+## podświetlenie tła jest węższe, dopasowane do tekstu (dokument o menu
+## głównym: "nie pełny pasek na całą szerokość", ta sama zasada tutaj).
 func _draw_row(viewport_size: Vector2, index: int, line: String, start_y: float, line_height: float) -> void:
 	var is_selected := index == _selected_index
 	var font := FONT_BODY_MEDIUM if is_selected else FONT_BODY
 	var color := SELECTED_COLOR if is_selected else TEXT_COLOR
 	var line_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 	var baseline := Vector2((viewport_size.x - line_size.x) * 0.5, start_y + index * line_height)
-	var row_rect := Rect2(0.0, baseline.y - line_size.y - 4.0, viewport_size.x, line_size.y + 12.0)
-	_item_rects[index] = row_rect
+	var hit_rect := Rect2(0.0, baseline.y - line_size.y - 4.0, viewport_size.x, line_size.y + 12.0)
+	_item_rects[index] = hit_rect
 	if is_selected:
-		draw_rect(row_rect, SELECTED_BG, true)
+		var highlight_padding := 24.0
+		var highlight_rect := Rect2(baseline.x - highlight_padding, hit_rect.position.y, line_size.x + highlight_padding * 2.0, hit_rect.size.y)
+		draw_rect(highlight_rect, SELECTED_BG, true)
 	draw_string(font, baseline, line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 func _draw_sound_items(viewport_size: Vector2) -> void:
