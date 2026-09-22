@@ -874,7 +874,30 @@ func _update_sprite_state() -> void:
 func _walk_cycle_frame() -> int:
 	return int(_walk_cycle_phase) % 2
 
+## Priorytet 1, punkt 3 (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): "usunąć
+## techniczny żółty okrąg... zastąpić runicznym kręgiem, cieniem, pęknięciami
+## w podłodze lub przygaszoną magiczną aureolą zgodną z aktualną fazą; realny
+## hitbox pozostaje uczciwy, ale telegraph może być minimalnie większy i
+## wizualnie miękki". Dawniej: jedna twarda, zawsze-żółta linia na promieniu
+## kontaktowym bossa, w KAŻDEJ fazie — dokładnie "element techniczny", nie
+## coś, co czyta się jak część świata NEMORAXA.
+##
+## Teraz: miękka poświata (kilka coraz szerszych, coraz słabszych łuków,
+## zamiast jednej twardej linii) w current_color bossa (ta sama barwa co
+## sprite/pasek HP tej fazy — Palette.PHASE_COLORS), więc krąg zmienia się z
+## fazą zamiast być stałym żółtym akcentem. Prawdziwe zagrożenie (lunge
+## telegraph) nadal przełącza na Palette.DANGER i pogrubia — hitbox nie
+## zmienia rozmiaru (promień zostaje ten sam, radius+4), tylko czytelność
+## rośnie, dokładnie jak w damage_zone.gd/boss.gd TELEGRAPH_SAFETY_MARGIN.
 func _draw() -> void:
-	if not is_dead:
-		var ring_width := 5.0 if _lunge_state == "telegraph" else 3.0
-		draw_arc(Vector2.ZERO, radius + 4.0, 0.0, TAU, 32, Color(Palette.DANGER, 0.9), ring_width)
+	if is_dead:
+		return
+	var telegraphing := _lunge_state == "telegraph"
+	var base_radius := radius + 4.0
+	var ring_color: Color = Palette.DANGER if telegraphing else current_color
+	for i in range(3, 0, -1):
+		var glow_alpha := (0.16 if telegraphing else 0.09) * float(i)
+		draw_arc(Vector2.ZERO, base_radius + float(i) * 3.0, 0.0, TAU, 40, Color(ring_color, glow_alpha), 6.0)
+	var core_width := 5.0 if telegraphing else 2.5
+	var core_alpha := 0.85 if telegraphing else 0.5
+	draw_arc(Vector2.ZERO, base_radius, 0.0, TAU, 40, Color(ring_color, core_alpha), core_width)

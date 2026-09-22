@@ -45,7 +45,9 @@ static func build(parent: Node2D, rect: Rect2, thickness: float, wall_texture: T
 
 ## Kafelkowana podłoga pod całą areną — osobno od build(), bo ściany zawsze są
 ## kolizją + opcjonalnym wyglądem, a podłoga to czysto wizualny spód sceny.
-static func build_floor(parent: Node2D, rect: Rect2, floor_texture: Texture2D) -> void:
+## `material` opcjonalny (np. entities/arena_stone_shader.gd, arena Nemoraxa) —
+## zwykłe pokoje/ołtarz go nie podają i wyglądają dokładnie jak dotąd.
+static func build_floor(parent: Node2D, rect: Rect2, floor_texture: Texture2D, material: Material = null) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = floor_texture
 	sprite.centered = false
@@ -54,6 +56,8 @@ static func build_floor(parent: Node2D, rect: Rect2, floor_texture: Texture2D) -
 	sprite.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	sprite.position = rect.position
 	sprite.z_index = -10
+	if material != null:
+		sprite.material = material
 	parent.add_child(sprite)
 
 ## Punkt na środku danej ściany, dokładnie tam gdzie build() powyżej stawia jej

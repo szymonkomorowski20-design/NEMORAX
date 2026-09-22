@@ -83,7 +83,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _build_walls() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
-	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE)
+	# Priorytet 1 (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): FLOOR_TEXTURE to
+	# dziś altar_floor.png — jasny kamień z siecią wielokolorowych, jarzących
+	# się pęknięć, dokładnie to, co dokument każe zastąpić. Bez nowej grafiki:
+	# entities/arena_stone_shader.gd przemalowuje to na ciemny obsydian z JEDNYM
+	# przygaszonym fioletowym akcentem i winietą wyciszającą pęknięcia bliżej
+	# środka areny — tylko tutaj, zwykłe pokoje/ołtarz zostają bez zmian.
+	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE, ArenaStoneShader.build_floor_material(ARENA_RECT))
 	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE, WALL_MODULATE)
 	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
 	atmosphere.configure(ARENA_RECT)
