@@ -305,11 +305,20 @@ var _marked_target: Node = null
 var _marked_until_msec: int = 0 ## Time.get_ticks_msec(), niezależne od Engine.time_scale/hitstopu
 
 @export var second_impact_chance: float = 0.30 ## szansa na opóźnione drugie trafienie
-@export var second_impact_delay: float = 0.22 ## s, opóźnienie drugiego trafienia
+@export var second_impact_delay: float = 0.14 ## s, opóźnienie drugiego trafienia — w oknie 0,08-0,16s (audyt, TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md), było 0.22 (za wolno, żeby czytać się jako COMBO a nie osobny, przypadkowy proc)
 @export var second_impact_damage_fraction: float = 0.45 ## ułamek obrażeń PIERWSZEGO trafienia
 @export var second_impact_knockback_strength: float = 250.0 ## px/s, odepchnięcie celu drugim trafieniem
 @export var second_impact_global_cooldown: float = 0.35 ## s, minimalny odstęp między kolejnymi procami
 var _second_impact_cooldown_timer: float = 0.0
+
+## Audyt Second Impact: dokument wymaga widocznego licznika aktywacji na karcie
+## relikwii/w Księdze Runu ("Aktywacje w tym runie: 12") — generyczny słownik
+## zamiast osobnej zmiennej per relikwia, bo Ołtarz/Księga Runu (kolejne kroki
+## tego samego audytu) będą potrzebować tego dla KAŻDEJ relikwii, nie tylko tej.
+var relic_activation_counts: Dictionary = {}
+
+func _record_relic_activation(upgrade_id: String) -> void:
+	relic_activation_counts[upgrade_id] = relic_activation_counts.get(upgrade_id, 0) + 1
 
 @export var momentum_stack_interval: float = 2.0 ## s bez obrażeń na jeden stack
 @export var momentum_speed_per_stack: float = 0.02 ## +2% prędkości za stack
@@ -944,12 +953,26 @@ func _maybe_schedule_second_impact(target: Node, base_damage: float) -> void:
 ## fire") — mógł umrzeć albo zniknąć (queue_free/reset pokoju) w tym
 ## opóźnieniu. Nie woła on_hit_confirmed() ponownie: drugie trafienie nie może
 ## samo siebie/Blood Edge/Second Impact ponownie uzbroić (dokument).
+##
+## Audyt Second Impact (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): mechanika
+## ZAWSZE działała (potwierdzone istniejącymi testami) — użytkownik nie widział
+## "drugiego ciosu", bo w całej grze nie było ŻADNEGO wizualnego dowodu
+## trafienia poza flash_white (identycznym dla pierwszego i drugiego ciosu,
+## i dla każdego innego trafienia w grze). Naprawa NIE zmienia samej
+## mechaniki (szansa/frakcja obrażeń zostają) — dodaje brakujący dowód:
+## własny łuk cięcia w stronę celu (jak żywy zamach mieczem, ale
+## odtworzony samodzielnie, bo gracz mógł już zdążyć się ruszyć/odwrócić)
+## i osobną liczbę obrażeń (autoload/juice.gd, Juice.apply_hit is_bonus_hit).
 func _fire_second_impact(target: Node, damage: float, origin_pos: Vector2) -> void:
 	if not is_instance_valid(target):
 		return
 	if target.get("is_dead") == true:
 		return
-	Juice.apply_hit(target, damage)
+	_record_relic_activation("second_impact")
+	var to_target: Vector2 = target.global_position - origin_pos
+	if get_parent() != null:
+		AttackVfx.spawn(get_parent(), TEX_SLASH_ARC, target.global_position, AttackVfx.DEFAULT_DURATION, slash_arc_scale, to_target.angle())
+	Juice.apply_hit(target, damage, Juice.boss_hit_hitstop, true)
 	if target.has_method("apply_knockback"):
 		var dir: Vector2 = target.global_position - origin_pos
 		var strength := second_impact_knockback_strength * _knockback_dealt_multiplier()

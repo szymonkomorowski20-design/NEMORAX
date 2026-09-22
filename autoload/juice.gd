@@ -90,11 +90,14 @@ func screen_shake() -> void:
 ## pocisk), a dokument wprost zastrzega trzęsienie kamery WYŁĄCZNIE dla
 ## ciężkich ataków (patrz np. boss.gd._start_transform_invulnerability(),
 ## gdzie zostaje wywołane bezpośrednio dla konkretnego, rzadkiego momentu).
-func apply_hit(target: Node, damage: float, hitstop_duration: float = boss_hit_hitstop) -> void:
+func apply_hit(target: Node, damage: float, hitstop_duration: float = boss_hit_hitstop, is_bonus_hit: bool = false) -> void:
 	if target.has_method("take_damage"):
 		target.take_damage(damage)
 	if target.has_method("flash_white"):
 		target.flash_white()
+	if target is Node2D:
+		var parent: Node = target.get_parent() if target.get_parent() != null else get_tree().current_scene
+		DamageNumber.spawn(parent, target.global_position, damage, Palette.DANGER, is_bonus_hit)
 	hitstop(hitstop_duration)
 
 ## Odtwarza jednorazowy dźwięk w danym miejscu świata i sam się sprząta po

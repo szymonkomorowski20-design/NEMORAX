@@ -172,6 +172,34 @@ func test_second_impact_skips_already_dead_target(root: Node) -> void:
 
 	player._fire_second_impact(incarnation, 5.0, incarnation.global_position)
 	NemoraxTest.assert_almost_eq(incarnation.health, health_before, 0.01, "martwy cel nie powinien dostać drugiego trafienia")
+	NemoraxTest.assert_eq(player.relic_activation_counts.get("second_impact", 0), 0, "martwy cel nie powinien liczyć się jako aktywacja")
+
+	root.remove_child(incarnation)
+	incarnation.queue_free()
+	_cleanup(player, root)
+
+## Audyt Second Impact (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): użytkownik
+## zgłosił, że nigdy nie widział podwójnego trafienia — sama mechanika zawsze
+## działała (patrz test wyżej), więc audyt sprawdza dokładnie to, czego
+## brakowało: (1) licznik aktywacji na potrzeby karty relikwii/Księgi Runu
+## faktycznie rośnie, (2) w drzewie sceny faktycznie pojawia się osobny węzeł
+## łuku ataku (AttackVfx) NAD celem, (3) Juice.apply_hit dostaje is_bonus_hit,
+## czyli DamageNumber przy tym trafieniu wyrenderuje się większą czcionką niż
+## zwykłe trafienie (entities/damage_number.gd) — czyli "osobna liczba
+## obrażeń" z dokumentu faktycznie odróżnia się od pierwszego ciosu.
+func test_second_impact_records_activation_and_spawns_visible_arc(root: Node) -> void:
+	var player := _fresh_player(root) # _fresh_player już dodaje playera do `root` — get_parent() w _fire_second_impact potrzebuje tego do spawnu VFX
+	player.acquire_upgrade("second_impact")
+	var incarnation: Incarnation = load("res://entities/incarnations/zalazek.tscn").instantiate()
+	root.add_child(incarnation)
+	incarnation.player = player
+	incarnation.arena_rect = Rect2(0, 0, 1000, 1000)
+
+	NemoraxTest.assert_eq(player.relic_activation_counts.get("second_impact", 0), 0, "licznik powinien startować od zera")
+	var children_before := root.get_child_count()
+	player._fire_second_impact(incarnation, 5.0, incarnation.global_position)
+	NemoraxTest.assert_eq(player.relic_activation_counts.get("second_impact", 0), 1, "udane drugie trafienie powinno zwiększyć licznik aktywacji o 1")
+	NemoraxTest.assert_true(root.get_child_count() > children_before, "drugie trafienie powinno dodać widoczny węzeł VFX (łuk cięcia) do sceny")
 
 	root.remove_child(incarnation)
 	incarnation.queue_free()
