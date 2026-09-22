@@ -1,5 +1,12 @@
 # NEMORAX — plan profesjonalnego feelingu, spójności i immersji
 
+## Status (Claude, 2026-09-22)
+
+Fazy 0, 1, 2, 4, 5 przejrzane/wdrożone. Faza 3 (252 pozycje) była już
+zrobiona wcześniej. Podsumowanie i to, czego NIE dało się potwierdzić bez
+Ciebie, jest w raporcie na końcu rozmowy — nie duplikuję go tutaj, żeby nie
+rozjechał się z rzeczywistością przy następnej zmianie.
+
 ## Cel
 
 NEMORAX ma pozostać mrocznym, malarskim roguelite'em z kamerą z góry, ale
