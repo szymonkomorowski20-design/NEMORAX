@@ -11,6 +11,23 @@ const DANGER := Color("#FFC857") # wyłącznie to, co zadaje obrażenia
 const VOID_INTERIOR := Color("#0B0810")
 const HIT_FLASH := Color("#FFFFFF")
 
+## Faza 2A (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md) — jedna, spisana
+## konwencja z_index dla całej gry. Wartości poniżej już były w kodzie
+## (walls.gd, room_atmosphere.gd, door.gd, contact_shadow.gd, attack_vfx.gd,
+## enemy_health_bar.gd) — to jest tylko pierwsze miejsce, gdzie są spisane
+## RAZEM, żeby nowy kod miał z czym się porównać zamiast zgadywać. Każdy
+## wyjątek od tej kolejności w kodzie MUSI mieć komentarz wyjaśniający dlaczego.
+##   -20  pustka poza pokojem            (walls.gd: build_void_background)
+##   -10  podłoga                        (walls.gd: build_floor)
+##    -8  atmosfera/cień otoczenia       (room_atmosphere.gd)
+##    -5  ściana                         (walls.gd: build)
+##    -3  drzwi / portal osadzony w murze (door.gd)
+##    -1  dekoracje podłogowe, cień kontaktowy (contact_shadow.gd)
+##     0  postacie, skrzynie, pickupy    (domyślny z_index węzłów encji)
+##     5  pociski/VFX ataku nad postaciami (attack_vfx.gd)
+##     6  paski zdrowia nad głową        (enemy_health_bar.gd)
+##    10+ HUD i cutscenki                (osobne CanvasLayer, poza z_index)
+
 # Kolory sześciu faz Nemoraksa — CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 13
 # (Motion/Force/Instinct/Dominion/Ruin/Sovereignty, na życzenie autora zamiast
 # Cisza/Zwłoka/Ciężar/Głód/Zaćmienie). TYMCZASOWE dobranie kolorów — grafika i

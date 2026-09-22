@@ -8,6 +8,11 @@ class_name DamageZone
 
 const TEX_ZONE := preload("res://assets/sprites/enemy_vfx/zoner_skill.png") # dedykowana grafika strefy Zonera (KIERUNEK_WIZUALNY_REFERENCJE.md)
 const ZONE_CONTENT_SIZE := 900.0 ## szacunkowy zasięg widocznej treści w kanwie 1024px
+## Faza 2D (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): "telegraf musi być
+## odrobinę większy niż realna strefa obrażeń, nigdy mniejszy" — podczas
+## zapowiedzi grafika jest odrobinę większa niż zone_radius, żeby gracz miał
+## mały margines bezpieczeństwa; po aktywacji wraca do dokładnego rozmiaru.
+const TELEGRAPH_SAFETY_MARGIN := 1.12
 
 @export var zone_radius: float = 64.0
 @export var telegraph_duration: float = 0.9
@@ -21,12 +26,13 @@ var _telegraph_timer: float
 var _active_timer: float = 0.0
 var _tick_timer: float = 0.0
 var _is_active: bool = false
+var _zone_scale: float = 1.0
 
 func _ready() -> void:
 	_telegraph_timer = telegraph_duration
 	sprite.texture = TEX_ZONE
-	var zone_scale: float = (zone_radius * 2.0) / ZONE_CONTENT_SIZE
-	sprite.scale = Vector2(zone_scale, zone_scale)
+	_zone_scale = (zone_radius * 2.0) / ZONE_CONTENT_SIZE
+	sprite.scale = Vector2(_zone_scale, _zone_scale) * TELEGRAPH_SAFETY_MARGIN
 	sprite.modulate = Color(Palette.DANGER.r, Palette.DANGER.g, Palette.DANGER.b, 0.3)
 
 func _physics_process(delta: float) -> void:
@@ -38,6 +44,7 @@ func _physics_process(delta: float) -> void:
 			_active_timer = duration
 			_tick_timer = 0.0
 			sprite.modulate.a = 0.7
+			sprite.scale = Vector2(_zone_scale, _zone_scale) # koniec marginesu bezpieczeństwa telegrafu — teraz dokładny zasięg
 		return
 
 	_active_timer -= delta

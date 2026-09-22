@@ -124,6 +124,10 @@ const TEX_SMALL_FORM_TRUE_DEATH_BACK_DIAGONAL := preload("res://assets/sprites/n
 const TEX_SMALL_FORM_TRUE_DEATH_BACK := preload("res://assets/sprites/nemorax/nemorax_small-form-true-death_back.png")
 const TEX_LUNGE_WARNING := preload("res://assets/sprites/ataki_bossa/claw_dash_warning.png")
 const LUNGE_WARNING_CONTENT_HEIGHT := 891.0
+## Faza 2D (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): "telegraf musi być
+## odrobinę większy niż realna strefa obrażeń, nigdy mniejszy" — ta sama
+## wartość co entities/damage_zone.gd, dla spójności między telegrafami.
+const LUNGE_WARNING_SAFETY_MARGIN := 1.12
 
 # Fazy 3-5 (PLAN_ANIMACJE_KIERUNKOWE.md) — pełne 5 kątów na każdą pozę, wspólne
 # dla wszystkich 6 faz (w przeciwieństwie do PHASE_BASE_TEXTURES).
@@ -302,7 +306,7 @@ func _ready() -> void:
 	lunge_warning.centered = true
 	lunge_warning.offset = Vector2(0.0, -lunge_warning.texture.get_height() * 0.5)
 	var lunge_reach := lunge_speed * lunge_duration
-	var lunge_warning_scale := lunge_reach / LUNGE_WARNING_CONTENT_HEIGHT
+	var lunge_warning_scale := (lunge_reach / LUNGE_WARNING_CONTENT_HEIGHT) * LUNGE_WARNING_SAFETY_MARGIN
 	lunge_warning.scale = Vector2(lunge_warning_scale, lunge_warning_scale)
 	_pattern_groups = _build_pattern_groups(0)
 	_update_sprite_state()

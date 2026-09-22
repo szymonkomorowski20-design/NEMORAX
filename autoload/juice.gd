@@ -5,7 +5,7 @@ extends Node
 ## robienie z tego wspólnego systemu byłoby przedwczesną abstrakcją.
 
 @export var boss_hit_hitstop: float = 0.05 ## s, zatrzymanie gry gdy gracz trafia bossa
-@export var player_hit_hitstop: float = 0.10 ## s, zatrzymanie gry gdy gracz dostaje obrażenia
+@export var player_hit_hitstop: float = 0.08 ## s, zatrzymanie gry gdy gracz dostaje obrażenia (górna granica zakresu 0.03-0.08s, PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md sekcja 2C — było 0.10s, poza zakresem)
 @export var shake_amplitude: float = 4.0 ## px, maksymalne przesunięcie ekranu przy trzęsieniu
 @export var shake_duration: float = 0.12 ## s, jak długo trwa trzęsienie ekranu
 
@@ -79,19 +79,23 @@ func hitstop(duration: float) -> void:
 func screen_shake() -> void:
 	_shake_time_left = shake_duration
 
-## Wspólne "trafienie wroga" — ujednolica take_damage+flash_white+hitstop+shake,
+## Wspólne "trafienie wroga" — ujednolica take_damage+flash_white+hitstop,
 ## które inaczej trzeba by powtarzać w każdym miejscu, skąd gracz może zadać
 ## obrażenia (miecz w player.gd, pocisk w projectile.gd), a każde kolejne
 ## miejsce byłoby kolejną kopią do rozjechania się przy następnej zmianie.
 ## NIE obejmuje register_hit_on_enemy() (mana/stacki leczenia) ani dźwięku
 ## trafienia — to zależy od konkretnej broni, nie jest uniwersalną reakcją celu.
+## Faza 2C (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): BEZ screen_shake() tutaj
+## — to najczęstsza ścieżka trafienia w grze (każde cięcie mieczem, każdy
+## pocisk), a dokument wprost zastrzega trzęsienie kamery WYŁĄCZNIE dla
+## ciężkich ataków (patrz np. boss.gd._start_transform_invulnerability(),
+## gdzie zostaje wywołane bezpośrednio dla konkretnego, rzadkiego momentu).
 func apply_hit(target: Node, damage: float, hitstop_duration: float = boss_hit_hitstop) -> void:
 	if target.has_method("take_damage"):
 		target.take_damage(damage)
 	if target.has_method("flash_white"):
 		target.flash_white()
 	hitstop(hitstop_duration)
-	screen_shake()
 
 ## Odtwarza jednorazowy dźwięk w danym miejscu świata i sam się sprząta po
 ## zakończeniu — do obiektów, które znikają (queue_free()) w tej samej klatce,

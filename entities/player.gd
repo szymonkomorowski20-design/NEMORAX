@@ -1046,7 +1046,6 @@ func take_damage(amount: float) -> void:
 	_invuln_timer = damage_invulnerability
 	_flash_frames = 2
 	Juice.hitstop(Juice.player_hit_hitstop)
-	Juice.screen_shake()
 	if health <= 0.0:
 		health = 0.0
 		state = State.DEAD
