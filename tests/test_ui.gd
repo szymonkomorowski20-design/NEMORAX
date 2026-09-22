@@ -79,3 +79,22 @@ func test_player_hp_shadow_lags_behind_damage_but_snaps_up_on_heal(root: Node) -
 
 	_cleanup(player, root)
 	_cleanup_ui(ui, root)
+
+## Krok 9: "panel: ZOSTAŁEŚ ODRZUCONY / inny wybrany tekst świata, przyczyna
+## lub pokój, przyciski: spróbuj ponownie / menu" — wspólne formatowanie dla
+## arena.gd (reason="Próba: N") i room.gd (reason=nazwa pokoju albo "").
+func test_show_death_overlay_includes_reason_and_both_buttons(root: Node) -> void:
+	var ui := _fresh_ui(root)
+	ui.show_death_overlay("Próba: 3")
+	NemoraxTest.assert_true("Zostałeś odrzucony" in ui._overlay_text, "panel powinien mieć tytuł świata, nie gołe 'Zginąłeś'")
+	NemoraxTest.assert_true("Próba: 3" in ui._overlay_text, "panel powinien pokazać przekazaną przyczynę")
+	NemoraxTest.assert_true("spróbuj ponownie" in ui._overlay_text, "panel musi wspominać opcję ponowienia")
+	NemoraxTest.assert_true("wyjdź do menu" in ui._overlay_text, "panel musi wspominać opcję wyjścia do menu")
+	_cleanup_ui(ui, root)
+
+func test_show_death_overlay_without_reason_omits_blank_reason_line(root: Node) -> void:
+	var ui := _fresh_ui(root)
+	ui.show_death_overlay("")
+	NemoraxTest.assert_true("Zostałeś odrzucony" in ui._overlay_text, "panel bez przyczyny powinien wciąż pokazać tytuł")
+	NemoraxTest.assert_eq(ui._overlay_text.count("\n\n\n"), 0, "brak przyczyny nie powinien zostawiać potrójnej pustej linii")
+	_cleanup_ui(ui, root)

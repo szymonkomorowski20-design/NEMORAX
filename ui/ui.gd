@@ -305,6 +305,20 @@ func show_overlay(text: String, kind: String = "death") -> void:
 	overlay_frame.texture = TEX_VICTORY_FRAME if kind == "victory" else TEX_DEATH_FRAME
 	overlay_frame.visible = true
 
+## Krok 9 (polish ekranów): "panel: ZOSTAŁEŚ ODRZUCONY / inny wybrany tekst
+## świata, przyczyna lub pokój, przyciski: spróbuj ponownie / menu". Wspólne
+## dla arena.gd (walka z Nemoraksem — `reason` to numer próby) i room.gd
+## (zwykły pokój — `reason` to nazwa pokoju z _room_display_name()), żeby oba
+## nie duplikowały tego samego formatowania tekstu z małymi rozjazdami.
+func show_death_overlay(reason: String = "") -> void:
+	var lines := ["Zostałeś odrzucony"]
+	if reason != "":
+		lines.append("")
+		lines.append(reason)
+	lines.append("")
+	lines.append("Enter — spróbuj ponownie      Escape — wyjdź do menu")
+	show_overlay("\n".join(lines), "death")
+
 func hide_overlay() -> void:
 	_overlay_active = false
 	overlay_frame.visible = false

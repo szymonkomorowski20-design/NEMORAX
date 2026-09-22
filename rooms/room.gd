@@ -353,7 +353,10 @@ func _on_altar_door_entered() -> void:
 	GameFlow.enter_altar()
 
 func _on_player_died() -> void:
-	ui.show_overlay("Zginąłeś\n\nSpacja, aby zacząć od nowa")
+	# Krok 9: "najpierw widoczny moment porażki: 0,15s hit-stop" — ten sam
+	# krótki freeze co w arena.gd, zanim panel w ogóle się pojawi.
+	Juice.hitstop(0.15)
+	ui.show_death_overlay(_room_display_name()) # "przyczyna lub pokój" — tu: nazwa pokoju, w którym zginął
 	_game_over_kind = "death"
 
 ## Zgon w zwykłym pokoju (dowolny losowy wróg albo wcielenie) MUSI resetować
@@ -363,8 +366,14 @@ func _on_player_died() -> void:
 ## śmierć poza finałową walką w ogóle nie cofała przebiegu do początku, mimo
 ## że ekran mówił "spróbuj ponownie". Prawdziwy bug, nie tylko niespójność.
 func _handle_game_over_input() -> void:
-	if _game_over_kind == "death" and Input.is_action_just_pressed("ui_accept"):
+	if _game_over_kind != "death":
+		return
+	if Input.is_action_just_pressed("ui_accept"):
 		_restart_run_from_scratch()
+	# Krok 9: "przyciski: spróbuj ponownie / menu" — dawniej jedyną drogą z
+	# ekranu porażki był restart, bez wyjścia do menu.
+	elif Input.is_action_just_pressed("ui_cancel"):
+		_exit_to_menu_from_death()
 
 ## Wydzielone z _handle_game_over_input() tak, żeby dało się przetestować
 ## sam reset przebiegu wprost (bez symulowania Input.is_action_just_pressed,
@@ -373,3 +382,7 @@ func _handle_game_over_input() -> void:
 func _restart_run_from_scratch() -> void:
 	GameFlow.reset_run()
 	get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+
+func _exit_to_menu_from_death() -> void:
+	GameFlow.reset_run()
+	get_tree().change_scene_to_file("res://menu.tscn")

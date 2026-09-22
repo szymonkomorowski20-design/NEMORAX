@@ -243,7 +243,11 @@ func _on_player_died() -> void:
 	_battle_over = true
 	deaths += 1
 	_save_progress()
-	ui.show_overlay("Zginąłeś\n\nPróba: %d\n\nSpacja, aby zacząć od nowa" % _attempts())
+	# Krok 9: "najpierw widoczny moment porażki: 0,15s hit-stop, ciało/
+	# osłabienie, świat wygasa" — dotąd panel wskakiwał w tej samej klatce, w
+	# której zdrowie spadło do zera, bez żadnego przejścia.
+	Juice.hitstop(0.15)
+	ui.show_death_overlay("Próba: %d" % _attempts())
 	_game_over_kind = "death"
 
 func _handle_game_over_input() -> void:
@@ -254,6 +258,11 @@ func _handle_game_over_input() -> void:
 			if Input.is_action_just_pressed("ui_accept"):
 				GameFlow.reset_run()
 				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+			# Krok 9: "przyciski: spróbuj ponownie / menu" — dawniej jedyną
+			# drogą z ekranu porażki był restart, bez wyjścia do menu.
+			elif Input.is_action_just_pressed("ui_cancel"):
+				GameFlow.reset_run()
+				get_tree().change_scene_to_file("res://menu.tscn")
 		"victory":
 			if Input.is_action_just_pressed("ui_cancel"):
 				get_tree().quit()
