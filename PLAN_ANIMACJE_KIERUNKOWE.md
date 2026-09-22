@@ -301,20 +301,12 @@ tablice klatek + łagodny fallback; `player.gd`/`entities/incarnation.gd`/
 `entities/boss.gd` mają już `_walk_cycle_phase`/`_walk_cycle_frame()`. Nic
 z tego nie zmienia dziś wyglądu gry — czeka na 91 obrazków z sekcji 8.
 
-**Kod Fazy 3-5 — TEŻ już ZROBIONY z wyprzedzeniem (2026-09-21).**
-`entities/incarnation.gd`/`entities/boss.gd` od razu kierowały KAŻDĄ pozę
-przez jedno, wspólne `Facing.resolve()` — nie trzeba tam nic zmieniać.
-`player.gd` tego nie robił (miał osobne, twarde przypisania tekstury na
-każdą pozę bojową) — przepisany tak, żeby też przechodził przez
-`Facing.resolve()`, z właściwym dla każdej pozy źródłem kierunku (mysz dla
-walki, WASD dla ruchu). Dziś każda poza ma tylko klucz `"front"`, więc
-NIC się wizualnie nie zmieniło — zweryfikowane wprost testami
-(`tests/test_player_facing.gd`). Dowiezienie grafiki z sekcji 9 to jedyny
-brakujący krok — dopisanie kluczy `side`/`front_diagonal`/`back_diagonal`/
-`back` do istniejących słowników, zero dalszych zmian w kodzie.
+**Faza 3-5 — ZROBIONA CAŁKOWICIE (kod 2026-09-21, grafika + podpięcie
+2026-09-22).** Grafika z sekcji 9 dowieziona w komplecie (252 obrazki) i
+podpięta wszędzie: gracz, 6 wcieleń, Nemorax. Zobacz punkty niżej.
 
 - [x] Wygenerować 91 obrazków Fazy 1b (sekcja 8) — dowiezione (2026-09-21).
-- [ ] Wygenerować 252 obrazki Fazy 3-5 (sekcja 9).
+- [x] Wygenerować 252 obrazki Fazy 3-5 (sekcja 9) — dowiezione (2026-09-22).
 - [x] Podpiąć Fazę 1b — dopisane klucze `front_diagonal`/`back_diagonal` +
       tablice `[neutral, stride]` do `_sprite_textures["walk"]` we
       wszystkich 6 wcieleniach i `PHASE_BASE_TEXTURES` w `boss.gd`
@@ -322,7 +314,20 @@ brakujący krok — dopisanie kluczy `side`/`front_diagonal`/`back_diagonal`/
       okna gry (Mordrath front_diagonal, Nemorax faza 1 back_diagonal —
       obie poprawnie wyrenderowane, bez uszkodzonej/brakującej grafiki).
       `player.gd` miał to już zrobione wcześniej.
-- [ ] Podpiąć Fazę 3-5, gdy grafika z sekcji 9 zostanie dowieziona.
+- [x] Podpiąć Fazę 3-5 (2026-09-22) — dopisane klucze `front_diagonal`/
+      `side`/`back_diagonal`/`back` do KAŻDEJ pozy bojowej: 10 póz gracza
+      (dokończone `wand_windup`/`wand_fire`/`block`/`heal`/`hit`/`death` —
+      `base`/`dash`/`sword_windup`/`sword_active` miały to już częściowo
+      zrobione z wcześniejszej, przerwanej sesji), 7-8 póz na każde z 6
+      wcieleń (w tym unikalna umiejętność), 10 wspólnych póz Nemoraksa
+      (`_cast_pose_texture` w boss.gd zmienione na `_cast_pose_variants:
+      Dictionary`, bo pieczęcie/cień/przyciąganie też przechodzą teraz przez
+      Facing.resolve()). `tests/test_player_facing.gd` przepisany — stare
+      testy zakładały, że KAŻDA poza pokazuje tylko "front" niezależnie od
+      kierunku (prawda tylko w stanie przejściowym bez grafiki), teraz
+      sprawdzają, że każda poza czyta właściwe źródło kierunku i trafia we
+      właściwy kąt/flip. Zweryfikowane headless (135 testów) + realny
+      screenshot (Mordrath i Nemorax w pozie telegraph, kąty diagonalne).
 - [ ] Realny playtest całości (interaktywny, nie tylko statyczny reference_room).
 
 ---
