@@ -56,6 +56,36 @@ const UNDER_MODULATE := Color(1.0, 1.0, 1.0, 0.25)
 const XP_BAR_BG := Color(0.04, 0.03, 0.06, 0.85)
 const XP_BAR_FILL := Color("#5BE0C8") # Palette.PLAYER_BODY — progresja postaci, spójne z tytułami menu
 
+## HUD (krok 7, TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): "pasek ma pokazywać
+## zmianę utraconego HP przez chwilowy cień starej wartości" — sliver między
+## nową krawędzią paska a tym, gdzie była PRZED ostatnim trafieniem, gasnący w
+## PLAYER_HP_SHADOW_CATCH_UP_SPEED sekund. Czerwony — "czerwony TYLKO dla
+## obrażeń" (paleta, sekcja UI) pasuje tu dosłownie: to WŁAŚNIE świeżo
+## utracone HP. Sam pasek gracza jest niebieski (TEX_PLAYER_BAR), więc
+## neutralny jasny odcień (kość/srebro) ledwie by się odróżniał od wypełnienia
+## — czerwień daje kontrast niezależnie od koloru tekstury paska. Tylko dla
+## obrażeń — leczenie NIE dostaje efektu cienia (patrz _update_bars: cień
+## skacze w górę natychmiast przy wzroście HP, doganiam tylko spadek).
+const PLAYER_HP_SHADOW_TINT := Color(0.85, 0.22, 0.22, 1.0)
+const PLAYER_HP_SHADOW_CATCH_UP_SPEED := 1.0 ## ułamek paska/s
+
+## Reliquary (krok 7): jeden wspólny, ciemny panel pod HP/staminą/maną/expem
+## zamiast czterech osobnych pasków latających luzem nad podłogą — bez
+## dedykowanej grafiki na tak duży, rzadko zmieniany kształt (jak tło
+## stats_screen.gd), więc rysowany kodem jednym prostokątem z cienką ramką.
+const RELIQUARY_BG_COLOR := Color(0.06, 0.05, 0.09, 0.72)
+const RELIQUARY_BORDER_COLOR := Color(0.35, 0.30, 0.42, 0.55)
+const RELIQUARY_PADDING := 12.0
+
+## Minimapa (krok 7): "mapa pamięci, nie kolorowa siatka debugowa — odwiedzony
+## pokój ciemny, bieżący turkusowy, boss/cel jednym akcentem". Wcześniej każdy
+## rozdział duszy (SOUL) dostawał inny kolor z Palette.PHASE_COLORS (tęcza) —
+## usunięte na rzecz jednego, spójnego schematu.
+const MINIMAP_VISITED_COLOR := Color(0.14, 0.12, 0.17, 0.85) ## "ciemny" — zwykły odwiedzony pokój
+const MINIMAP_GOAL_COLOR := Color("#E8C547") ## złoto — WYŁĄCZNIE Ołtarz, jedyny "cel/boss" na mapie
+
+const BOSS_NAME := "Nemorax"
+
 @export var player_bar_size: Vector2 = Vector2(200.0, 20.0)
 @export var resource_bar_size: Vector2 = Vector2(200.0, 8.0)
 @export var resource_bar_gap: float = 4.0 ## px, odstęp między paskami staminy/many/życia/expa
@@ -84,8 +114,10 @@ var _heal_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do rysowania li
 var _xp_bar_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do _draw_xp_bar()
 var _player_bar_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do _draw_player_hp_text()
 var _boss_bar_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do _draw_boss_hp_text()
+var _player_hp_shadow_ratio: float = 1.0 ## dogania player.health/max_health tylko przy SPADKU (obrażenia), skacze w górę natychmiast przy leczeniu
 
 @onready var player_bar_under: Sprite2D = $PlayerBarUnder
+@onready var player_bar_shadow: Sprite2D = $PlayerBarShadow
 @onready var player_bar: Sprite2D = $PlayerBar
 @onready var stamina_bar_under: Sprite2D = $StaminaBarUnder
 @onready var stamina_bar: Sprite2D = $StaminaBar
@@ -106,6 +138,15 @@ func _ready() -> void:
 	var player_pos := Vector2(30.0, VIEWPORT_SIZE.y - 50.0)
 	_player_bar_pos = player_pos
 	_setup_bar(player_bar_under, player_bar, TEX_PLAYER_BAR, PLAYER_BAR_CONTENT, player_pos, player_bar_size, Color.WHITE)
+	# Cień "utraconego HP" — trzeci sprite MIĘDZY under i fill w drzewie sceny
+	# (ui.tscn), żeby rysował się nad tłem paska, ale pod aktualną wartością.
+	player_bar_shadow.texture = TEX_PLAYER_BAR
+	player_bar_shadow.centered = false
+	player_bar_shadow.position = player_pos
+	player_bar_shadow.scale = player_bar_size / PLAYER_BAR_CONTENT.size
+	player_bar_shadow.region_enabled = true
+	player_bar_shadow.region_rect = PLAYER_BAR_CONTENT
+	player_bar_shadow.modulate = PLAYER_HP_SHADOW_TINT
 
 	var stamina_pos := player_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
 	_setup_bar(stamina_bar_under, stamina_bar, TEX_STAMINA_BAR, STAMINA_BAR_CONTENT, stamina_pos, resource_bar_size, Color.WHITE)
@@ -178,7 +219,7 @@ func _process(delta: float) -> void:
 		_center_message_timer -= delta
 		if _center_message_timer <= 0.0:
 			_center_message = ""
-	_update_bars()
+	_update_bars(delta)
 	queue_redraw()
 
 func show_form_name(text: String) -> void:
@@ -204,9 +245,9 @@ func hide_overlay() -> void:
 ## Zastępuje dawne _draw_player_bar/_draw_resource_bars/_draw_boss_bar/
 ## _draw_dash_icon/_draw_heal_icon — teraz to prawdziwe sprite'y/TextureRect,
 ## więc tylko aktualizujemy region_rect/visible/modulate co klatkę.
-func _update_bars() -> void:
+func _update_bars(delta: float) -> void:
 	var show_bars := not hide_all and not _overlay_active
-	for node in [player_bar_under, player_bar, stamina_bar_under, stamina_bar,
+	for node in [player_bar_under, player_bar_shadow, player_bar, stamina_bar_under, stamina_bar,
 			mana_bar_under, mana_bar, dash_icon, dash_lock_cross, heal_icon]:
 		node.visible = show_bars
 	# Pasek na górze ekranu TYLKO dla prawdziwego Bossa (Nemorax) — Incarnation
@@ -222,7 +263,15 @@ func _update_bars() -> void:
 		return
 
 	if player != null:
-		_update_bar_fill(player_bar, PLAYER_BAR_CONTENT, player.health / player.max_health)
+		var hp_ratio: float = player.health / player.max_health
+		_update_bar_fill(player_bar, PLAYER_BAR_CONTENT, hp_ratio)
+		# Leczenie skacze w górę natychmiast (bez cienia) — cień to WYŁĄCZNIE
+		# ślad po obrażeniach, żeby cios "miał wagę" (dokument, krok 7).
+		if hp_ratio > _player_hp_shadow_ratio:
+			_player_hp_shadow_ratio = hp_ratio
+		else:
+			_player_hp_shadow_ratio = move_toward(_player_hp_shadow_ratio, hp_ratio, PLAYER_HP_SHADOW_CATCH_UP_SPEED * delta)
+		_update_bar_fill(player_bar_shadow, PLAYER_BAR_CONTENT, _player_hp_shadow_ratio)
 		_update_bar_fill(stamina_bar, STAMINA_BAR_CONTENT, player.stamina / player.max_stamina)
 		_update_bar_fill(mana_bar, MANA_BAR_CONTENT, player.mana / player.max_mana)
 
@@ -236,37 +285,70 @@ func _update_bars() -> void:
 		boss_bar.modulate = boss.current_color
 
 func _draw() -> void:
+	_draw_reliquary_panel() # PIERWSZE — rodzic rysuje się POD swoimi dziećmi (paski/ikony), więc to zawsze wyląduje w tle
 	if _overlay_active:
 		_draw_overlay()
 	_draw_center_message()
 	_draw_heal_stack_count()
 	_draw_xp_bar()
 	_draw_player_hp_text()
+	_draw_boss_name_and_phase()
 	_draw_boss_hp_text()
 	_draw_minimap()
+
+## HUD krok 7: "lewy dół: jeden zwarty relikwiarz stanu gracza" zamiast czterech
+## pasków latających osobno nad podłogą. Obejmuje HP/staminę/manę/exp — NIE
+## ikony dash/heal (dokument wymienia tylko HP/stamina/mana/poziom, ikonki
+## zdolności to osobny, mniejszy klaster obok, bez zmian).
+func _draw_reliquary_panel() -> void:
+	if hide_all or _overlay_active or player == null:
+		return
+	var top_left := _xp_bar_pos - Vector2(RELIQUARY_PADDING, RELIQUARY_PADDING)
+	var bottom_right := _player_bar_pos + Vector2(player_bar_size.x, player_bar_size.y) + Vector2(RELIQUARY_PADDING, RELIQUARY_PADDING)
+	var rect := Rect2(top_left, bottom_right - top_left)
+	draw_rect(rect, RELIQUARY_BG_COLOR, true)
+	draw_rect(rect, RELIQUARY_BORDER_COLOR, false, 1.5)
 
 ## Audyt UI (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): "ile ma życia i ile
 ## maksymalnie" musi być odpowiadalne bez zgadywania z samej długości
 ## wypełnienia paska — sam pasek to Sprite2D z przycinanym region_rect (patrz
-## nagłówek pliku), bez żadnego tekstu.
+## nagłówek pliku), bez żadnego tekstu. Wyśrodkowane NA pasku (nie obok niego)
+## — po prawej stronie paska stoją już ikony dash/heal, tekst by na nie nachodził.
 func _draw_player_hp_text() -> void:
 	if player == null or hide_all or _overlay_active:
 		return
+	var font := ThemeDB.fallback_font
 	var label := "%d / %d" % [ceili(player.health), int(player.max_health)]
-	var pos := _player_bar_pos + Vector2(player_bar_size.x + 8.0, player_bar_size.y - 4.0)
-	draw_string(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14)
+	var pos := _player_bar_pos + Vector2((player_bar_size.x - text_size.x) * 0.5, player_bar_size.y * 0.5 + text_size.y * 0.3)
+	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 
-## j.w., punkt audytu "ile HP ma boss" — tymczasowe (do przebudowy paska bossa
-## w jedną grubą jednostkę nazwa+faza+HP, krok 7 tego samego dokumentu).
-## Wyśrodkowane pod paskiem (nie za jego prawym końcem — bar sięga niemal do
-## krawędzi viewportu, więc tekst wyszedłby częściowo poza ekran).
+## HUD krok 7: "boss: jeden ciężki pasek z nazwą, fazą i HP; nie neonowa
+## cienka linia" — dotąd pasek nie miał żadnego tekstu poza samym wypełnieniem.
+## Nazwa jest na sztywno ("Nemorax") — jedyny boss w grze, nie ma potrzeby
+## przekazywać jej z boss.gd. Faza czyta boss.phase_index NA BIEŻĄCO (nie z
+## przelotnego sygnału phase_changed) — jedyne trwałe źródło aktualnej fazy.
+func _draw_boss_name_and_phase() -> void:
+	if boss == null or not (boss is Boss) or hide_all or _overlay_active:
+		return
+	var font := ThemeDB.fallback_font
+	var phase_name := ""
+	if boss.phase_index >= 0 and boss.phase_index < Palette.PHASE_NAMES.size():
+		phase_name = Palette.PHASE_NAMES[boss.phase_index]
+	var label := "%s — %s" % [BOSS_NAME, phase_name] if phase_name != "" else BOSS_NAME
+	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18)
+	var pos := _boss_bar_pos + Vector2(ARENA_WIDTH * 0.5 - text_size.x * 0.5, boss_bar_height + 22.0)
+	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
+
+## Audyt UI, punkt "ile HP ma boss" — pod nazwą/fazą, żeby razem czytały się
+## jako jedna jednostka zamiast trzech niepowiązanych napisów.
 func _draw_boss_hp_text() -> void:
 	if boss == null or not (boss is Boss) or hide_all or _overlay_active:
 		return
 	var font := ThemeDB.fallback_font
 	var label := "%d / %d" % [ceili(boss.health), int(boss.max_health)]
 	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14)
-	var pos := _boss_bar_pos + Vector2(ARENA_WIDTH * 0.5 - text_size.x * 0.5, boss_bar_height + 16.0)
+	var pos := _boss_bar_pos + Vector2(ARENA_WIDTH * 0.5 - text_size.x * 0.5, boss_bar_height + 42.0)
 	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 
 ## Wcześniej nigdzie niewidoczny — level/xp istniały tylko jako liczby w
@@ -312,25 +394,27 @@ func _draw_minimap() -> void:
 		var offset := Vector2(pos.x - GameFlow.current_room_pos.x, pos.y - GameFlow.current_room_pos.y) * spacing
 		var draw_pos := anchor + offset
 		var visited: bool = GameFlow.visited_rooms.has(pos)
-		draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), _minimap_pip_color(data, visited), true)
-		if pos == GameFlow.current_room_pos:
+		var is_current: bool = pos == GameFlow.current_room_pos
+		draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), _minimap_pip_color(data, visited, is_current), true)
+		if is_current:
 			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Palette.HIT_FLASH, false, 2.0)
-		elif data.get("type") in [GameFlow.RoomType.SOUL, GameFlow.RoomType.ALTAR]:
+		elif data.get("type") == GameFlow.RoomType.SOUL and not data.get("cleared", false):
 			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
 
-func _minimap_pip_color(data: Dictionary, visited: bool) -> Color:
+## "Mapa pamięci, nie kolorowa siatka debugowa — odwiedzony pokój ciemny,
+## bieżący turkusowy, boss/cel jednym akcentem" (krok 7). SOUL dawniej dostawał
+## inny kolor z Palette.PHASE_COLORS na każdy z 6 rozdziałów (tęcza) — teraz
+## wygląda jak każdy inny odwiedzony pokój; jedyna pozostała wskazówka to
+## cienka obwódka dla NIEODEBRANEJ duszy (rysowana wyżej), nie osobny kolor.
+## ALTAR to JEDYNY "cel/boss" na mapie, więc jedyny z osobnym akcentem koloru.
+func _minimap_pip_color(data: Dictionary, visited: bool, is_current: bool) -> Color:
 	if not visited:
 		return Color(1.0, 1.0, 1.0, 0.12) # znany (sąsiad odwiedzonego), ale jeszcze nieodwiedzony
-	match data.get("type"):
-		GameFlow.RoomType.START:
-			return Color(1.0, 1.0, 1.0, 0.5)
-		GameFlow.RoomType.SOUL:
-			var base_color: Color = Palette.PHASE_COLORS[data.get("chapter", 0)]
-			return base_color if data.get("cleared", false) else Color(base_color, 0.4)
-		GameFlow.RoomType.ALTAR:
-			return Color(1.0, 0.9, 0.5, 1.0) if GameFlow.fragments_collected.size() >= GameFlow.CHAPTER_COUNT else Color(1.0, 0.9, 0.5, 0.3)
-		_: # RANDOM
-			return Color(Palette.PLAYER_BODY, 0.55) if data.get("cleared", false) else Color(Palette.PLAYER_BODY, 0.25)
+	if is_current:
+		return Palette.PLAYER_BODY
+	if data.get("type") == GameFlow.RoomType.ALTAR:
+		return MINIMAP_GOAL_COLOR if GameFlow.fragments_collected.size() >= GameFlow.CHAPTER_COUNT else Color(MINIMAP_GOAL_COLOR, 0.4)
+	return MINIMAP_VISITED_COLOR
 
 ## Liczba zbankowanych stacków leczenia (0-max_heal_stacks) obok ikony — bez
 ## tego gracz nie ma jak poznać, ile ma zapasu poza samą jasnością ikony

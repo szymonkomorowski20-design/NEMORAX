@@ -16,6 +16,8 @@ script = ExtResource("1")
 
 [node name="PlayerBarUnder" type="Sprite2D" parent="UI"]
 
+[node name="PlayerBarShadow" type="Sprite2D" parent="UI"]
+
 [node name="PlayerBar" type="Sprite2D" parent="UI"]
 
 [node name="StaminaBarUnder" type="Sprite2D" parent="UI"]
