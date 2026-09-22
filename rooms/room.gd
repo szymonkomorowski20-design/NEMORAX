@@ -263,6 +263,10 @@ func _on_incarnation_died(fragment_name: String) -> void:
 	if _room_data.get("type") == GameFlow.RoomType.RANDOM:
 		# Losowi przeciwnicy nie dają fragmentów/dusz do podniesienia (ustalone
 		# z autorem) — od razu otwarte drzwi, bez kroku z podnoszeniem duszy.
+		# Faza 4 (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): "pół sekundy
+		# spokoju" między śmiercią ostatniego wroga a nagrodą/drzwiami — bez
+		# tego drzwi i skrzynia pojawiały się w tej samej klatce co zgon.
+		await get_tree().create_timer(0.5).timeout
 		_spawn_doors_for_open_directions()
 		_maybe_spawn_chest()
 		return
