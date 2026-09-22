@@ -50,11 +50,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_down"):
 		_selected_index = (_selected_index + 1) % Keybinds.REBINDABLE_ACTIONS.size()
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_up"):
 		_selected_index = (_selected_index - 1 + Keybinds.REBINDABLE_ACTIONS.size()) % Keybinds.REBINDABLE_ACTIONS.size()
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_accept"):
+		Juice.play_ui_sfx_variant(Juice.SND_UI_CONFIRM)
 		_listening = true
 	elif event.is_action_pressed("ui_cancel"):
+		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		visible = false
 		closed.emit()
 
@@ -62,6 +66,7 @@ func _handle_listening_input(event: InputEvent) -> void:
 	# ui_cancel (Escape) anuluje samo nasłuchiwanie, nie zamyka całego ekranu —
 	# bez tego nie dałoby się w ogóle wyjść z trybu "naciśnij klawisz...".
 	if event.is_action_pressed("ui_cancel"):
+		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		_listening = false
 		return
 	var action: String = Keybinds.REBINDABLE_ACTIONS[_selected_index]
@@ -69,11 +74,13 @@ func _handle_listening_input(event: InputEvent) -> void:
 		var new_event := InputEventKey.new()
 		new_event.physical_keycode = event.physical_keycode
 		Keybinds.rebind_action(action, new_event)
+		Juice.play_ui_sfx_variant(Juice.SND_UI_CONFIRM)
 		_listening = false
 	elif event is InputEventMouseButton and event.pressed:
 		var new_event := InputEventMouseButton.new()
 		new_event.button_index = event.button_index
 		Keybinds.rebind_action(action, new_event)
+		Juice.play_ui_sfx_variant(Juice.SND_UI_CONFIRM)
 		_listening = false
 
 func _draw() -> void:

@@ -3,6 +3,12 @@ extends Node
 ## Błysk trafienia NIE mieszka tutaj: to czysto wizualny stan pojedynczego
 ## obiektu (2 klatki na biało), więc każdy `_draw()` robi to sam u siebie —
 ## robienie z tego wspólnego systemu byłoby przedwczesną abstrakcją.
+##
+## Dźwięki UI (paczka P0, wrzesień 2026) mieszkają tu, a nie po jednym
+## komplecie w każdym z menu.gd/pause_menu.gd/options_screen.gd/
+## keybind_screen.gd/stats_screen.gd — to te same dźwięki, identycznie użyte
+## w pięciu miejscach, więc jeden wspólny zestaw obok już istniejącego
+## play_sfx_at() zamiast pięciokrotnie tego samego preload+AudioStreamPlayer.
 
 @export var boss_hit_hitstop: float = 0.05 ## s, zatrzymanie gry gdy gracz trafia bossa
 @export var player_hit_hitstop: float = 0.08 ## s, zatrzymanie gry gdy gracz dostaje obrażenia (górna granica zakresu 0.03-0.08s, PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md sekcja 2C — było 0.10s, poza zakresem)
@@ -24,6 +30,22 @@ var shake_enabled: bool = true
 ## reload/zmianę sceny, więc F3 działa identycznie w pokoju/ołtarzu/arenie.
 var debug_visible: bool = false
 var _debug_label: Label
+
+const SND_UI_NAVIGATE := [
+	preload("res://assets/audio/sfx/p0/UI_NAVIGATE__1.wav"),
+	preload("res://assets/audio/sfx/p0/UI_NAVIGATE_2.wav"),
+	preload("res://assets/audio/sfx/p0/UI_NAVIGATE_3.wav"),
+]
+const SND_UI_CONFIRM := [
+	preload("res://assets/audio/sfx/p0/UI_CONFIRM_1.wav"),
+	preload("res://assets/audio/sfx/p0/UI_CONFIRM_2.wav"),
+]
+const SND_UI_BACK := [
+	preload("res://assets/audio/sfx/p0/UI_BACK_1.wav"),
+	preload("res://assets/audio/sfx/p0/UI_BACK_2.wav"),
+]
+const SND_UI_ERROR := preload("res://assets/audio/sfx/p0/UI_ERROR.wav")
+const SND_UI_LEVEL_UP := preload("res://assets/audio/sfx/p0/UI_LEVEL_UP.wav")
 
 func _ready() -> void:
 	_setup_debug_overlay()
@@ -124,6 +146,25 @@ func play_sfx_at(stream: AudioStream, world_position: Vector2, bus: String = "SF
 	parent.add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
+
+## Jak play_sfx_at(), ale bez pozycji w świecie i na busie "UI" zamiast "SFX"
+## — do menu/pauzy/opcji/ekranu klawiszy/ekranu statystyk, gdzie nie ma
+## sensownego world_position (część z tych ekranów pauzuje samo drzewo, patrz
+## get_tree().root jako rodzic zamiast current_scene: przeżywa pauzę tak samo
+## jak same te ekrany, PROCESS_MODE_ALWAYS).
+func play_ui_sfx(stream: AudioStream) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.bus = "UI"
+	get_tree().root.add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+
+## Losowy wybór z puli wariantów (UI_NAVIGATE/UI_CONFIRM/UI_BACK mają po 2-3
+## nagrania) — mikro-urozmaicenie zamiast identycznego sampla przy każdym
+## pojedynczym ruchu kursora.
+func play_ui_sfx_variant(streams: Array) -> void:
+	play_ui_sfx(streams[randi() % streams.size()])
 
 func _process(delta: float) -> void:
 	if debug_visible:

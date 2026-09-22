@@ -120,7 +120,7 @@ const TEX_SLASH_ARC := preload("res://assets/sprites/ekwipunek/sword_slash_arc.p
 const TEX_WAND_CHARGE := preload("res://assets/sprites/ekwipunek/wand_charge.png")
 const TEX_DASH_TRAIL := preload("res://assets/sprites/ekwipunek/player_dash_trail.png")
 
-# --- Dźwięki (P20/P21 — ból/śmierć gracza — jeszcze nie wygenerowane, brak na razie) ---
+# --- Dźwięki ---
 const SND_DASH_START := preload("res://assets/audio/sfx/gracz/P01_dash_start.wav")
 const SND_DASH_DENIED := preload("res://assets/audio/sfx/gracz/P02_dash_denied.wav")
 const SND_DASH_VOID_LOCKED := preload("res://assets/audio/sfx/gracz/P03_dash_void_locked.wav")
@@ -137,6 +137,13 @@ const SND_HEAL_USE := preload("res://assets/audio/sfx/gracz/P16_heal_use.wav")
 const SND_HEAL_CHARGE_TICK := preload("res://assets/audio/sfx/gracz/P18_heal_charge_tick.wav")
 const SND_HEAL_READY := preload("res://assets/audio/sfx/gracz/P19_heal_ready.wav")
 const SND_KNOCKBACK := preload("res://assets/audio/sfx/gracz/P22_player_knockback.wav")
+# P20/P21 (ból/śmierć gracza) — dogenerowane w paczce P0 (wrzesień 2026).
+const SND_HURT := [
+	preload("res://assets/audio/sfx/p0/PLAYER_HURT_1.wav"),
+	preload("res://assets/audio/sfx/p0/PLAYER_HURT_2.wav"),
+	preload("res://assets/audio/sfx/p0/PLAYER_HURT_3.wav"),
+]
+const SND_DEATH := preload("res://assets/audio/sfx/p0/PLAYER_DEATH.wav")
 
 @onready var sprite: Sprite2D = $Sprite
 @onready var slash_arc: Sprite2D = $SlashArc
@@ -1102,7 +1109,10 @@ func take_damage(amount: float) -> void:
 	if health <= 0.0:
 		health = 0.0
 		state = State.DEAD
+		_play_sfx(SND_DEATH)
 		died.emit()
+	else:
+		_play_sfx(SND_HURT[randi() % SND_HURT.size()])
 
 ## Wywoływane przez Ząb Zera przy wejściu gracza w strefę.
 func lock_dash(seconds: float) -> void:

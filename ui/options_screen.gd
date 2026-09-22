@@ -90,19 +90,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_click(event.position)
 	elif event.is_action_pressed("ui_focus_next"):
 		_switch_category(1)
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_focus_prev"):
 		_switch_category(-1)
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_down"):
 		_selected_index = (_selected_index + 1) % CATEGORY_ITEM_COUNTS[_category]
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_up"):
 		_selected_index = (_selected_index - 1 + CATEGORY_ITEM_COUNTS[_category]) % CATEGORY_ITEM_COUNTS[_category]
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_left"):
 		_handle_adjust(-1)
 	elif event.is_action_pressed("ui_right"):
 		_handle_adjust(1)
 	elif event.is_action_pressed("ui_accept"):
+		Juice.play_ui_sfx_variant(Juice.SND_UI_CONFIRM)
 		_activate_selected()
 	elif event.is_action_pressed("ui_cancel"):
+		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		visible = false
 		_save_settings()
 		closed.emit()
@@ -148,7 +154,9 @@ func _set_fullscreen(enabled: bool) -> void:
 func _update_hover(mouse_pos: Vector2) -> void:
 	for i in range(_item_rects.size()):
 		if _item_rects[i].has_point(mouse_pos):
-			_selected_index = i
+			if i != _selected_index:
+				_selected_index = i
+				Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 			return
 
 func _handle_click(mouse_pos: Vector2) -> void:

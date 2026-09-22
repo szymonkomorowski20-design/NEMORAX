@@ -82,6 +82,7 @@ const ROOM_MUSIC_TRACKS: Array[AudioStream] = [
 	preload("res://assets/audio/music/MUS_room_melody_3.wav"),
 	preload("res://assets/audio/music/MUS_room_melody_4.wav"),
 ]
+const SND_ROOM_CLEAR := preload("res://assets/audio/sfx/p0/AMB_ROOM_CLEAR.wav")
 
 @export var player_start_offset: Vector2 = Vector2(0.0, 0.0) ## względem środka areny, TYLKO w pokoju startowym (entry_direction == ZERO)
 @export var incarnation_spawn_offset: Vector2 = Vector2(0.0, -60.0) ## względem środka areny
@@ -286,6 +287,7 @@ func _spawn_door(pos: Vector2, on_entered: Callable, wall_side: String) -> void:
 func _on_incarnation_died(fragment_name: String) -> void:
 	player.gain_xp() # 1 XP za każdego pokonanego przeciwnika, losowego i wcielenie jednakowo
 	GameFlow.clear_current_room()
+	Juice.play_sfx_at(SND_ROOM_CLEAR, incarnation.global_position)
 	if _room_data.get("type") == GameFlow.RoomType.RANDOM:
 		# Losowi przeciwnicy nie dają fragmentów/dusz do podniesienia (ustalone
 		# z autorem) — od razu otwarte drzwi, bez kroku z podnoszeniem duszy.

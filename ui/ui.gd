@@ -288,11 +288,14 @@ func show_taunt(text: String, duration: float) -> void:
 ## _on_chest_opened(). Nieznane ID (nie powinno się zdarzyć — 10 relikwii
 ## pokrywa RELIC_ICONS/RELIC_DESCRIPTIONS w komplecie) po prostu nic nie
 ## pokazuje zamiast crashować na brakującym kluczu.
+const SND_RELIC_REVEAL := preload("res://assets/audio/sfx/p0/REWARD_RELIC_REVEAL.wav")
+
 func show_relic_card(upgrade_id: String) -> void:
 	if not RELIC_ICONS.has(upgrade_id):
 		return
 	_relic_card_id = upgrade_id
 	_relic_card_timer = RELIC_CARD_DURATION
+	Juice.play_ui_sfx(SND_RELIC_REVEAL)
 
 ## Krok 8: podpięte przez room.gd/arena.gd pod Player.resource_denied.
 func flash_resource_denied(kind: String) -> void:

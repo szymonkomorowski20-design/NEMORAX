@@ -8,6 +8,7 @@ const TEX_BASE := preload("res://assets/sprites/random_enemies/zoner/zoner_base.
 
 const DamageZoneScene := preload("res://entities/damage_zone.tscn")
 const VFX_ATTACK := preload("res://assets/sprites/enemy_vfx/zoner_attack.png") # "skill" (silent_prayer_field) to sama DamageZone, patrz entities/damage_zone.gd
+const SND_SKILL := preload("res://assets/audio/sfx/p0/nmx_enemy_zoner_skill_01.wav")
 
 @export var zone_radius: float = 64.0
 @export var zone_duration: float = 3.5
@@ -37,6 +38,7 @@ func _ready() -> void:
 ## reakcję i tak, bez potrzeby prawdziwego namierzania ruchu).
 func _skill_place_zone() -> void:
 	_set_skill_pose("pulse")
+	Juice.play_sfx_at(SND_SKILL, global_position)
 	AttackVfx.spawn(get_parent(), VFX_ATTACK, global_position, 0.35, 0.3)
 	var zone := DamageZoneScene.instantiate()
 	zone.zone_radius = zone_radius

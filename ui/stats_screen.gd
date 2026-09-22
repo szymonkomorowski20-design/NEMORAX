@@ -27,11 +27,14 @@ func _process(_delta: float) -> void:
 	if visible:
 		queue_redraw()
 
+const SND_OPEN := preload("res://assets/audio/sfx/p0/UI_STATS_OPEN.wav")
+
 func open(p: Player) -> void:
 	player = p
 	_selected_index = 0
 	visible = true
 	get_tree().paused = true
+	Juice.play_ui_sfx(SND_OPEN)
 
 func _close() -> void:
 	visible = false
@@ -42,13 +45,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_down"):
 		_selected_index = (_selected_index + 1) % Player.STAT_KEYS.size()
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_up"):
 		_selected_index = (_selected_index - 1 + Player.STAT_KEYS.size()) % Player.STAT_KEYS.size()
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_accept"):
-		player.spend_stat_point(Player.STAT_KEYS[_selected_index])
+		if player.spend_stat_point(Player.STAT_KEYS[_selected_index]):
+			Juice.play_ui_sfx(Juice.SND_UI_LEVEL_UP)
+		else:
+			Juice.play_ui_sfx(Juice.SND_UI_ERROR)
 	elif event.is_action_pressed("ui_cancel"):
+		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		_close()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_TAB:
+		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		_close()
 
 func _draw() -> void:

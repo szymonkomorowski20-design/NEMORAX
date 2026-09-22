@@ -33,6 +33,8 @@ const RoomAtmosphereScene := preload("res://rooms/room_atmosphere.gd")
 const WALL_MODULATE := Color(0.45, 0.45, 0.52, 1.0)
 const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 const SOCKET_TEXTURE := preload("res://assets/sprites/pokoje/obiekty/altar_socket.png")
+const SND_ALTAR_OPEN := preload("res://assets/audio/sfx/p0/UI_ALTAR_OPEN.wav")
+const SND_ALTAR_POINT := preload("res://assets/audio/sfx/p0/UI_ALTAR_POINT.wav")
 const SOCKET_SPRITE_SCALE := 0.054
 const SOCKET_FILLED_BRIGHTNESS := 1.6 ## mnożnik modulate przy aktywacji — "ten sam obrazek z dodanym blaskiem" (brak dedykowanej grafiki "zapełnione")
 
@@ -73,6 +75,7 @@ func _ready() -> void:
 
 	if GameFlow.fragments_collected.size() >= GameFlow.CHAPTER_COUNT:
 		state = AltarState.READY
+		Juice.play_sfx_at(SND_ALTAR_OPEN, ARENA_RECT.get_center())
 		ui.show_taunt(
 			"Wszystkie fragmenty duszy zebrane.\nPodejdź do ołtarza, aby przywołać Nemoraksa.",
 			4.0
@@ -157,6 +160,7 @@ func _run_activation_sequence() -> void:
 func _light_sockets_in_rhythm() -> void:
 	for socket in _sockets:
 		socket.modulate = socket.modulate * SOCKET_FILLED_BRIGHTNESS
+		Juice.play_sfx_at(SND_ALTAR_POINT, socket.global_position)
 		await get_tree().create_timer(slot_activation_interval).timeout
 
 ## Sam centralny pedestał nie ma dedykowanej grafiki w katalogu (tylko gniazda

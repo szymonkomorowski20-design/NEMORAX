@@ -10,7 +10,10 @@ signal opened(upgrade_id: String)
 
 const TEX_CLOSED := preload("res://assets/sprites/pokoje/obiekty/chest/chest_closed.png")
 const TEX_OPEN := preload("res://assets/sprites/pokoje/obiekty/chest/chest_open.png")
-const SND_OPEN := preload("res://assets/audio/sfx/swiat/W03_soul_pickup.wav") # TYMCZASOWE: reużyty dźwięk duszy, brak dedykowanego W02/W04 dla skrzyni
+const SND_OPEN := [
+	preload("res://assets/audio/sfx/p0/WORLD_CHEST_OPEN_1.wav"),
+	preload("res://assets/audio/sfx/p0/WORLD_CHEST_OPEN_2.wav"),
+] # dedykowany dźwięk z paczki P0 (wrzesień 2026), zastępuje dawny reużyty W03_soul_pickup
 const BASE_SPRITE_SCALE := 0.075 # analogicznie do Soul.BASE_SPRITE_SCALE, dopasowane do źródła 1024px
 const OPEN_LINGER_SECONDS := 0.6 # jak długo widać chest_open.png przed zniknięciem skrzyni
 
@@ -87,7 +90,7 @@ func _open() -> void:
 	sprite.texture = TEX_OPEN
 	sprite.scale = Vector2(BASE_SPRITE_SCALE, BASE_SPRITE_SCALE)
 	queue_redraw()
-	Juice.play_sfx_at(SND_OPEN, global_position)
+	Juice.play_sfx_at(SND_OPEN[randi() % SND_OPEN.size()], global_position)
 	opened.emit(chosen)
 	# Opóźnione zniknięcie (nie w teście headless bez tickującej pętli klatek,
 	# patrz established quirk) — żeby gracz zdążył zobaczyć chest_open.png

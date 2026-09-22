@@ -172,11 +172,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		# akurat jest zaznaczone (Escape, który zadał to pytanie, nie zmienia
 		# _selected_index) — inaczej Enter aktywowałby zaznaczoną pozycję
 		# zamiast odpowiadać na pytanie.
+		Juice.play_ui_sfx_variant(Juice.SND_UI_CONFIRM)
 		if _exit_confirm_pending:
 			_confirm_exit()
 		else:
 			_activate_selected()
 	elif event.is_action_pressed("ui_cancel"):
+		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		if _exit_confirm_pending:
 			_cancel_exit_confirmation()
 		else:
@@ -203,6 +205,7 @@ func _select_index(index: int) -> void:
 	if index == _selected_index:
 		return
 	_selected_index = index
+	Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	_update_selection_visuals(false)
 
 ## Stan zaznaczony (dokument, sekcja 4): kość/złoto zamiast bieli, przesunięcie

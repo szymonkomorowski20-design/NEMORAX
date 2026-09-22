@@ -41,6 +41,10 @@ const SND_TELEGRAPH := preload("res://assets/audio/sfx/wcielenia/I01_telegraph.w
 const SND_DAMAGE_PULSE := preload("res://assets/audio/sfx/wcielenia/I02_damage_pulse.wav")
 const SND_LUNGE_START := preload("res://assets/audio/sfx/wcielenia/I04_lunge_start.wav")
 const SND_CONTACT_HIT := preload("res://assets/audio/sfx/wcielenia/I05_contact_hit.wav")
+const SND_ELITE_AURA := [
+	preload("res://assets/audio/sfx/p0/ENEMY_ELITE_AURA_1.wav"),
+	preload("res://assets/audio/sfx/p0/ENEMY_ELITE_AURA_2.wav"),
+]
 
 @onready var sprite: Sprite2D = $Sprite
 @onready var sfx: AudioStreamPlayer2D = $Sfx
@@ -134,6 +138,7 @@ func apply_elite_modifier() -> void:
 	knockback_resistance = min(1.0, knockback_resistance + 0.15)
 	if elite_aura:
 		elite_aura.visible = true
+	Juice.play_sfx_at(SND_ELITE_AURA[randi() % SND_ELITE_AURA.size()], global_position)
 
 func _ready() -> void:
 	health = max_health
