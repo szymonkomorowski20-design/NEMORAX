@@ -5,7 +5,7 @@ extends Node2D
 ## screenów przed/po bez przechodzenia całej gry. Składa w jednym kadrze:
 ## gracza, małego wroga, ciężkiego wroga, drzwi, skrzynię, pocisk w locie,
 ## aktywną strefę obszarową i lokalne światło, na tych samych komponentach
-## co prawdziwy rooms/room.gd (RoomAtmosphere/ContactShadow/WorldAmbient/Walls),
+## co prawdziwy rooms/room.gd (RoomAtmosphere/ContactShadow/Walls),
 ## plus prawdziwy HUD (ui/ui.tscn) do oceny pasków/XP/paska bossa naraz z resztą.
 
 ## Faza 0 (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md) — nakładka debugowa
@@ -21,8 +21,12 @@ const ARENA_RECT := Rect2(90, 60, 1100, 600)
 const WALL_THICKNESS := 20.0
 
 const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
-const FLOOR_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_floor.png")
-const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_wall.png")
+const FLOOR_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_floor_v2.png")
+const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/random_rooms/crystal_cavern_wall_v2.png")
+# Ta sama para co rooms/room.gd — scena QA ma pokazywać AKTUALNY wygląd gry,
+# nie starą wersję tekstur/modulacji sprzed Fazy 1 (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md).
+const WALL_MODULATE := Color(0.45, 0.45, 0.52, 1.0)
+const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 
 const PlayerScene := preload("res://entities/player.tscn")
 const ChaserScene := preload("res://entities/random_enemies/chaser.tscn")
@@ -41,17 +45,19 @@ var _dbg_door: Door
 var _debug_overlay: DebugOverlay
 
 func _ready() -> void:
-	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND)
+	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
 	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE)
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE)
+	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE, WALL_MODULATE)
 
 	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
 	atmosphere.configure(ARENA_RECT)
 	add_child(atmosphere)
 
-	var ambient := CanvasModulate.new()
-	ambient.color = Color(0.82, 0.88, 0.84, 1.0)
-	add_child(ambient)
+	# Faza 1 (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): usunięty CanvasModulate
+	# "ambient" — mimo nazwy w nagłówku pliku ("WorldAmbient") nic takiego nigdy
+	# nie istniało w rooms/room.gd. Rozjaśniał tę scenę QA WZGLĘDEM prawdziwej
+	# gry, więc scena wyglądała lepiej niż jest naprawdę — usunięte, żeby ta
+	# scena była wiarygodnym odniesieniem, nie podkoloryzowaną wersją.
 
 	var player: Player = PlayerScene.instantiate()
 	add_child(player)
