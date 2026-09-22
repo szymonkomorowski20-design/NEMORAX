@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://ui/stats_screen.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://ui/cutscene_player.tscn" id="6"]
+[ext_resource type="Script" path="res://entities/vision_overlay.gd" id="7"]
 
 [node name="Arena" type="Node2D" unique_id=522250192]
 script = ExtResource("1")
@@ -16,20 +17,10 @@ current = true
 
 [node name="Player" parent="." unique_id=1883738035 instance=ExtResource("2")]
 
-[node name="EclipseLayer" type="CanvasLayer" parent="." unique_id=2034394771]
-
-[node name="EclipseRect" type="ColorRect" parent="EclipseLayer" unique_id=334262538]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = 4.0
-offset_right = 4.0
-offset_bottom = 4.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="VisionOverlay" type="ColorRect" parent="." unique_id=2034394771]
 mouse_filter = 2
 color = Color(0, 0, 0, 0)
+script = ExtResource("7")
 
 [node name="UILayer" parent="." unique_id=1362445908 instance=ExtResource("3")]
 

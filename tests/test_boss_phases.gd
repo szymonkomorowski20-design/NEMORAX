@@ -1,7 +1,7 @@
 extends RefCounted
 ## _on_boss_phase_changed (arena.gd) — jedyne miejsce, które zna gracza i bossa
 ## naraz, więc jedyne, gdzie dają się przetestować modyfikatory fazowe (sekcja
-## 7). Potrzebuje pełnej sceny arena.tscn (player/boss/ui/eclipse_rect to
+## 7). Potrzebuje pełnej sceny arena.tscn (player/boss/ui/vision_overlay to
 ## @onready węzły), stąd cięższy test niż reszta — osobna instancja areny na
 ## fazę, żeby efekty kumulujące się (np. dash_cooldown *= 2) nie mieszały testów.
 
@@ -32,8 +32,8 @@ func test_phase_ciezar_sets_gravity_pull(root: Node) -> void:
 
 func test_phase_zacmienie_activates_eclipse(root: Node) -> void:
 	var arena := _fresh_arena(root)
-	NemoraxTest.assert_true(not arena.eclipse_rect.visible, "eclipse_rect powinien być niewidoczny przed fazą Zaćmienie")
+	NemoraxTest.assert_true(not arena.vision_overlay.visible, "vision_overlay powinien być niewidoczny przed fazą Zaćmienie")
 	arena._on_boss_phase_changed(5, Color.WHITE, "Zaćmienie")
-	NemoraxTest.assert_true(arena._eclipse_active, "_eclipse_active powinno się włączyć w fazie Zaćmienie")
-	NemoraxTest.assert_true(arena.eclipse_rect.visible, "eclipse_rect powinien stać się widoczny w fazie Zaćmienie")
+	NemoraxTest.assert_true(arena.vision_overlay.visible, "vision_overlay powinien stać się widoczny w fazie Zaćmienie")
+	NemoraxTest.assert_true(arena.vision_overlay._target == arena.player, "vision_overlay powinien śledzić gracza")
 	_cleanup(arena, root)

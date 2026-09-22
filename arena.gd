@@ -24,11 +24,10 @@ const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 
 @export var body_fade_duration: float = 2.0 ## s, ekran gaśnie po "śmierci" dużej formy (sekcja 8)
 @export var finale_taunt_duration: float = 4.0 ## s, jak długo wisi pytanie finałowe
-@export var eclipse_radius: float = 160.0 ## px, promień widoczności wokół gracza w Zaćmieniu
 
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
-@onready var eclipse_rect: ColorRect = $EclipseLayer/EclipseRect
+@onready var vision_overlay: VisionOverlay = $VisionOverlay
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
 @onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
@@ -41,8 +40,6 @@ var wins: int = 0
 var _battle_time: float = 0.0
 var _battle_over: bool = false
 var _game_over_kind: String = "" # "", "death" albo "victory"
-var _eclipse_active: bool = false
-var _eclipse_material: ShaderMaterial
 
 func _ready() -> void:
 	# Wyciszenie z fazy Cisza jest globalnym stanem silnika, więc świeży start
@@ -51,7 +48,6 @@ func _ready() -> void:
 
 	_load_progress()
 	_build_walls()
-	_setup_eclipse_overlay()
 
 	player.global_position = ARENA_RECT.get_center() + Vector2(0, 150)
 	player.died.connect(_on_player_died)
@@ -69,8 +65,6 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _battle_over:
 		_battle_time += delta
-	if _eclipse_active:
-		_eclipse_material.set_shader_parameter("center", player.global_position)
 	if _game_over_kind != "":
 		_handle_game_over_input()
 
@@ -93,34 +87,6 @@ func _build_walls() -> void:
 	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
 	atmosphere.configure(ARENA_RECT)
 	add_child(atmosphere)
-
-## Zaćmienie (faza 6, sekcja 7): ekran ciemnieje poza kręgiem wokół gracza. Godot 2D
-## nie ma wbudowanego "otworu" w wypełnieniu, więc prościej jest o mały shader niż
-## ręcznie sklejać wielokąt z dziurą — to wciąż kod, nie plik graficzny.
-func _setup_eclipse_overlay() -> void:
-	var shader := Shader.new()
-	shader.code = """
-shader_type canvas_item;
-
-uniform vec2 center;
-uniform float radius = 260.0;
-uniform vec4 darkness_color : source_color = vec4(0.102, 0.063, 0.149, 1.0);
-
-void fragment() {
-	float d = distance(FRAGCOORD.xy, center);
-	if (d < radius) {
-		COLOR = vec4(0.0, 0.0, 0.0, 0.0);
-	} else {
-		COLOR = darkness_color;
-	}
-}
-"""
-	_eclipse_material = ShaderMaterial.new()
-	_eclipse_material.shader = shader
-	_eclipse_material.set_shader_parameter("radius", eclipse_radius)
-	_eclipse_material.set_shader_parameter("darkness_color", Palette.BACKGROUND)
-	eclipse_rect.material = _eclipse_material
-	eclipse_rect.visible = false
 
 ## Kwestie fazy (FABULA_I_DIALOGI.md sekcja 3.4) — kluczowane po phase_index,
 ## nie po nazwie fazy (ta ostatnia to już samo "rule_name" z Palette).
@@ -149,8 +115,7 @@ func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) 
 			player.pull_source = boss
 			player.pull_strength = boss.gravity_pull_strength
 		5: # Sovereignty (dawniej Zaćmienie) — ciemność poza kręgiem wokół gracza
-			_eclipse_active = true
-			eclipse_rect.visible = true
+			vision_overlay.activate(player, ARENA_RECT)
 
 ## show_form_name i show_taunt piszą do tego samego pola w ui.gd
 ## (_center_message) — pokazanie kwestii RAZEM z banerem nazwy fazy zjadłoby
