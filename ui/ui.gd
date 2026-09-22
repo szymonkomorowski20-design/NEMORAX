@@ -107,14 +107,41 @@ var _center_message: String = ""
 var _center_message_timer: float = 0.0
 var _center_message_font_size: int = 32
 
-## Krok 8 (komunikaty w walce): "ulepszenie — dolny środek", osobno od
-## _center_message (górny środek, dzielony przez fazę bossa/nazwę pokoju/
-## kwestie) — dokument wprost zabrania jednego globalnego Labela na środku
-## ekranu do WSZYSTKICH zdarzeń. Docelowo (krok 4, na razie wstrzymany do
-## czasu ikon relikwii) to miejsce dostanie pełną kartę relikwii; już teraz
-## chest.gd/room.gd nie powinno walczyć o ten sam kanał co baner bossa.
-var _bottom_message: String = ""
-var _bottom_message_timer: float = 0.0
+## Krok 4/8: karta relikwii — dolny środek, osobno od _center_message (górny
+## środek, dzielony przez fazę bossa/nazwę pokoju/kwestie). Dokument: "ikona +
+## nazwa + jedno zdanie efektu", 1,5-2,5s, zastępuje zwykły tekstowy toast
+## "Zdobyto ulepszenie: X". room.gd woła show_relic_card() z _on_chest_opened().
+const RELIC_CARD_DURATION := 2.0 ## s, środek okna 1,5-2,5s z dokumentu
+const RELIC_ICONS := {
+	"blood_edge": preload("res://assets/sprites/ui/relic_blood_edge.png"),
+	"void_step": preload("res://assets/sprites/ui/relic_void_step.png"),
+	"soul_echo": preload("res://assets/sprites/ui/relic_soul_echo.png"),
+	"iron_heart": preload("res://assets/sprites/ui/relic_iron_heart.png"),
+	"razor_wind": preload("res://assets/sprites/ui/relic_razor_wind.png"),
+	"hunters_mark": preload("res://assets/sprites/ui/relic_hunters_mark.png"),
+	"second_impact": preload("res://assets/sprites/ui/relic_second_impact.png"),
+	"momentum": preload("res://assets/sprites/ui/relic_momentum.png"),
+	"last_resolve": preload("res://assets/sprites/ui/relic_last_resolve.png"),
+	"soul_bond": preload("res://assets/sprites/ui/relic_soul_bond.png"),
+}
+## Jedno zdanie na relikwię — te same efekty co w Player (dokładne liczby w
+## entities/player.gd), tylko w krótkiej, czytelnej formie do karty.
+const RELIC_DESCRIPTIONS := {
+	"blood_edge": "Trafienie uzbraja kolejny zamach: +20% obrażeń.",
+	"void_step": "Po dashu: chwilowy wzrost prędkości i zasięgu ataku.",
+	"soul_echo": "Zabójstwo ma szansę dać +15% obrażeń na 4 sekundy.",
+	"iron_heart": "+20% maksymalnego zdrowia, mniejsze odepchnięcie.",
+	"razor_wind": "Trwale zwiększony zasięg ataku mieczem.",
+	"hunters_mark": "Pierwsze trafienie znaczy cel — kolejne zadają więcej.",
+	"second_impact": "Trafienie ma szansę na drugi, opóźniony cios.",
+	"momentum": "Brak obrażeń zwiększa prędkość — trafienie zeruje bonus.",
+	"last_resolve": "Przy niskim zdrowiu: więcej obrażeń i szybszy atak.",
+	"soul_bond": "Podniesienie duszy daje chwilowy, tematyczny bonus.",
+}
+const RELIC_CARD_BG := Color(0.06, 0.05, 0.09, 0.88)
+const RELIC_CARD_BORDER := Color("#E8C547") ## złoto — "złoto wyłącznie dla nagród"
+var _relic_card_id: String = ""
+var _relic_card_timer: float = 0.0
 
 ## Krok 8: "błąd/brak zasobu — przy odpowiednim pasku HUD, mały, nie czerwony
 ## ekran". `kind` to "stamina"/"mana"/"heal" — dopasowane 1:1 do
@@ -237,10 +264,10 @@ func _process(delta: float) -> void:
 		_center_message_timer -= delta
 		if _center_message_timer <= 0.0:
 			_center_message = ""
-	if _bottom_message_timer > 0.0:
-		_bottom_message_timer -= delta
-		if _bottom_message_timer <= 0.0:
-			_bottom_message = ""
+	if _relic_card_timer > 0.0:
+		_relic_card_timer -= delta
+		if _relic_card_timer <= 0.0:
+			_relic_card_id = ""
 	if _resource_flash_timer > 0.0:
 		_resource_flash_timer = max(0.0, _resource_flash_timer - delta)
 	_update_bars(delta)
@@ -256,11 +283,16 @@ func show_taunt(text: String, duration: float) -> void:
 	_center_message_timer = duration
 	_center_message_font_size = taunt_font_size
 
-## Krok 8: kanał "dolny środek" dla ulepszeń — patrz komentarz przy
-## _bottom_message. room.gd woła to zamiast show_taunt() z _on_chest_opened().
-func show_upgrade_toast(text: String, duration: float) -> void:
-	_bottom_message = text
-	_bottom_message_timer = duration
+## Krok 4/8: kanał "dolny środek" dla ulepszeń — patrz komentarz przy
+## RELIC_CARD_DURATION. room.gd woła to zamiast show_taunt() z
+## _on_chest_opened(). Nieznane ID (nie powinno się zdarzyć — 10 relikwii
+## pokrywa RELIC_ICONS/RELIC_DESCRIPTIONS w komplecie) po prostu nic nie
+## pokazuje zamiast crashować na brakującym kluczu.
+func show_relic_card(upgrade_id: String) -> void:
+	if not RELIC_ICONS.has(upgrade_id):
+		return
+	_relic_card_id = upgrade_id
+	_relic_card_timer = RELIC_CARD_DURATION
 
 ## Krok 8: podpięte przez room.gd/arena.gd pod Player.resource_denied.
 func flash_resource_denied(kind: String) -> void:
@@ -336,7 +368,7 @@ func _draw() -> void:
 	if _overlay_active:
 		_draw_overlay()
 	_draw_center_message()
-	_draw_bottom_message()
+	_draw_relic_card()
 	_draw_heal_stack_count()
 	_draw_xp_bar()
 	_draw_player_hp_text()
@@ -492,16 +524,43 @@ func _draw_center_message() -> void:
 	var pos := Vector2((size.x - text_size.x) * 0.5, size.y * 0.16)
 	draw_string(font, pos, _center_message, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Palette.HIT_FLASH)
 
-## Krok 8: kanał "dolny środek" dla ulepszeń (show_upgrade_toast) — patrz
-## komentarz przy _bottom_message. Ten sam styl (font/kolor) co _center_message,
-## inna pozycja, żeby wizualnie czytały się jako spokrewnione, ale odrębne kanały.
-func _draw_bottom_message() -> void:
-	if _bottom_message == "":
+## Krok 4/8: "karta relikwii w dolnej/środkowej części ekranu — ikona, nazwa,
+## jedno konkretne zdanie efektu", zastępuje dawny czysty tekst "Zdobyto
+## ulepszenie: X". Panel w materiale reszty UI (ciemne tło, złota ramka —
+## "złoto wyłącznie dla nagród"), stąd rysowany jako blok, nie goły tekst.
+func _draw_relic_card() -> void:
+	if _relic_card_id == "" or hide_all or _overlay_active:
 		return
+	var texture: Texture2D = RELIC_ICONS.get(_relic_card_id)
+	if texture == null:
+		return
+	var title: String = String(Player.UPGRADE_LABELS.get(_relic_card_id, _relic_card_id)).to_upper()
+	var description: String = RELIC_DESCRIPTIONS.get(_relic_card_id, "")
 	var font := ThemeDB.fallback_font
-	var text_size := font.get_string_size(_bottom_message, HORIZONTAL_ALIGNMENT_CENTER, -1, taunt_font_size)
-	var pos := Vector2((size.x - text_size.x) * 0.5, size.y * 0.82)
-	draw_string(font, pos, _bottom_message, HORIZONTAL_ALIGNMENT_LEFT, -1, taunt_font_size, Palette.HIT_FLASH)
+	var title_font_size := 20
+	var desc_font_size := 15
+	var icon_size := 56.0
+
+	var title_size := font.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, title_font_size)
+	var desc_size := font.get_string_size(description, HORIZONTAL_ALIGNMENT_CENTER, -1, desc_font_size)
+	var content_width: float = max(icon_size, max(title_size.x, desc_size.x))
+	var card_width: float = content_width + 48.0
+	var card_height := 16.0 + icon_size + 10.0 + title_size.y + 8.0 + desc_size.y + 16.0
+
+	var center_x := size.x * 0.5
+	var card_top := size.y * 0.78
+	var card_rect := Rect2(center_x - card_width * 0.5, card_top, card_width, card_height)
+	draw_rect(card_rect, RELIC_CARD_BG, true)
+	draw_rect(card_rect, RELIC_CARD_BORDER, false, 1.5)
+
+	var icon_pos := Vector2(center_x - icon_size * 0.5, card_top + 16.0)
+	draw_texture_rect(texture, Rect2(icon_pos, Vector2(icon_size, icon_size)), false)
+
+	var title_pos := Vector2(center_x - title_size.x * 0.5, icon_pos.y + icon_size + 10.0 + title_size.y * 0.75)
+	draw_string(font, title_pos, title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_font_size, RELIC_CARD_BORDER)
+
+	var desc_pos := Vector2(center_x - desc_size.x * 0.5, title_pos.y + 8.0 + desc_size.y * 0.75)
+	draw_string(font, desc_pos, description, HORIZONTAL_ALIGNMENT_LEFT, -1, desc_font_size, Palette.HIT_FLASH)
 
 func _draw_overlay() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(Palette.BACKGROUND, 0.85), true)

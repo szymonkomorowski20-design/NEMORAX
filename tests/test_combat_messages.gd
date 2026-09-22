@@ -120,12 +120,27 @@ func test_heal_use_spawns_a_positive_damage_number(root: Node) -> void:
 	NemoraxTest.assert_almost_eq(player.health, 60.0, 0.01, "sam efekt leczenia (50% max) nie powinien się zmienić przez dodanie liczby")
 	_cleanup(player, root)
 
-func test_show_upgrade_toast_uses_separate_channel_from_center_message(root: Node) -> void:
+func test_show_relic_card_uses_separate_channel_from_center_message(root: Node) -> void:
 	var ui := _fresh_ui(root)
 	ui.show_form_name("Sovereignty") # górny środek — baner fazy bossa/pokoju
-	ui.show_upgrade_toast("Zdobyto ulepszenie: Second Impact", 2.5) # dolny środek
-	NemoraxTest.assert_true(ui._center_message == "Sovereignty", "baner fazy nie powinien zostać nadpisany przez toast ulepszenia")
-	NemoraxTest.assert_true(ui._bottom_message == "Zdobyto ulepszenie: Second Impact", "toast ulepszenia powinien trafić na SWÓJ kanał (dolny środek)")
+	ui.show_relic_card("second_impact") # dolny środek
+	NemoraxTest.assert_true(ui._center_message == "Sovereignty", "baner fazy nie powinien zostać nadpisany przez kartę relikwii")
+	NemoraxTest.assert_eq(ui._relic_card_id, "second_impact", "karta relikwii powinna trafić na SWÓJ kanał (dolny środek)")
+	_cleanup_ui(ui, root)
+
+## Krok 4: "ikona + nazwa + jedno zdanie efektu" dla WSZYSTKICH 10 relikwii —
+## brakująca ikona/opis dla choćby jednej cofnęłoby audyt z tego samego kroku.
+func test_all_ten_relics_have_an_icon_and_description(root: Node) -> void:
+	var ui := _fresh_ui(root)
+	for upgrade_id in Player.UPGRADE_IDS:
+		NemoraxTest.assert_true(GameUI.RELIC_ICONS.has(upgrade_id), "brak ikony dla relikwii '%s'" % upgrade_id)
+		NemoraxTest.assert_true(GameUI.RELIC_DESCRIPTIONS.has(upgrade_id), "brak opisu dla relikwii '%s'" % upgrade_id)
+	_cleanup_ui(ui, root)
+
+func test_show_relic_card_ignores_unknown_id(root: Node) -> void:
+	var ui := _fresh_ui(root)
+	ui.show_relic_card("nie_istnieje")
+	NemoraxTest.assert_eq(ui._relic_card_id, "", "nieznane ID relikwii nie powinno nic pokazać")
 	_cleanup_ui(ui, root)
 
 func test_flash_resource_denied_only_affects_matching_kind(root: Node) -> void:

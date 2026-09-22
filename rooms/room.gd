@@ -338,14 +338,11 @@ func _maybe_spawn_chest() -> void:
 	chest.opened.connect(_on_chest_opened)
 	add_child(chest)
 
-## Krok 8: "ulepszenie — dolny środek" (osobny kanał od show_taunt, który
-## dzieli górny środek z fazą bossa/nazwą pokoju/kwestiami wcieleń) —
-## show_upgrade_toast zamiast show_taunt. Wciąż zwykły tekst, nie pełna karta
-## relikwii (ikona+nazwa+zdanie) — krok 4 tego samego dokumentu, wstrzymany do
-## czasu ikon relikwii.
+## Krok 4/8: "karta relikwii w dolnej/środkowej części ekranu — ikona, nazwa,
+## jedno zdanie efektu" — zastępuje dawny zwykły tekstowy toast.
 func _on_chest_opened(upgrade_id: String) -> void:
 	GameFlow.mark_chest_opened()
-	ui.show_upgrade_toast("Zdobyto ulepszenie: %s" % Player.UPGRADE_LABELS.get(upgrade_id, upgrade_id), 2.5)
+	ui.show_relic_card(upgrade_id)
 
 func _on_move_door_entered(direction: Vector2i) -> void:
 	GameFlow.capture_player_state(player)
