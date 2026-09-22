@@ -60,6 +60,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#9B4DFF") # dopasowane do dostarczonej grafiki (fioletowa, nie pomarańczowa)
 	hit_material = Palette.HitMaterial.MAGIC
+	is_miniboss = true
 	fragment_name = "Mordrath Bez-Wymiaru" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_silence_pulse, _skill_muffling_pull, _skill_silent_rush, _pattern_pulse_and_rush]
 	_sprite_textures = {

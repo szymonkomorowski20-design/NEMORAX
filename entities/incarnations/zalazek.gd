@@ -62,6 +62,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#F0447A")
 	hit_material = Palette.HitMaterial.MAGIC
+	is_miniboss = true
 	fragment_name = "Vhar’Nokh, Wygnany z Otchłani" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_teleport_strike, _skill_unstable_burst, _skill_double_blink, _pattern_teleport_and_burst]
 	_sprite_textures = {

@@ -72,6 +72,7 @@ func _ready() -> void:
 	super._ready()
 	current_color = Color("#8C9AC2") # dopasowane do dostarczonej grafiki (chłodny błękit, nie ciepły beż)
 	hit_material = Palette.HitMaterial.MAGIC
+	is_miniboss = true
 	fragment_name = "Orryx Cień-Nicości" # patrz LORE_I_ASSETY.md
 	_skills = [_skill_vanish_strike, _skill_flicker_pulse, _skill_dark_pull, _pattern_pull_and_vanish_strike]
 	_sprite_textures = {

@@ -82,6 +82,8 @@ var _overlay_active: bool = false
 
 var _heal_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do rysowania liczby stacków obok ikony leczenia
 var _xp_bar_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do _draw_xp_bar()
+var _player_bar_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do _draw_player_hp_text()
+var _boss_bar_pos: Vector2 = Vector2.ZERO ## zapamiętane w _ready() do _draw_boss_hp_text()
 
 @onready var player_bar_under: Sprite2D = $PlayerBarUnder
 @onready var player_bar: Sprite2D = $PlayerBar
@@ -102,6 +104,7 @@ func _ready() -> void:
 	# powstał neutralny biało-złoty, żeby dało się go zabarwiać dynamicznie
 	# per faza (patrz PROMPTY_FINALNE_WSZYSTKO.md E2).
 	var player_pos := Vector2(30.0, VIEWPORT_SIZE.y - 50.0)
+	_player_bar_pos = player_pos
 	_setup_bar(player_bar_under, player_bar, TEX_PLAYER_BAR, PLAYER_BAR_CONTENT, player_pos, player_bar_size, Color.WHITE)
 
 	var stamina_pos := player_pos - Vector2(0.0, resource_bar_gap + resource_bar_size.y)
@@ -113,6 +116,7 @@ func _ready() -> void:
 	_xp_bar_pos = mana_pos - Vector2(0.0, resource_bar_gap + xp_bar_size.y)
 
 	var boss_pos := Vector2(ARENA_LEFT, 20.0)
+	_boss_bar_pos = boss_pos
 	_setup_bar(boss_bar_under, boss_bar, TEX_BOSS_BAR, BOSS_BAR_CONTENT, boss_pos, Vector2(ARENA_WIDTH, boss_bar_height), Color.WHITE)
 
 	var dash_pos := Vector2(30.0 + player_bar_size.x + 16.0, VIEWPORT_SIZE.y - 50.0)
@@ -237,7 +241,33 @@ func _draw() -> void:
 	_draw_center_message()
 	_draw_heal_stack_count()
 	_draw_xp_bar()
+	_draw_player_hp_text()
+	_draw_boss_hp_text()
 	_draw_minimap()
+
+## Audyt UI (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): "ile ma życia i ile
+## maksymalnie" musi być odpowiadalne bez zgadywania z samej długości
+## wypełnienia paska — sam pasek to Sprite2D z przycinanym region_rect (patrz
+## nagłówek pliku), bez żadnego tekstu.
+func _draw_player_hp_text() -> void:
+	if player == null or hide_all or _overlay_active:
+		return
+	var label := "%d / %d" % [ceili(player.health), int(player.max_health)]
+	var pos := _player_bar_pos + Vector2(player_bar_size.x + 8.0, player_bar_size.y - 4.0)
+	draw_string(ThemeDB.fallback_font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+
+## j.w., punkt audytu "ile HP ma boss" — tymczasowe (do przebudowy paska bossa
+## w jedną grubą jednostkę nazwa+faza+HP, krok 7 tego samego dokumentu).
+## Wyśrodkowane pod paskiem (nie za jego prawym końcem — bar sięga niemal do
+## krawędzi viewportu, więc tekst wyszedłby częściowo poza ekran).
+func _draw_boss_hp_text() -> void:
+	if boss == null or not (boss is Boss) or hide_all or _overlay_active:
+		return
+	var font := ThemeDB.fallback_font
+	var label := "%d / %d" % [ceili(boss.health), int(boss.max_health)]
+	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14)
+	var pos := _boss_bar_pos + Vector2(ARENA_WIDTH * 0.5 - text_size.x * 0.5, boss_bar_height + 16.0)
+	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 
 ## Wcześniej nigdzie niewidoczny — level/xp istniały tylko jako liczby w
 ## ekranie statystyk (Tab), bez własnego paska w HUD-zie.

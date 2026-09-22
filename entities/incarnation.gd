@@ -94,6 +94,14 @@ var orbit_direction: float = 1.0 ## losowane raz w _ready() podklasy (1.0 albo -
 
 @export var is_elite: bool = false ## ustawiane przez apply_elite_modifier(), nie ręcznie
 
+## Zdrowie przeciwników (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): "Elita/miniboss:
+## pasek nad głową od startu walki" — w odróżnieniu od zwykłego wroga losowego,
+## którego pasek pojawia się dopiero po pierwszym trafieniu i znika bez obrażeń
+## (entities/enemy_health_bar.gd). Ustawiane przez każde z sześciu wcieleń
+## (jedyne encje "miniboss" w grze — patrz komentarz o low_health_threshold niżej,
+## ten sam dokument bazowy już nazywa je minibossami) w ich własnym _ready().
+@export var is_miniboss: bool = false
+
 ## Tempo przy niskim zdrowiu (dokument, sekcja 11 — powtarzające się u
 ## WSZYSTKICH sześciu minibossów: "below ~40-45% HP: recovery ×0.85, pace
 ## +10%") — jedna wspólna wartość zamiast sześciu ręcznie dobranych progów,
