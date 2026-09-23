@@ -510,6 +510,8 @@ func _draw_reward_buttons() -> void:
 		buttons.append(["level", "[%s] %s" % [Keybinds.display_for("open_runes"), level_text]])
 	if not player.pending_relic_offers.is_empty():
 		buttons.append(["relic", "[%s] Relikwia do wyboru" % Keybinds.display_for("open_relic")])
+	if GameFlow.pending_pact >= 0:
+		buttons.append(["pact", "[%s] Pakt fragmentu do wyboru" % Keybinds.display_for("open_pact")])
 	var font := ThemeDB.fallback_font
 	var pulse := 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() / 400.0))
 	var y := _xp_bar_pos.y - RELIQUARY_PADDING - 6.0

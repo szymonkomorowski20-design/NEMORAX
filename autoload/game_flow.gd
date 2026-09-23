@@ -134,6 +134,17 @@ var recent_encounters: Array[String] = []
 ## Intencja startowa próby (Paczka 6, pilotaż E3): "" = jeszcze nie wybrana,
 ## "ostrze" / "rozdzka" / "kontra" albo "brak" (gracz pominął wybór).
 var run_intent: String = ""
+## Pakt fragmentów (Paczka 8): rozdział (jako tekst, klucz JSON) -> "oczysc"/"zwiaz".
+var pacts: Dictionary = {}
+## Rozdział, którego pakt czeka na wybór (-1 = nic). Jak inne nagrody —
+## przycisk w HUD (P), nie wyskakujące okno; ołtarz wymaga decyzji.
+var pending_pact: int = -1
+
+func set_pact(chapter: int, choice: String) -> void:
+	pacts[str(chapter)] = choice
+	if pending_pact == chapter:
+		pending_pact = -1
+	_save_progress()
 
 func set_run_intent(intent: String) -> void:
 	run_intent = intent
@@ -605,6 +616,8 @@ func reset_run(seed_value: int = -1) -> void:
 	saved_player_state.clear()
 	recent_encounters.clear()
 	run_intent = ""
+	pacts.clear()
+	pending_pact = -1
 	reached_arena = false
 	_begin_seed(seed_value)
 	_generate_map()
@@ -649,6 +662,8 @@ func _load_progress() -> bool:
 		_rng.seed = run_seed
 	recent_encounters.assign(data.get("recent_encounters", []))
 	run_intent = str(data.get("run_intent", "brak"))
+	pacts = data.get("pacts", {})
+	pending_pact = int(data.get("pending_pact", -1))
 	var pos_data: Dictionary = data.get("current_room_pos", {})
 	current_room_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
 	var dir_data: Dictionary = data.get("entry_direction", {})
@@ -690,6 +705,8 @@ func _save_progress() -> void:
 		"seed": run_seed,
 		"recent_encounters": recent_encounters,
 		"run_intent": run_intent,
+		"pacts": pacts,
+		"pending_pact": pending_pact,
 		"map_version": MAP_VERSION,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)

@@ -562,11 +562,45 @@ func _attack_motion_dash_through_return() -> void:
 # --- Force (faza 1) ---
 
 func _build_pattern_groups_force() -> Array[Dictionary]:
-	return [
+	var groups: Array[Dictionary] = [
 		{"name": "F1_wide_strike", "weight": 0.40, "action": _attack_force_wide_strike},
 		{"name": "F2_radial_warning", "weight": 0.30, "action": _attack_force_radial_warning},
 		{"name": "F3_advance_pressure", "weight": 0.30, "action": _attack_force_advance_pressure},
 	]
+	# Pakt "Zwiąż ciszę" (Paczka 8): zapowiedziany przy wyborze dodatkowy wzorzec.
+	if PactCatalog.is_bound():
+		groups.append({"name": "F4_seal_ring", "weight": 0.30, "action": _attack_force_seal_ring})
+	return groups
+
+## F4 (tylko po pakcie "Zwiąż ciszę"): pierścień pieczęci wokół gracza z
+## jedną luką + pieczęć pod nogami. Osobny telegraf (jasny, przerywany
+## pierścień, dłuższa zapowiedź 1,1 s). Bezpieczny ruch: wyjść przez lukę.
+const SEAL_RING_COUNT := 8
+const SEAL_RING_RADIUS := 150.0
+const SEAL_RING_TELEGRAPH := 1.1
+
+func _attack_force_seal_ring() -> void:
+	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)
+	var center: Vector2 = player.global_position
+	var gap := randi() % SEAL_RING_COUNT
+	var points: Array[Vector2] = [center]
+	for i in SEAL_RING_COUNT:
+		if i == gap:
+			continue
+		points.append(center + Vector2.RIGHT.rotated(TAU * i / SEAL_RING_COUNT) * SEAL_RING_RADIUS)
+	for p in points:
+		var seal = SealScene.instantiate()
+		seal.player = player
+		seal.seal_telegraph = SEAL_RING_TELEGRAPH
+		seal.ring_variant = true
+		seal.global_position = p
+		seal.add_to_group("boss_hazard")
+		get_parent().add_child(seal)
+
+## Pakt "Zwiąż ciszę": cisza nie przerywa wzorców Nemoraksa, tylko go opóźnia.
+func silence(duration: float) -> void:
+	if not is_dead:
+		delay_next_attack(duration)
 
 func _attack_force_wide_strike() -> void:
 	_set_cast_pose(TEX_CAST_PULSE_VARIANTS)

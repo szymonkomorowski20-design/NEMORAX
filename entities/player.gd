@@ -876,9 +876,21 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool, attack
 	if perfect:
 		if is_instance_valid(attacker) and attacker.has_method("on_parried"):
 			attacker.on_parried(self)
+		if PactCatalog.is_bound():
+			_silence_wave()
 		if _skill_procs != null:
 			_skill_procs.counterbrand()
 	return true
+
+## Pakt "Zwiąż ciszę" (Paczka 8): parowanie ucisza wrogów wokół gracza.
+func _silence_wave() -> void:
+	for target in get_tree().get_nodes_in_group("hittable"):
+		if target.get("is_dead") == true or not (target is Node2D) or not target.has_method("silence"):
+			continue
+		if global_position.distance_to((target as Node2D).global_position) <= PactCatalog.ZWIAZ_SILENCE_RADIUS + float(target.get("radius") if target.get("radius") != null else 0.0):
+			target.silence(PactCatalog.ZWIAZ_SILENCE_TIME)
+	if get_parent() != null:
+		AttackVfx.spawn(get_parent(), VFX_DASH_RING, global_position, 0.3, PactCatalog.ZWIAZ_SILENCE_RADIUS * 2.0 / float(maxi(1, VFX_DASH_RING.get_width())))
 
 const BLOCK_FEEDBACK_TEXT := {
 	"blocked": "Blok", "parry": "Parowanie!", "broken": "Garda przełamana",
@@ -1097,6 +1109,8 @@ func _recompute_effective_stats() -> void:
 		max_health *= (1.0 + iron_heart_health_bonus)
 	max_health += 15.0 * skill_rank("guard_iron_skin")
 	max_stamina = base_max_stamina + stat_points["stamina"] * stamina_per_point
+	if PactCatalog.is_cleansed():
+		max_stamina += PactCatalog.OCZYSC_STAMINA_BONUS # Pakt "Oczyść ciszę" (Paczka 8)
 	max_mana = base_max_mana + stat_points["mana"] * mana_per_point
 	max_speed = base_max_speed * (1.0 + stat_points["speed"] * speed_bonus_per_point)
 	stamina_regen_rate = base_stamina_regen_rate * (1.0 + stat_points["stamina_regen"] * stamina_regen_bonus_per_point)

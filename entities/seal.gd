@@ -18,6 +18,18 @@ var stagger_delay: float = 0.0 ## ustawiane przez boss.gd — dodatkowa zwłoka,
 
 var _timer: float
 var _total_time: float
+## Paczka 8 (F4, pakt "Zwiąż ciszę"): inny telegraf niż zwykła pieczęć —
+## jasny, przerywany pierścień zasięgu, żeby wzorzec był odrębny formą.
+var ring_variant: bool = false
+
+func _draw() -> void:
+	if not ring_variant:
+		return
+	var k: float = 1.0 - clampf(_timer / maxf(_total_time, 0.01), 0.0, 1.0)
+	var col := Color(0.85, 0.80, 1.0, 0.45 + 0.5 * k)
+	for i in 12:
+		var a0 := TAU * i / 12.0
+		draw_arc(Vector2.ZERO, seal_radius, a0, a0 + TAU / 24.0, 6, col, 3.0, true)
 
 func _ready() -> void:
 	_total_time = seal_telegraph + stagger_delay
@@ -31,6 +43,8 @@ func _physics_process(delta: float) -> void:
 	# Zbliżanie się do wybuchu = coraz bardziej widoczna — sama grafika ma już
 	# footprint dopasowany do seal_radius, więc nie trzeba osobnego konturu.
 	sprite.modulate.a = 0.4 + 0.6 * (1.0 - clamp(_timer / _total_time, 0.0, 1.0))
+	if ring_variant:
+		queue_redraw()
 	if _timer <= 0.0:
 		_explode()
 		return

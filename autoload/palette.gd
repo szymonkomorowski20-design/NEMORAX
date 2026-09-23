@@ -105,6 +105,7 @@ func _setup_input_map() -> void:
 	_bind_key("open_runes", KEY_R) # Paczka 6: odłożony wybór runy / punktów
 	_bind_key("open_relic", KEY_Q) # Paczka 6: odłożony wybór relikwii
 	_bind_key("toggle_map", KEY_M) # Paczka 7: duża mapa z legendą
+	_bind_key("open_pact", KEY_P) # Paczka 8: odłożony wybór paktu fragmentu
 	_bind_key("toggle_debug", KEY_F3) # narzędzie dewelopera (Juice._update_debug_label) — celowo poza REBINDABLE_ACTIONS, gracz go nie rebinduje
 
 func _bind_key(action: String, keycode: Key) -> void:

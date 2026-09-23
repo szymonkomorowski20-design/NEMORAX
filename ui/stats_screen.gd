@@ -144,6 +144,11 @@ func _draw() -> void:
 		if SkillCatalog.SKILLS.has(id) and player.skill_rank(id) > 0:
 			entries.append({"icon": SkillCatalog.icon(id), "title": "%s %d/%d" % [SkillCatalog.SKILLS[id]["name"], player.skill_rank(id), SkillCatalog.SKILLS[id]["ranks"]],
 				"text": SkillCatalog.rank_text(id, player.skill_rank(id))})
+	# Pakt fragmentu (Paczka 8): efekt teraz + zapowiedź finału — widoczne w Księdze.
+	for ch in GameFlow.pacts:
+		var opt: Dictionary = PactCatalog.OPTIONS.get(GameFlow.pacts[ch], {})
+		if not opt.is_empty():
+			entries.append({"icon": null, "title": "Pakt: %s" % opt["name"], "text": "%s  Finał: %s" % [opt["now"], opt["finale"]]})
 	for relic in player.owned_upgrades:
 		entries.append({"icon": GameUI.RELIC_ICONS.get(relic), "title": str(GameUI.RELIC_NAMES.get(relic, relic)),
 			"text": str(GameUI.RELIC_DESCRIPTIONS.get(relic, ""))})

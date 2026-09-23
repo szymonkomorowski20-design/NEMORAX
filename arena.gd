@@ -148,7 +148,11 @@ func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) 
 		1: # Force (dawniej Cisza) — dźwięk wyciszony do końca walki. Nazwa/grafika
 			# fazy się zmieniły (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 13), ta
 			# reguła "łamania zasad" (poza dokumentem) zostaje na tym samym indeksie.
-			AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), true)
+			# Pakt "Oczyść ciszę" (Paczka 8): zapowiedziana, prostsza wersja fazy.
+			if PactCatalog.is_cleansed():
+				_show_phase_line_after_name("Oczyszczona cisza nie ma nad tobą władzy.")
+			else:
+				AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), true)
 		2: # Instinct (dawniej Zwłoka) — dash_cooldown x2
 			player.dash_cooldown *= 2.0
 		3: # Dominion (dawniej Ciężar) — stałe przyciąganie w stronę bossa

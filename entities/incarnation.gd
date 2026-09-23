@@ -143,6 +143,22 @@ func stance_ratio() -> float:
 func is_stance_broken() -> bool:
 	return _stance_break_timer > 0.0
 
+## Pakt "Zwiąż ciszę" (Paczka 8): cisza przerywa i blokuje ataki (ruch zostaje).
+var _silence_timer: float = 0.0
+
+func silence(duration: float) -> void:
+	if is_dead:
+		return
+	_silence_timer = maxf(_silence_timer, duration)
+	_lunge_active = false
+	_telegraph_active = false
+	_attack_timer = maxf(_attack_timer, duration)
+	if get_parent() != null:
+		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -radius - 30.0), "Cisza", Color("#D9CFF2"))
+
+func _actions_blocked() -> bool:
+	return is_stance_broken() or _silence_timer > 0.0
+
 func is_stance_immune() -> bool:
 	return _stance_immunity_timer > 0.0
 
@@ -249,6 +265,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_tick_stance(delta)
+	_silence_timer = maxf(0.0, _silence_timer - delta)
 	if is_stance_broken():
 		# Odsłonięcie: bez ruchu, ataków i obrażeń od dotyku — okno na kontrę.
 		_tick_hit_recoil(delta)
@@ -340,7 +357,7 @@ func _start_telegraph() -> void:
 	_play_sfx(SND_TELEGRAPH)
 	await get_tree().create_timer(_effective_telegraph_duration()).timeout
 	_telegraph_active = false
-	if not is_dead and not is_stance_broken():
+	if not is_dead and not _actions_blocked():
 		_perform_random_skill()
 
 ## Wydzielone dla testowalności — czysta logika losowania indeksu bez
@@ -365,7 +382,7 @@ func _perform_random_skill() -> void:
 ## Zwraca true, jeśli gracz był w zasięgu i faktycznie oberwał (przydatne np.
 ## do leczenia się kosztem trafienia, patrz GlodIncarnation).
 func _damage_pulse(pulse_radius: float, damage: float) -> bool:
-	if is_stance_broken():
+	if _actions_blocked():
 		return false # dalsze kroki wzorca (await) nie odpalają w trakcie odsłonięcia
 	_set_skill_pose("pulse")
 	_play_sfx(SND_DAMAGE_PULSE)
@@ -376,7 +393,7 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 	return player.take_damage(damage, global_position, true, self)
 
 func _pull_player(strength: float) -> void:
-	if is_stance_broken():
+	if _actions_blocked():
 		return
 	_set_skill_pose("pull")
 	var dir: Vector2 = global_position - player.global_position
@@ -386,7 +403,7 @@ func _pull_player(strength: float) -> void:
 ## Poza "lunge" trzyma się cały czas trwania wypadu przez _lunge_active w
 ## _update_sprite_state(), nie przez _skill_pose_timer jak pulse/pull.
 func _lunge_toward_player(speed: float, duration: float) -> void:
-	if is_stance_broken():
+	if _actions_blocked():
 		return
 	_play_sfx(SND_LUNGE_START)
 	_lunge_active = true

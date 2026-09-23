@@ -82,6 +82,15 @@ func _ready() -> void:
 			4.0
 		)
 		_play_ready_lore_lines()
+		# Pakt odłożony aż do ołtarza (Paczka 8): konsekwencja dotyczy finału,
+		# więc przed rytuałem wybór jest obowiązkowy.
+		if GameFlow.pending_pact >= 0:
+			var layer := CanvasLayer.new()
+			layer.layer = 50
+			add_child(layer)
+			var pact := PactSelect.new()
+			layer.add_child(pact)
+			pact.call_deferred("open", GameFlow.pending_pact, false)
 	else:
 		# Nie powinno się zdarzyć — patrz komentarz na górze pliku.
 		state = AltarState.LOCKED
@@ -119,7 +128,7 @@ func _spawn_sockets() -> void:
 		_sockets.append(socket)
 
 func _physics_process(_delta: float) -> void:
-	if state != AltarState.READY:
+	if state != AltarState.READY or GameFlow.pending_pact >= 0:
 		return
 	if player.global_position.distance_to(ARENA_RECT.get_center()) <= summon_trigger_radius:
 		_begin_activation()

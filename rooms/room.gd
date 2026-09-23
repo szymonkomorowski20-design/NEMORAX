@@ -324,6 +324,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_relic_draft.open_for(player)
 	elif event.is_action_pressed("toggle_map"):
 		ui.big_map = not ui.big_map
+	elif event.is_action_pressed("open_pact"):
+		_open_pact()
 
 func _on_relic_chosen(id: String) -> void:
 	ui.show_relic_card(id)
@@ -530,6 +532,11 @@ func _on_soul_collected(fragment_name: String) -> void:
 	# chwili PODNIESIENIA duszy (nie samego pokonania wcielenia), stąd tutaj a
 	# nie w _on_incarnation_died(). Nic nie robi, jeśli gracz nie ma Soul Bond.
 	player.activate_soul_bond(_room_data.get("chapter", -1))
+	# Pakt fragmentu (Paczka 8, pilotaż): czeka pod przyciskiem w HUD (P).
+	var chapter: int = _room_data.get("chapter", -1)
+	if chapter == PactCatalog.PILOT_CHAPTER and PactCatalog.choice(chapter) == "":
+		GameFlow.pending_pact = chapter
+		GameFlow._save_progress()
 	_spawn_doors_for_open_directions()
 
 ## Skrzynie (dokument sekcja 9, zaadaptowane na siatkę pokoi) — TYLKO w
@@ -611,5 +618,16 @@ func _exit_to_menu_from_death() -> void:
 func _on_reward_button(kind: String) -> void:
 	if kind == "level":
 		RewardPrompt.open_runes_or_points(player, _skill_draft, stats_screen)
+	elif kind == "pact":
+		_open_pact()
 	else:
 		_relic_draft.open_for(player)
+
+func _open_pact() -> void:
+	if GameFlow.pending_pact < 0:
+		Juice.play_ui_sfx(Juice.SND_UI_ERROR)
+		return
+	var pact := PactSelect.new()
+	$StatsLayer.add_child(pact)
+	pact.pact_chosen.connect(func(_c: String): player._recompute_effective_stats())
+	pact.open(GameFlow.pending_pact)
