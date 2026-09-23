@@ -154,14 +154,16 @@ const SND_SMALLFORM_RESURRECT := preload("res://assets/audio/sfx/nemorax/N18_sma
 ## Ile HP trzeba zdjąć, żeby przejść do kolejnej fazy — KAŻDA faza ma pełny pasek
 ## od nowa, mnożony przez PHASE_HP_MULTIPLIERS (dokument sekcja 13.1: "phase
 ## duration consistency, not six health sponges").
-@export var phase_max_health: float = 100.0
+## Paczka 4 (A2): 100 -> 400. Przy 100 HP mocny build kończył fazę w ~3 s
+## i boss zdążał wykonać 0-2 wzorce (POMIARY_WALKI.md).
+@export var phase_max_health: float = 400.0
 const PHASE_HP_MULTIPLIERS: Array[float] = [1.00, 1.00, 1.05, 1.10, 1.10, 1.15]
 @export var radius: float = 120.0
 @export var boss_drift_speed: float = 100.0
 @export var attack_interval: float = 0.9
 @export var final_attack_interval: float = 0.6
 @export var phase_transform_invuln: float = 1.5
-@export var final_health: float = 150.0
+@export var final_health: float = 550.0 ## Paczka 4: 150 -> 550 (mała forma trwała ~3 s)
 @export var final_radius: float = 58.0
 
 ## Tempo przy niskim zdrowiu fazy (dokument: "below ~40-50% HP: neutral delay

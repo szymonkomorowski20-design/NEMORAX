@@ -45,6 +45,12 @@ func _initialize() -> void:
 		if file_name == "test_runner.gd" or file_name == "test_util.gd":
 			continue
 		var script: GDScript = load("res://tests/%s" % file_name)
+		# Plik z błędem parsowania nie może zawiesić całego zestawu (quit()
+		# nigdy by nie padło) — liczy się jako jedna porażka i lecimy dalej.
+		if script == null or not script.can_instantiate():
+			failed += 1
+			print("[FAIL] %s (nie kompiluje się)" % file_name)
+			continue
 		var instance = script.new()
 		for method in script.get_script_method_list():
 			if not method.name.begins_with("test_"):

@@ -94,18 +94,21 @@ func test_heal_charge_ratio_reflects_progress_to_next_stack(root: Node) -> void:
 	NemoraxTest.assert_almost_eq(player.heal_charge_ratio(), 0.5, 0.01, "połowa trafień = 50% postępu")
 	_cleanup(player, root)
 
-func test_mana_regenerates_only_out_of_combat(root: Node) -> void:
+func test_mana_has_combat_floor_and_regenerates_out_of_combat(root: Node) -> void:
 	var player := _fresh_player(root)
 	var enemy: Node2D = load("res://entities/random_enemies/chaser.tscn").instantiate()
 	root.add_child(enemy)
 	player.mana = 0.0
 	player._combat_check_timer = 0.0
 	player._tick_out_of_combat_mana(1.0)
-	NemoraxTest.assert_almost_eq(player.mana, 0.0, 0.001, "przy żywym wrogu mana nie rośnie z czasem")
+	NemoraxTest.assert_almost_eq(player.mana, player.mana_combat_floor_regen, 0.001, "przy żywym wrogu mana rośnie tylko awaryjnie (Paczka 4)")
+	player._tick_out_of_combat_mana(60.0)
+	NemoraxTest.assert_almost_eq(player.mana, player._wand_mana_cost(), 0.001, "awaryjne dno many kończy się na koszcie jednego strzału")
 	root.remove_child(enemy)
 	enemy.queue_free()
 	enemy.is_dead = true
+	var before: float = player.mana
 	player._combat_check_timer = 0.0
 	player._tick_out_of_combat_mana(1.0)
-	NemoraxTest.assert_almost_eq(player.mana, player.mana_out_of_combat_regen, 0.01, "po walce mana wraca powoli")
+	NemoraxTest.assert_almost_eq(player.mana, before + player.mana_out_of_combat_regen, 0.01, "po walce mana wraca powoli, także ponad koszt strzału")
 	_cleanup(player, root)

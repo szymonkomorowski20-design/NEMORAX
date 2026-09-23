@@ -231,6 +231,10 @@ var max_mana: float ## efektywna wartość — base_max_mana + punkty*mana_per_p
 @export var wand_mana_cost: float = 25.0
 @export var mana_regen_per_hit: float = 15.0 ## w walce mana wraca wyłącznie za pierwotne trafienia wroga
 @export var mana_out_of_combat_regen: float = 10.0 ## /s, TYLKO gdy w pokoju nie ma żywych wrogów (bez nieskończonego ostrzału w walce)
+## Paczka 4: awaryjne dno many W WALCE — /s, i tylko dopóki mana < koszt
+## jednego strzału. Czysty mag nie utyka na zawsze (AUDYT pkt 3 paczki 2),
+## ale pełne tempo ognia nadal wymaga trafień (+15) lub przeplotu z mieczem.
+@export var mana_combat_floor_regen: float = 5.0
 var _combat_check_timer: float = 0.0
 var _out_of_combat: bool = false
 
@@ -604,6 +608,8 @@ func _tick_out_of_combat_mana(delta: float) -> void:
 				break
 	if _out_of_combat:
 		mana = minf(max_mana, mana + mana_out_of_combat_regen * delta)
+	elif mana < _wand_mana_cost():
+		mana = minf(_wand_mana_cost(), mana + mana_combat_floor_regen * delta)
 
 ## Trzymana tarcza i krótka przerwa po każdym wydatku (stamina_regen_delay)
 ## wstrzymują regenerację — blok ma kosztować, a nie zwracać się sam.
@@ -1278,6 +1284,8 @@ func on_hit_confirmed(target: Node, damage_dealt: float, weapon: String = "", he
 	if has_upgrade("second_impact"):
 		_maybe_schedule_second_impact(target, damage_dealt, attack_id)
 
+const SECONDARY_CAP_OF_ATTACK := 2.0 ## cios + wszystkie jego bonusy <= 2x cios
+
 func apply_skill_bonus(target: Node, requested: float, attack_id: int, base_damage: float, source: String = "skill_proc") -> void:
 	if not is_instance_valid(target) or target.get("is_dead") == true or requested <= 0.0:
 		return
@@ -1287,7 +1295,10 @@ func apply_skill_bonus(target: Node, requested: float, attack_id: int, base_dama
 	if attack_id >= 0:
 		key = "%d:%d" % [attack_id, target.get_instance_id()]
 		total = float(_bonus_damage.get(key, base_damage))
-		amount = minf(requested, maxf(0.0, base_damage * 2.5 - total))
+		# Paczka 4 (A2): wszystkie proce jednego zamachu na jednym celu razem
+		# zadają najwyżej tyle, co sam cios (wcześniej 1,5x — połowa DPS
+		# mocnego builda pochodziła z efektów wtórnych).
+		amount = minf(requested, maxf(0.0, base_damage * SECONDARY_CAP_OF_ATTACK - total))
 	if amount > 0.0:
 		var dealt: float = Juice.apply_hit(target, amount, Juice.boss_hit_hitstop, true, source)
 		if attack_id >= 0:

@@ -1,7 +1,7 @@
 extends SceneTree
 ## Deterministyczny pomiar walki z Nemoraksem (AUDYT, Paczka 2 / 4).
 ## Użycie: Godot --headless --fixed-fps 60 --path <projekt> --script res://debug/measure_boss_fight.gd -- <build>
-## build: naked | sword | wand | hybrid
+## build: naked | medium | sword | wand | hybrid
 ## Bot: nietykalny, zawsze w zasięgu, atakuje bez przerwy — GÓRNA granica
 ## ofensywy (idealne pozycjonowanie), nie odtworzenie rundy człowieka.
 ## Zapis izolowany: nic nie dotyka prawdziwego postępu gracza.
@@ -21,6 +21,11 @@ const BUILDS := {
 		"skills": {"blade_twin_cut": 1, "wand_split_bolt": 1, "guard_battle_rhythm": 1, "guard_weapon_weave": 1, "void_rupture": 1,
 			"guard_iron_skin": 2, "guard_fleetfoot": 1, "blade_long_edge": 1, "wand_rapid_cast": 1},
 		"relics": ["iron_heart", "second_impact", "momentum"], "weapon": "hybrid"},
+	# Paczka 4: realistyczny średni build — poziom 7, rozproszone punkty,
+	# mniej rang i tylko 2 relikwie (hybryda wyżej ma pełny poziom 10).
+	"medium": {"level": 7, "stats": {"damage": 5, "health": 6, "stamina": 3},
+		"skills": {"blade_twin_cut": 1, "blade_bleed": 1, "blade_long_edge": 1, "guard_iron_skin": 2, "guard_fleetfoot": 1},
+		"relics": ["iron_heart", "momentum"], "weapon": "sword"},
 }
 
 var arena: Node

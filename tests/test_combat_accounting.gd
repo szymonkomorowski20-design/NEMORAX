@@ -145,7 +145,8 @@ func test_twin_and_third_cut_on_boss_are_secondary_without_cascade(root: Node) -
 	player._fire_third_cut(boss, dealt, player.global_position, 501)
 	var totals := Juice.damage_totals_snapshot()
 	NemoraxTest.assert_almost_eq(float(totals.get("twin_cut", 0.0)), 7.0, 0.01, "podwójny cios rangi 2 = 70% pierwszego")
-	NemoraxTest.assert_almost_eq(float(totals.get("third_cut", 0.0)), 3.5, 0.01, "trzeci cios = 35% pierwszego")
+	# 35% pierwszego = 3,5, ale limit Paczki 4: wszystkie bonusy <= sam cios (10 - 7 = 3).
+	NemoraxTest.assert_almost_eq(float(totals.get("third_cut", 0.0)), 3.0, 0.01, "trzeci cios przycięty limitem: bonusy razem nie przekraczają ciosu")
 	NemoraxTest.assert_eq(player.get_heal_charge_hits(), 1, "trzy cięcia jednego ataku = jedno trafienie pierwotne dla leczenia")
 	NemoraxTest.assert_almost_eq(player.mana, player.mana_regen_per_hit, 0.01, "i jeden zwrot many")
 	NemoraxTest.assert_true(not totals.has("sunder"), "cięcia wtórne nie nabijają licznika Łamacza pancerza (brak kaskady)")

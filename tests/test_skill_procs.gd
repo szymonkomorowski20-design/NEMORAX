@@ -96,6 +96,6 @@ func test_bonus_damage_is_capped_per_attack_target(root: Node) -> void:
 	var target := _enemy(root, Vector2(100, 100))
 	player.apply_skill_bonus(target, 100.0, 5, 100.0)
 	player.apply_skill_bonus(target, 100.0, 5, 100.0)
-	NemoraxTest.assert_almost_eq(target.health, 850.0, 0.01, "bonusy nie mogą przekroczyć 2,5x całego ataku")
+	NemoraxTest.assert_almost_eq(target.health, 900.0, 0.01, "bonusy razem nie mogą przekroczyć samego ciosu (cały atak <= 2x)")
 	_finish(player, [target], root)
 	Palette.reduce_flashing = old_reduce

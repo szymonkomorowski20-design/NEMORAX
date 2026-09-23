@@ -39,6 +39,29 @@ Wnioski:
 3. **Czysta różdżka nie może skończyć walki.** Strzał kosztuje 19–25 many, pierwotne trafienie zwraca 15, a mana w walce nie regeneruje się z czasem. Zgodnie z audytem nie dodano regeneracji w walce, tylko powolną (10/s) *poza walką*. **Decyzja dla autora:** czy mag ma dobijać manę mieczem (tak jest teraz), czy dostać osobne źródło many w walce.
 4. Przyczyną A2 (29 s w nagraniu) są przede wszystkim małe pule HP faz względem bazowego DPS, a dopiero w drugiej kolejności efekty wtórne. Strojenie w Paczce 4 musi objąć oba.
 
+## Paczka 4 — po strojeniu bossa (23.09.2026)
+
+Zmiany (po jednej przyczynie na raz, pomiar po każdej):
+1. **Limit efektów wtórnych:** wszystkie bonusy jednego zamachu na jednym celu razem ≤ sam cios (było 1,5×). Przy długiej walce limit gryzie rzadko — mocny miecz i tak dochodzi do ~0,95×.
+2. **Pule HP:** faza 100 → **400** (× mnożniki 1,00–1,15), mała forma 150 → **550**. Razem 790 → **3110 HP**.
+3. **Awaryjne dno many w walce:** 5 many/s, **tylko dopóki mana < koszt jednego strzału**. Pełne tempo nadal wymaga trafień (+15) lub przeplotu z mieczem; poza walką bez zmian (10/s do pełna).
+4. Nowy build **medium** (poziom 7, miecz, 6 rang, 2 relikwie) — „hybryda” okazała się w praktyce mocna.
+
+| Build | Przed (P2) | Po (bot) | Szac. człowiek (×1,6*) | Wzorce/fazę | Wtórne |
+|---|---|---|---|---|---|
+| sword (mocny) | 18,3 s | **57,1 s** | ~90 s | 4–7 | 53% |
+| hybrid (mocny) | 23,9 s | **59,7 s** | ~95 s | 3–8 | 49% |
+| wand (mocny) | nie kończy | **87,3 s** | ~140 s | 1–19 | 50% |
+| medium (średni) | — | **153,0 s** | ~245 s | 7–22 | 40% |
+| naked (poz. 1) | 92,4 s | 354,3 s | — | 19–56 | 0% |
+
+\* Współczynnik z nagrania A2: człowiek 29 s przy bocie 18,3 s. To przybliżenie — potwierdzić nagraniem.
+
+Wnioski:
+- Mocny build mieści się w dolnej części celu 90–150 s i widzi 4–7 wzorców w każdej fazie (przed: 0–2). Średni jest przy górnej granicy 150–240 s.
+- Czysty mag **kończy walkę**, ale przez ~77 s z 87 s czeka na manę do następnego strzału — działa, lecz może być frustrujący. **Decyzja dla autora:** zostawić (mag ma przeplatać miecz) albo podnieść `mana_combat_floor_regen`.
+- Goły build poziomu 1 nie jest realnym buildem finału; zostawiony jako dolny punkt odniesienia.
+
 ## Ekonomia leczenia — wariant C
 
 Przed: 50% maks. HP co 10 trafień, 3 zapasy, natychmiast.
