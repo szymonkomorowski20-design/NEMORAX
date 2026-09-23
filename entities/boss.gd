@@ -433,11 +433,22 @@ func _process_lunge(delta: float) -> void:
 			else:
 				_lunge_state = ""
 
+## Ta sama poprawka co entities/incarnation.gd._visual_margin() — `radius` to
+## hitbox, nie widoczna sylwetka, więc samo clampowanie po nim pozwalało dużym
+## posom (szczególnie duża forma) wizualnie wchodzić w ścianę mimo hitboxu
+## wciąż w granicach areny.
+func _visual_margin() -> Vector2:
+	if sprite == null or sprite.texture == null:
+		return Vector2(radius, radius)
+	var half_size: Vector2 = sprite.texture.get_size() * 0.5 * sprite.scale.x
+	return Vector2(maxf(radius, half_size.x), maxf(radius, half_size.y))
+
 func _clamp_to_arena(pos: Vector2) -> Vector2:
 	var r := arena_rect
+	var margin := _visual_margin()
 	return Vector2(
-		clamp(pos.x, r.position.x + radius, r.position.x + r.size.x - radius),
-		clamp(pos.y, r.position.y + radius, r.position.y + r.size.y - radius)
+		clamp(pos.x, r.position.x + margin.x, r.position.x + r.size.x - margin.x),
+		clamp(pos.y, r.position.y + margin.y, r.position.y + r.size.y - margin.y)
 	)
 
 func _record_player_position() -> void:
@@ -612,6 +623,7 @@ func _attack_dominion_void_lock() -> void:
 	zone.player = player
 	zone.boss = self
 	zone.global_position = _random_arena_point(zone.void_radius)
+	zone.add_to_group("boss_hazard") # arena.gd czyści tę grupę przy przejściu do finału
 	get_parent().add_child(zone)
 
 func _attack_dominion_zone() -> void:
@@ -621,6 +633,7 @@ func _attack_dominion_zone() -> void:
 	zone.duration = dominion_zone_duration
 	zone.tick_damage = dominion_zone_tick_damage
 	zone.global_position = _random_arena_point(dominion_zone_radius)
+	zone.add_to_group("boss_hazard")
 	get_parent().add_child(zone)
 
 func _attack_dominion_projectile_fan() -> void:
@@ -638,6 +651,7 @@ func _attack_dominion_projectile_fan() -> void:
 		projectile.damage = dominion_projectile_damage
 		projectile.speed = dominion_projectile_speed
 		projectile.global_position = global_position + direction * (radius + 10.0)
+		projectile.add_to_group("boss_hazard")
 		get_parent().add_child(projectile)
 
 ## Dodatki bez XP i bez wpływu na czyszczenie pokoju (dokument: "summoned units
@@ -648,6 +662,7 @@ func _attack_dominion_summon() -> void:
 	for i in range(dominion_summon_count):
 		var add: Incarnation = ChaserScene.instantiate()
 		var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized() * 80.0
+		add.add_to_group("boss_hazard")
 		get_parent().add_child(add)
 		add.arena_rect = arena_rect
 		add.global_position = _clamp_to_arena(global_position + offset)
@@ -762,6 +777,7 @@ func _launch_seal_attack() -> void:
 		seal.player = player
 		seal.stagger_delay = i * seal_interval
 		seal.global_position = points[i]
+		seal.add_to_group("boss_hazard")
 		get_parent().add_child(seal)
 
 func _spawn_shadow(delay_seconds: float) -> void:
@@ -770,6 +786,7 @@ func _spawn_shadow(delay_seconds: float) -> void:
 	shadow.trace = _get_history_snapshot(delay_seconds)
 	if shadow.trace.size() > 0:
 		shadow.global_position = shadow.trace[0]
+	shadow.add_to_group("boss_hazard")
 	get_parent().add_child(shadow)
 
 func _random_arena_point(margin: float) -> Vector2:

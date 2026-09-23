@@ -159,6 +159,38 @@ func _on_boss_died(is_final: bool) -> void:
 ## scena całej gry (PLAN_CUTSCENEK.md 2.3, gdzie żyje cały twist): ciało "znika",
 ## chwila ciszy, wraca mała forma z pytaniem finałowym, zanim zdąży zaatakować.
 func _play_big_form_death() -> void:
+	# ui.gd (GameUI) NIE ma process_mode ALWAYS — jego _process() (jedyne
+	# miejsce wołające _update_bars()+queue_redraw(), czyli jedyne miejsce,
+	# które w ogóle SPRAWDZA hide_all na nowo) przestaje działać w tej samej
+	# klatce, w której get_tree().paused staje się true. Samo ustawienie
+	# hide_all=true tuż przed pauzą (nawet z jedną klatką odczekaną przez
+	# `await get_tree().process_frame` — sprawdzone, process_frame odpala się
+	# PRZED _process() tej klatki, nie po, więc i tak nie pomagało) nigdy nie
+	# zdążyło się przerysować: canvas zamrażał się na ostatniej klatce SPRZED
+	# hide_all, z paskiem/tekstem wciąż w pełni widocznymi pod całą resztą
+	# sekwencji. Wołamy więc _update_bars()/queue_redraw() wprost, zamiast
+	# czekać aż zrobi to _process(), którego już nie będzie.
+	ui.hide_all = true
+	ui._update_bars(0.0)
+	ui.queue_redraw()
+
+	# Jedna klatka bez pauzy pozwala boss._physics_process() przetworzyć
+	# is_dead=true (ustawione tuż przed emisją died() w take_damage()) i
+	# zdążyć przemalować teksturę na pozę "kolaps", zanim pauza zamrozi
+	# _physics_process na resztę sekwencji.
+	await get_tree().process_frame
+
+	# Zdjęte z końca funkcji (gdzie było wcześniej) na sam początek: te dwie
+	# linijki + await cutscene.play() poniżej rzeczywiście pauzują drzewo (więc
+	# gracz i tak przestaje móc atakować), ALE między tym wejściem a pierwszym
+	# await cutscene.play() był ~2-sekundowy odcinek (body_fade_duration) BEZ
+	# żadnej pauzy, w którym pasek bossa/stare napisy wciąż wisiały, a gracz
+	# nadal mógł się ruszać i atakować "martwe już" ciało. get_tree().paused
+	# przeżywa to okno bez zmian (create_timer ma domyślnie process_always=true),
+	# więc przesunięcie tu obu linii zamyka całą lukę, nie tylko jej część.
+	get_tree().paused = true
+	for hazard in get_tree().get_nodes_in_group("boss_hazard"):
+		hazard.queue_free()
 	# Duża forma jest is_dead=true w tym oknie — boss.gd sam pokazuje pozę
 	# "kolaps" (nemorax_large-form-collapse.png) przez _update_sprite_state(),
 	# więc nie trzeba już chować sprite'a na ślepo.
@@ -205,7 +237,7 @@ func _play_big_form_death() -> void:
 	boss.delay_next_attack(finale_taunt_duration)
 	boss.show_taunt_pose(finale_taunt_duration)
 	_start_reversal_cycle() # reguła siódma: Odwrócenie — teraz okresowa, patrz komentarz przy reversal_normal_duration
-	ui.hide_all = true # interfejs znika w całości w fazie finałowej
+	# ui.hide_all już ustawione na samym początku _play_big_form_death()
 
 ## Timer (nie async-while+await) celowo — testowalne wprost wywołaniem
 ## _on_reversal_timer_timeout() bez czekania na realny czas (ta sama zasada co

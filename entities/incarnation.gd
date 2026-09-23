@@ -303,11 +303,25 @@ func _process_lunge(delta: float) -> void:
 	if _lunge_timer <= 0.0:
 		_lunge_active = false
 
+## `radius` to hitbox walki (celowo mniejszy niż sylwetka dla uczciwości ataków,
+## patrz np. tank.gd "przeliczone proporcjonalnie do sprite_scale") — samo
+## odbicie od ściany liczone tylko po nim pozwalało dużym archetypom (Tank,
+## sprite_scale=0.12, największy z 11) wizualnie wchodzić w ścianę/drzwi, mimo
+## że hitbox wciąż był w granicach areny. Margines liczony z FAKTYCZNEGO
+## rozmiaru aktywnej tekstury (zmienia się między posami) razy sprite.scale,
+## nie z osobnej, ręcznie dobieranej stałej per-archetyp.
+func _visual_margin() -> Vector2:
+	if sprite == null or sprite.texture == null:
+		return Vector2(radius, radius)
+	var half_size: Vector2 = sprite.texture.get_size() * 0.5 * sprite.scale.x
+	return Vector2(maxf(radius, half_size.x), maxf(radius, half_size.y))
+
 func _clamp_to_arena(pos: Vector2) -> Vector2:
 	var r := arena_rect
+	var margin := _visual_margin()
 	return Vector2(
-		clamp(pos.x, r.position.x + radius, r.position.x + r.size.x - radius),
-		clamp(pos.y, r.position.y + radius, r.position.y + r.size.y - radius)
+		clamp(pos.x, r.position.x + margin.x, r.position.x + r.size.x - margin.x),
+		clamp(pos.y, r.position.y + margin.y, r.position.y + r.size.y - margin.y)
 	)
 
 func take_damage(amount: float) -> void:

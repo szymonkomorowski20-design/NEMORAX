@@ -533,7 +533,10 @@ func _draw_heal_stack_count() -> void:
 ## środek" (dokument) — przesunięte pod stos nazwa+faza+HP bossa (kończy się
 ## ok. boss_bar_height+42 ≈ y=78 przy domyślnych wartościach), z zapasem.
 func _draw_center_message() -> void:
-	if _center_message == "":
+	# hide_all brakowało tu (jedyne miejsce w _draw() bez tej straży) — dlatego
+	# ostatni baner/kwestia (np. nazwa fazy "Sovereignty") wisiał na ekranie
+	# przez całą sekwencję finałową i epilog zwycięstwa, pod dialogiem cutscenki.
+	if _center_message == "" or hide_all or _overlay_active:
 		return
 	var font := ThemeDB.fallback_font
 	var font_size := _center_message_font_size
