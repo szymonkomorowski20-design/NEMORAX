@@ -32,6 +32,8 @@ var reduce_flashing: bool = false
 ##    -3  drzwi / portal osadzony w murze (door.gd)
 ##    -1  dekoracje podłogowe, cień kontaktowy (contact_shadow.gd)
 ##     0  postacie, skrzynie, pickupy    (domyślny z_index węzłów encji)
+##     1  gracz — nad wrogami i bossem (A7: gracz nigdy nie ginie pod dużym
+##        sprite'em; telegrafy i VFX 5+ nadal nad nim)
 ##     5  pociski/VFX ataku nad postaciami (attack_vfx.gd)
 ##     6  paski zdrowia nad głową        (enemy_health_bar.gd)
 ##    10+ HUD i cutscenki                (osobne CanvasLayer, poza z_index)

@@ -160,6 +160,7 @@ func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) 
 			player.pull_strength = boss.gravity_pull_strength
 		5: # Sovereignty (dawniej Zaćmienie) — ciemność poza kręgiem wokół gracza
 			vision_overlay.activate(player, ARENA_RECT)
+			boss.vision = vision_overlay # boss chowa się w mroku poza kręgiem
 
 ## show_form_name i show_taunt piszą do tego samego pola w ui.gd
 ## (_center_message) — pokazanie kwestii RAZEM z banerem nazwy fazy zjadłoby

@@ -112,3 +112,29 @@ func test_finale_phases_have_distinct_threats(root: Node) -> void:
 			seen[g["name"]] = phase
 	root.remove_child(boss)
 	boss.queue_free()
+
+## Zgłoszenie autora (23.09): w fazie mroku boss poza kręgiem ma znikać,
+## a w kręgu być widoczny; gracz zawsze widoczny (nakładka pod postaciami).
+func test_boss_hides_in_darkness_outside_the_circle(root: Node) -> void:
+	var overlay: VisionOverlay = VisionOverlay.new()
+	root.add_child(overlay)
+	var p: Player = load("res://entities/player.tscn").instantiate()
+	root.add_child(p)
+	p.global_position = Vector2(300, 400)
+	overlay.activate(p, Rect2(90, 60, 1100, 600))
+	var boss: Boss = load("res://entities/boss.tscn").instantiate()
+	root.add_child(boss)
+	boss.vision = overlay
+	boss.global_position = Vector2(1100, 150)
+	boss._apply_darkness()
+	NemoraxTest.assert_true(boss.sprite.modulate.a < 0.05, "daleki boss niewidoczny w mroku (%.2f)" % boss.sprite.modulate.a)
+	boss.global_position = p.global_position + Vector2(120, 0)
+	boss._apply_darkness()
+	NemoraxTest.assert_true(boss.sprite.modulate.a > 0.95, "boss w kręgu widoczny")
+	overlay.deactivate()
+	boss._apply_darkness()
+	NemoraxTest.assert_almost_eq(boss.sprite.modulate.a, 1.0, 0.001, "bez mroku zawsze widoczny")
+	NemoraxTest.assert_true(overlay.z_index < p.z_index, "nakładka mroku pod graczem")
+	for n in [boss, p, overlay]:
+		root.remove_child(n)
+		n.queue_free()

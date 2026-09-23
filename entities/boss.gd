@@ -301,6 +301,7 @@ func _ready() -> void:
 	_init_position_history()
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
 	var contact_shadow := ContactShadow.new()
+	_contact_shadow = contact_shadow
 	contact_shadow.position = Vector2(0.0, 72.0)
 	contact_shadow.configure(radius * 1.25, radius * 0.30, 0.52) # wyraźniejszy (KIERUNEK_WIZUALNY_REFERENCJE.md)
 	add_child(contact_shadow)
@@ -320,9 +321,30 @@ func _init_position_history() -> void:
 	for i in range(frame_count):
 		_position_history[i] = start_pos
 
+## Zgłoszenie autora (23.09): w fazie mroku boss był widoczny w ciemności
+## poza kręgiem. Teraz sylwetka (sprite + spokojny krąg kontaktu) gaśnie poza
+## kręgiem gracza; telegraf wypadu (czerwony krąg, LungeWarning) i ataki —
+## osobne węzły — zostają widoczne, więc zagrożenie nigdy nie jest ukryte.
+var vision: VisionOverlay = null
+var _dark_alpha: float = 1.0
+var _contact_shadow: Node2D = null
+const DARK_MIN_ALPHA := 0.0
+
+func _apply_darkness() -> void:
+	var target := 1.0
+	if vision != null and is_instance_valid(vision) and vision.visible:
+		target = maxf(DARK_MIN_ALPHA, vision.visibility_at(global_position, radius * 0.5))
+	if not is_equal_approx(target, _dark_alpha):
+		queue_redraw() # krąg kontaktu też gaśnie
+	_dark_alpha = target
+	sprite.modulate.a = _dark_alpha
+	if _contact_shadow != null:
+		_contact_shadow.modulate.a = _dark_alpha
+
 func _physics_process(delta: float) -> void:
 	if player == null:
 		return
+	_apply_darkness()
 	if is_dead:
 		_update_sprite_state()
 		queue_redraw()
@@ -372,7 +394,7 @@ func _check_body_contact() -> void:
 	if player == null:
 		return
 	var to_player: Vector2 = player.global_position - global_position
-	if to_player.length() > radius + player.radius:
+	if to_player.length() > radius + player.radius + Player.BODY_CONTACT_SLOP:
 		return
 	if player.is_invulnerable():
 		return
@@ -459,6 +481,10 @@ func _clamp_to_arena(pos: Vector2) -> Vector2:
 		clamp(pos.y, r.position.y + margin.y, r.position.y + r.size.y - margin.y)
 	)
 
+## Ciała się nie przenikają: wypchnięcie przez gracza przyciśniętego do ściany.
+func body_push(offset: Vector2) -> void:
+	global_position = _clamp_to_arena(global_position + offset)
+
 func _record_player_position() -> void:
 	_position_history[_history_write_index] = player.global_position
 	_history_write_index = (_history_write_index + 1) % _position_history.size()
@@ -477,6 +503,9 @@ func _drift_towards_player(delta: float) -> void:
 	var to_player: Vector2 = player.global_position - global_position
 	if to_player.length() > 1.0:
 		_facing_direction = to_player
+		# Ciała się nie przenikają (23.09): dryf staje na krawędzi dotyku.
+		if to_player.length() <= radius + player.radius:
+			return
 		# Jedyny ruch bossa bez clampa — goniąc gracza przy ścianie duża forma
 		# wychodziła sylwetką (i hitboxem) daleko poza mur areny.
 		global_position = _clamp_to_arena(global_position + to_player.normalized() * boss_drift_speed * delta)
@@ -988,9 +1017,10 @@ func _draw() -> void:
 	var telegraphing := _lunge_state == "telegraph"
 	var base_radius := radius + 4.0
 	var ring_color: Color = Palette.DANGER if telegraphing else current_color
+	var ring_alpha_scale := 1.0 if telegraphing else _dark_alpha # telegraf zawsze widoczny
 	for i in range(3, 0, -1):
 		var glow_alpha := (0.16 if telegraphing else 0.09) * float(i)
-		draw_arc(Vector2.ZERO, base_radius + float(i) * 3.0, 0.0, TAU, 40, Color(ring_color, glow_alpha), 6.0)
+		draw_arc(Vector2.ZERO, base_radius + float(i) * 3.0, 0.0, TAU, 40, Color(ring_color, glow_alpha * ring_alpha_scale), 6.0)
 	var core_width := 5.0 if telegraphing else 2.5
 	var core_alpha := 0.85 if telegraphing else 0.5
-	draw_arc(Vector2.ZERO, base_radius, 0.0, TAU, 40, Color(ring_color, core_alpha), core_width)
+	draw_arc(Vector2.ZERO, base_radius, 0.0, TAU, 40, Color(ring_color, core_alpha * ring_alpha_scale), core_width)

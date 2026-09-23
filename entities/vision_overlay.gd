@@ -84,3 +84,12 @@ func _process(_delta: float) -> void:
 		return
 	var local_center: Vector2 = _target.global_position - global_position
 	material.set_shader_parameter("center", local_center)
+
+## Paczka 10 / zgłoszenie autora (23.09): widoczność punktu świata w mroku
+## (1 w kręgu, 0 w pełnej ciemności) — boss znika poza kręgiem, a gracz (cel
+## kręgu) i telegrafy zagrożeń zostają widoczne.
+func visibility_at(world_pos: Vector2, body_radius: float = 0.0) -> float:
+	if not visible or _target == null:
+		return 1.0
+	var d := maxf(0.0, world_pos.distance_to(_target.global_position) - body_radius)
+	return 1.0 - smoothstep(radius, radius + soft_edge, d)

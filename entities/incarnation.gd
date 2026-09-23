@@ -272,6 +272,7 @@ func _physics_process(delta: float) -> void:
 		_update_sprite_state()
 		return
 
+	_separate_from_other_bodies()
 	_check_contact()
 
 	if _knockback_velocity.length() > 1.0:
@@ -324,6 +325,9 @@ func _drift_towards_player(delta: float) -> void:
 		return
 	_facing_direction = to_player
 	if keep_distance_range < 0.0:
+		# Ciała się nie przenikają: wręcz staje na krawędzi dotyku gracza.
+		if to_player.length() <= radius + player.radius:
+			return
 		# Pościg wręcz był jedynym ruchem bez clampa — to nim Mordrath/Tank
 		# wchodzili w mur, goniąc gracza stojącego przy ścianie.
 		global_position = _clamp_to_arena(global_position + to_player.normalized() * drift_speed * _terrain_speed_factor() * delta)
@@ -343,7 +347,7 @@ func _drift_towards_player(delta: float) -> void:
 ## Dotyk ciała zawsze rani (ta sama konwencja co Nemorax) — throttlowane przez
 ## nietykalność gracza po trafieniu.
 func _check_contact() -> void:
-	if global_position.distance_to(player.global_position) > radius + player.radius:
+	if global_position.distance_to(player.global_position) > radius + player.radius + Player.BODY_CONTACT_SLOP:
 		return
 	if player.is_invulnerable():
 		return
@@ -470,6 +474,7 @@ func take_damage(amount: float) -> float:
 		is_dead = true
 		_play_sfx(Palette.MATERIAL_DEATH_SOUNDS[hit_material])
 		died.emit(fragment_name)
+		_start_corpse_fade()
 	else:
 		_play_sfx(Palette.MATERIAL_HURT_SOUNDS[hit_material])
 	return dealt
@@ -525,3 +530,46 @@ func _update_sprite_state() -> void:
 		var facing := Facing.resolve(entry, _facing_direction, frame)
 		sprite.texture = facing["texture"]
 		sprite.flip_h = facing["flip_h"]
+
+# --- Ciała nie przenikają się (decyzja autora 23.09) ---
+## Wypchnięcie z zewnątrz (gracz przy ścianie oddaje resztę nakładania).
+func body_push(offset: Vector2) -> void:
+	global_position = _clamp_to_arena(global_position + offset)
+
+## Wrogowie rozsuwają się nawzajem (każdy o połowę, drugi zrobi swoją połowę);
+## od bossa i od ciężkich odsuwa się w całości ten lżejszy.
+func _separate_from_other_bodies() -> void:
+	if get("_intangible") == true or not visible:
+		return
+	for o in get_tree().get_nodes_in_group("hittable"):
+		if o == self or not (o is Node2D) or o.get("is_dead") == true or o.get("_intangible") == true or not (o as Node2D).visible:
+			continue
+		var orad = o.get("radius")
+		if orad == null:
+			continue
+		var min_d := radius + float(orad)
+		var delta: Vector2 = global_position - (o as Node2D).global_position
+		var d := delta.length()
+		if d >= min_d:
+			continue
+		var n: Vector2 = delta / d if d > 0.01 else Vector2.RIGHT.rotated(float(get_instance_id() % 628) / 100.0)
+		var share := 1.0 if (o is Boss or float(orad) > radius + 20.0) else 0.5
+		global_position = _clamp_to_arena(global_position + n * (min_d - d) * share)
+
+# --- Znikanie ciał (prośba autora 23.09): trupy nie leżą na ziemi ---
+const CORPSE_LINGER := 0.9 ## s pozy śmierci, żeby było widać, co padło
+const CORPSE_FADE := 0.6 ## s blednięcia
+
+## Ciało gaśnie i zostaje ukryte (nie usuwane — pokój/UI mogą jeszcze
+## trzymać referencję do pokonanego wroga, np. dla duszy czy paska HP).
+func _start_corpse_fade() -> void:
+	if not is_inside_tree():
+		return
+	remove_from_group("hittable")
+	var tw := create_tween()
+	tw.tween_interval(CORPSE_LINGER)
+	tw.tween_property(self, "modulate:a", 0.0, CORPSE_FADE)
+	tw.tween_callback(func():
+		visible = false
+		set_physics_process(false)
+	)

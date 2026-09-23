@@ -115,7 +115,7 @@ func _check_contact() -> void:
 	if not _lunge_active:
 		super._check_contact()
 		return
-	if global_position.distance_to(player.global_position) > radius + player.radius:
+	if global_position.distance_to(player.global_position) > radius + player.radius + Player.BODY_CONTACT_SLOP:
 		return
 	if player.is_invulnerable():
 		return

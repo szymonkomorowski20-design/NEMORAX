@@ -480,6 +480,9 @@ var pull_strength: float = 0.0
 var input_reversed: bool = false
 
 func _ready() -> void:
+	# A7 (AUDYT): gracz rysowany nad wrogami — duży sprite bossa nie może go
+	# zasłonić. Telegrafy/VFX (z 5+) zostają nad graczem. Patrz Palette.
+	z_index = 1
 	_skill_procs = SkillProcs.new()
 	_skill_procs.player = self
 	add_child(_skill_procs)
@@ -548,6 +551,7 @@ func _physics_process(delta: float) -> void:
 	_tick_stamina_regen(delta)
 	_tick_out_of_combat_mana(delta)
 	move_and_slide()
+	_resolve_body_overlaps()
 	_update_trail(delta)
 	_update_walk_cycle(delta)
 	_update_visuals()
@@ -1644,7 +1648,21 @@ func is_invulnerable() -> bool:
 ## Łuk tarczy: pokazuje DOKŁADNIE osłaniany sektor (shield_arc_degrees), pod
 ## sprite'em gracza (rodzic rysuje przed dziećmi), więc nie zasłania postaci.
 ## Jaśniejszy w oknie idealnego bloku, czerwony chwilę po przełamaniu.
+## A7: gdy gracz nachodzi na dużego wroga (boss, wcielenie), za sylwetką
+## pojawia się delikatna poświata — ciemny płaszcz nie zlewa się z ciałem bossa.
+func _overlaps_large_enemy() -> bool:
+	for e in get_tree().get_nodes_in_group("hittable"):
+		if e is Node2D and e.get("is_dead") != true:
+			var r: float = e.get("radius") if e.get("radius") != null else 0.0
+			if r >= 60.0 and global_position.distance_to((e as Node2D).global_position) <= r + 40.0:
+				return true
+	return false
+
 func _draw() -> void:
+	if _overlaps_large_enemy():
+		for i in 3:
+			draw_circle(Vector2(0, -4), 46.0 - i * 10.0, Color(Palette.PLAYER_BODY, 0.14 + 0.08 * i))
+		draw_arc(Vector2(0, -4), 46.0, 0.0, TAU, 32, Color(Palette.PLAYER_BODY, 0.7), 2.0, true)
 	var half := deg_to_rad(shield_arc_degrees * 0.5)
 	var arc_radius := radius + 26.0
 	if _shield_up:
@@ -1744,3 +1762,44 @@ func _update_visuals() -> void:
 		wand_charge_sprite.position = _attack_direction * (radius + 6.0)
 		var charge_t: float = 0.6 if _attack_phase == "windup" else 1.0
 		wand_charge_sprite.scale = Vector2(wand_charge_scale, wand_charge_scale) * charge_t
+
+# --- Ciała nie przenikają się (decyzja autora 23.09) ---
+## Dotyk na krawędzi ciał nadal liczy się jak dotyk (obrażenia/odrzut wrogów).
+const BODY_CONTACT_SLOP := 6.0
+## Wróg o takim promieniu (i boss) nie ustępuje graczowi — ciężkie ciało.
+const HEAVY_BODY_RADIUS := 60.0
+
+## Po ruchu gracza rozsuwa nakładające się ciała na krawędź dotyku.
+## Ciężki wróg stoi — odsuwa się gracz; lekki dzieli przesunięcie po połowie.
+## Gracz przy ścianie (move_and_collide go zatrzyma) — resztę dostaje wróg.
+## W dashu gracz przenika wrogów (ucieczka spod bossa przy ścianie), po
+## dashu jest wypychany na krawędź.
+func _resolve_body_overlaps() -> void:
+	if state == State.DASHING or state == State.DEAD or not is_inside_tree():
+		return
+	for e in get_tree().get_nodes_in_group("hittable"):
+		if not (e is Node2D) or e.get("is_dead") == true or e.get("_intangible") == true or not (e as Node2D).visible:
+			continue
+		var er = e.get("radius")
+		if er == null:
+			continue
+		var min_d := radius + float(er)
+		var delta: Vector2 = global_position - (e as Node2D).global_position
+		var d := delta.length()
+		if d >= min_d:
+			continue
+		var n: Vector2
+		if d > 0.01:
+			n = delta / d
+		elif _last_move_direction.length() > 0.01:
+			n = -_last_move_direction.normalized()
+		else:
+			n = Vector2.DOWN
+		var overlap := min_d - d
+		var heavy: bool = e is Boss or float(er) >= HEAVY_BODY_RADIUS
+		var player_share := overlap if heavy else overlap * 0.5
+		var collision := move_and_collide(n * player_share)
+		var moved := player_share - (collision.get_remainder().length() if collision != null else 0.0)
+		var rest := overlap - moved
+		if rest > 0.01 and e.has_method("body_push"):
+			e.body_push(-n * rest)
