@@ -46,6 +46,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pick(ORDER[selected])
 	elif event.is_action_pressed("ui_cancel"):
 		_pick("brak")
+	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_L and GameFlow.loop_unlocked():
+		GameFlow.loop_level = 0 if GameFlow.loop_level >= 1 else 1
+		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
+		queue_redraw()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_3:
 		_pick(ORDER[event.physical_keycode - KEY_1])
 	get_viewport().set_input_as_handled()
@@ -86,6 +90,13 @@ func _draw() -> void:
 		draw_string(FONT_TITLE, card.position + Vector2(18, 140), str(data["name"]), HORIZONTAL_ALIGNMENT_LEFT, CARD_SIZE.x - 36.0, 26, Color("#e9e1f0"))
 		draw_multiline_string(FONT_BODY, card.position + Vector2(18, 176), str(data["desc"]), HORIZONTAL_ALIGNMENT_LEFT, CARD_SIZE.x - 36.0, 20, -1, Color("#f1eaf6"))
 		draw_string(FONT_BODY, card.position + Vector2(18, CARD_SIZE.y - 18.0), "%d — wybierz" % [i + 1], HORIZONTAL_ALIGNMENT_LEFT, CARD_SIZE.x - 36.0, 18, Color("#93879c"))
+	# Paczka 9: Pętla Otchłani I — dostępna po pierwszym zwycięstwie.
+	if GameFlow.loop_unlocked():
+		var loop: Dictionary = GameFlow.LOOP_RULES[1]
+		var on := GameFlow.loop_level >= 1
+		var lt := "[L] %s: %s — %s" % [loop["name"], "WŁĄCZONA" if on else "wyłączona", loop["rule"]]
+		var lw := FONT_BODY.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+		draw_string(FONT_BODY, Vector2(maxf(20.0, (size.x - lw) * 0.5), _card_rect(0).end.y + 80.0), lt, HORIZONTAL_ALIGNMENT_LEFT, size.x - 40.0, 18, Color("#d98a8a") if on else Color("#93879c"))
 	var hint := "Strzałki / Enter · 1–3 · kliknięcie   ·   Esc — bez intencji"
 	var hw := FONT_BODY.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 	draw_string(FONT_BODY, Vector2((size.x - hw) * 0.5, _card_rect(0).end.y + 44.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("#93879c"))

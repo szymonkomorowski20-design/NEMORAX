@@ -62,7 +62,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ui_cancel"):
 		close_for_later()
 	elif event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_3:
+		if event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_4:
 			_choose(event.physical_keycode - KEY_1)
 	get_viewport().set_input_as_handled()
 
@@ -76,11 +76,17 @@ func _gui_input(event: InputEvent) -> void:
 				accept_event()
 				return
 
+## Szerokość karty: 340 px, węższa przy 4 ofertach (Pętla Otchłani I).
+func _card_w() -> float:
+	var count := player.pending_relic_offers.size() if is_instance_valid(player) else 3
+	return minf(CARD_SIZE.x, (get_viewport_rect().size.x - 60.0 - CARD_GAP * (count - 1)) / maxf(1.0, count))
+
 func _card_rect(i: int) -> Rect2:
 	var size := get_viewport_rect().size
 	var count := player.pending_relic_offers.size() if is_instance_valid(player) else 3
-	var total := CARD_SIZE.x * count + CARD_GAP * (count - 1)
-	return Rect2(Vector2((size.x - total) * 0.5 + i * (CARD_SIZE.x + CARD_GAP), size.y * 0.5 - CARD_SIZE.y * 0.5 + 10.0), CARD_SIZE)
+	var w := _card_w()
+	var total := w * count + CARD_GAP * (count - 1)
+	return Rect2(Vector2((size.x - total) * 0.5 + i * (w + CARD_GAP), size.y * 0.5 - CARD_SIZE.y * 0.5 + 10.0), Vector2(w, CARD_SIZE.y))
 
 func _draw() -> void:
 	if not visible or not is_instance_valid(player):
@@ -90,7 +96,7 @@ func _draw() -> void:
 	var title := "RELIKWIA — WYBIERZ JEDNĄ"
 	var title_w := FONT_TITLE.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x
 	draw_string(FONT_TITLE, Vector2((size.x - title_w) * 0.5, _card_rect(0).position.y - 34.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color("#e8c547"))
-	var text_w := CARD_SIZE.x - 36.0
+	var text_w := _card_w() - 36.0
 	for i in range(player.pending_relic_offers.size()):
 		var id: String = player.pending_relic_offers[i]
 		var card := _card_rect(i)
@@ -98,11 +104,11 @@ func _draw() -> void:
 		draw_rect(card, Color("#e8c547") if i == selected else Color("#695d76"), false, 3.0 if i == selected else 1.0)
 		var icon: Texture2D = GameUI.RELIC_ICONS.get(id)
 		if icon != null:
-			draw_texture_rect(icon, Rect2(card.position + Vector2((CARD_SIZE.x - 96.0) * 0.5, 22), Vector2(96, 96)), false)
+			draw_texture_rect(icon, Rect2(card.position + Vector2((card.size.x - 96.0) * 0.5, 22), Vector2(96, 96)), false)
 		draw_string(FONT_TITLE, card.position + Vector2(18, 156), str(GameUI.RELIC_NAMES.get(id, id)), HORIZONTAL_ALIGNMENT_LEFT, text_w, 23, Color("#e9e1f0"))
 		draw_string(FONT_BODY, card.position + Vector2(18, 184), ", ".join(SkillCatalog.RELIC_TAGS.get(id, [])), HORIZONTAL_ALIGNMENT_LEFT, text_w, 17, Color("#93879c"))
 		draw_multiline_string(FONT_BODY, card.position + Vector2(18, 222), str(GameUI.RELIC_DESCRIPTIONS.get(id, "")), HORIZONTAL_ALIGNMENT_LEFT, text_w, 21, -1, Color("#f1eaf6"))
 		draw_string(FONT_BODY, card.position + Vector2(18, CARD_SIZE.y - 18.0), "%d — wybierz" % [i + 1], HORIZONTAL_ALIGNMENT_LEFT, text_w, 18, Color("#93879c"))
-	var hint := "Strzałki / Enter · klawisze 1–3 · kliknięcie   ·   Esc — później"
+	var hint := "Strzałki / Enter · klawisze 1–%d · kliknięcie   ·   Esc — później" % player.pending_relic_offers.size()
 	var hint_w := FONT_BODY.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 	draw_string(FONT_BODY, Vector2((size.x - hint_w) * 0.5, _card_rect(0).end.y + 44.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("#93879c"))

@@ -89,7 +89,9 @@ func _open() -> void:
 		return
 	eligible.shuffle()
 	_offers.clear()
-	for i in range(mini(3, eligible.size())):
+	# Pętla Otchłani I (Paczka 9): skrzynie dają 4 relikwie do wyboru.
+	var offer_size := 4 if GameFlow.loop_level >= 1 else 3
+	for i in range(mini(offer_size, eligible.size())):
 		_offers.append(eligible[i])
 	_choosing = true
 	selection_requested.emit(_offers)

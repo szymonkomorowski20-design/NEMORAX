@@ -313,6 +313,7 @@ var _stamina_regen_delay_timer: float = 0.0
 @export var counter_bonus: float = 0.25 ## +25% do JEDNEGO pierwotnego trafienia w oknie kontry
 const SHIELD_ARC_COLOR := Color("#C9D6E3")
 var _counter_timer: float = 0.0
+var last_hit_source: String = "" ## kto zadał ostatnie obrażenia (Paczka 9: ekran śmierci, Kronika)
 var slow_zones: Array[Rect2] = [] ## płycizna zalanej katakumby (room.gd, Paczka 5)
 var _counter_hit_target: Node = null ## cel ciosu z okna kontry — do podwójnej postawy
 var _guard_break_flash: float = 0.0 ## s czerwonego łuku po przełamaniu gardy
@@ -1599,6 +1600,7 @@ func take_damage(amount: float, source_position := Vector2.INF, blockable := tru
 	if _try_block(amount, source_position, blockable, attacker):
 		return false
 	health -= amount
+	last_hit_source = RunSummary.describe_attacker(attacker, blockable)
 	_interrupt_heal_channel()
 	if _skill_procs != null:
 		_skill_procs.on_damage_taken()

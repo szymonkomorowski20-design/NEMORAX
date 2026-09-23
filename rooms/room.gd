@@ -210,6 +210,7 @@ func _ready() -> void:
 				_spawn_doors_for_open_directions()
 			else:
 				_spawn_enemy(GameFlow.current_incarnation_scene_path(), false)
+				GameFlow.note_incarnation_met(int(_room_data.get("chapter", 0))) # Komnata Echa (Paczka 9)
 		_: # START — pusty, bezpieczny pokój, drzwi od razu otwarte
 			_spawn_doors_for_open_directions()
 			if not GameFlow.has_seen_prolog():
@@ -490,6 +491,11 @@ func _on_incarnation_died(fragment_name: String, dead_enemy: Incarnation = null)
 			incarnation = _active_enemies[0]
 			ui.boss = incarnation
 		return
+	if GameFlow.training:
+		# Komnata Echa: bez XP, fragmentu, duszy i postępu.
+		Juice.play_sfx_at(SND_ROOM_CLEAR, dead_enemy.global_position)
+		_show_training_end("Trening ukończony")
+		return
 	player.gain_xp(2.0 if _room_data.get("type") == GameFlow.RoomType.SOUL or dead_enemy.is_elite else 1.0)
 	GameFlow.clear_current_room()
 	if terrain != null:
@@ -583,7 +589,13 @@ func _on_player_died() -> void:
 	# Krok 9: "najpierw widoczny moment porażki: 0,15s hit-stop" — ten sam
 	# krótki freeze co w arena.gd, zanim panel w ogóle się pojawi.
 	Juice.hitstop(0.15)
-	ui.show_death_overlay(_room_display_name()) # "przyczyna lub pokój" — tu: nazwa pokoju, w którym zginął
+	if GameFlow.training:
+		_show_training_end("Trening przerwany")
+		return
+	# Paczka 9: historia próby, przyczyna i rada + wpis do Kroniki.
+	var entry := RunSummary.build(player, "death", _room_display_name())
+	GameFlow.add_chronicle_entry(entry)
+	ui.show_run_summary(entry)
 	_game_over_kind = "death"
 
 ## Zgon w zwykłym pokoju (dowolny losowy wróg albo wcielenie) MUSI resetować
@@ -593,10 +605,20 @@ func _on_player_died() -> void:
 ## śmierć poza finałową walką w ogóle nie cofała przebiegu do początku, mimo
 ## że ekran mówił "spróbuj ponownie". Prawdziwy bug, nie tylko niespójność.
 func _handle_game_over_input() -> void:
+	if _game_over_kind == "training":
+		if Input.is_action_just_pressed("ui_accept"):
+			GameFlow.begin_training(GameFlow.training_chapter)
+			get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+		elif Input.is_action_just_pressed("ui_cancel"):
+			GameFlow.end_training()
+			get_tree().change_scene_to_file("res://menu.tscn")
+		return
 	if _game_over_kind != "death":
 		return
 	if Input.is_action_just_pressed("ui_accept"):
 		_restart_run_from_scratch()
+	elif Input.is_physical_key_pressed(KEY_S):
+		_restart_same_seed()
 	# Krok 9: "przyciski: spróbuj ponownie / menu" — dawniej jedyną drogą z
 	# ekranu porażki był restart, bez wyjścia do menu.
 	elif Input.is_action_just_pressed("ui_cancel"):
@@ -609,6 +631,19 @@ func _handle_game_over_input() -> void:
 func _restart_run_from_scratch() -> void:
 	GameFlow.reset_run()
 	get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+
+## Paczka 9: ta sama mapa i oferty, żeby sprawdzić inną decyzję.
+func _restart_same_seed() -> void:
+	GameFlow.reset_run(GameFlow.run_seed)
+	get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+
+func _show_training_end(title: String) -> void:
+	ui.show_overlay("%s
+
+Komnata Echa — bez nagród i bez wpływu na próbę.
+
+Enter — jeszcze raz      Escape — wyjdź z Komnaty Echa" % title, "death")
+	_game_over_kind = "training"
 
 func _exit_to_menu_from_death() -> void:
 	GameFlow.reset_run()

@@ -475,6 +475,7 @@ func take_damage(amount: float) -> float:
 		_play_sfx(Palette.MATERIAL_DEATH_SOUNDS[hit_material])
 		died.emit(fragment_name)
 		_start_corpse_fade()
+		_spawn_loop_rift()
 	else:
 		_play_sfx(Palette.MATERIAL_HURT_SOUNDS[hit_material])
 	return dealt
@@ -573,3 +574,18 @@ func _start_corpse_fade() -> void:
 		visible = false
 		set_physics_process(false)
 	)
+
+## Pętla Otchłani I (Paczka 9): poległy wróg zostawia zapowiedzianą strefę
+## Otchłani (telegraf strefy, potem krótkie obrażenia) — walcz z dala od
+## miejsc, gdzie chcesz stać po walce.
+const LoopRiftScene := preload("res://entities/damage_zone.tscn")
+
+func _spawn_loop_rift() -> void:
+	if GameFlow.loop_level < 1 or GameFlow.training or get_parent() == null:
+		return
+	var zone = LoopRiftScene.instantiate()
+	zone.zone_radius = maxf(52.0, radius * 1.1)
+	zone.duration = 2.5
+	zone.tick_damage = 6.0
+	zone.global_position = global_position
+	get_parent().add_child(zone)

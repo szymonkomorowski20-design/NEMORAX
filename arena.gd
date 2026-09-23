@@ -339,11 +339,10 @@ func _play_victory_epilogue(is_first_win: bool) -> void:
 
 	# Wygrana to prawdziwy koniec przebiegu (endgame) — zostaje jako ekran
 	# końcowy, bez pętli z powrotem do pokoju 1.
-	ui.show_overlay(
-		"Zwycięstwo\n\nPodejście: %d\nUkończeń: %d\nCzas walki: %s\n\nEscape, aby wyjść" %
-		[_attempts(), wins, _format_time(_battle_time)],
-		"victory"
-	)
+	# Paczka 9 (A17): podsumowanie próby + jedna rzecz do sprawdzenia następnym razem.
+	var entry := RunSummary.build(player, "victory", "Nemorax pokonany — walka %s   ·   podejście %d   ·   ukończeń %d" % [_format_time(_battle_time), _attempts(), wins])
+	GameFlow.add_chronicle_entry(entry)
+	ui.show_run_summary(entry)
 	_game_over_kind = "victory"
 
 func _on_player_died() -> void:
@@ -359,8 +358,18 @@ func _on_player_died() -> void:
 	# osłabienie, świat wygasa" — dotąd panel wskakiwał w tej samej klatce, w
 	# której zdrowie spadło do zera, bez żadnego przejścia.
 	Juice.hitstop(0.15)
-	ui.show_death_overlay("Próba: %d" % _attempts())
+	# Paczka 9: historia próby, przyczyna, rada + Kronika.
+	var entry := RunSummary.build(player, "death", _stage_label(), boss.phase_index if not boss.is_final_phase else 5)
+	GameFlow.add_chronicle_entry(entry)
+	ui.show_run_summary(entry)
 	_game_over_kind = "death"
+
+const PHASE_NAMES_PL := ["Motion", "Force", "Instinct", "Dominion", "Ruin", "Sovereignty"]
+
+func _stage_label() -> String:
+	var phase := "mała forma" if boss.is_final_phase else "faza %s" % PHASE_NAMES_PL[clampi(boss.phase_index, 0, 5)]
+	var hp := roundi(100.0 * boss.health / maxf(boss.max_health, 1.0))
+	return "Nemorax — %s (%d%% HP)   ·   Próba: %d" % [phase, hp, _attempts()]
 
 func _handle_game_over_input() -> void:
 	match _game_over_kind:
@@ -370,14 +379,25 @@ func _handle_game_over_input() -> void:
 			if Input.is_action_just_pressed("ui_accept"):
 				GameFlow.reset_run()
 				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+			elif Input.is_physical_key_pressed(KEY_S):
+				GameFlow.reset_run(GameFlow.run_seed)
+				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
 			# Krok 9: "przyciski: spróbuj ponownie / menu" — dawniej jedyną
 			# drogą z ekranu porażki był restart, bez wyjścia do menu.
 			elif Input.is_action_just_pressed("ui_cancel"):
 				GameFlow.reset_run()
 				get_tree().change_scene_to_file("res://menu.tscn")
 		"victory":
-			if Input.is_action_just_pressed("ui_cancel"):
-				get_tree().quit()
+			# Paczka 9: po zwycięstwie od razu kolejna próba (inny wybór) albo menu.
+			if Input.is_action_just_pressed("ui_accept"):
+				GameFlow.reset_run()
+				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+			elif Input.is_physical_key_pressed(KEY_S):
+				GameFlow.reset_run(GameFlow.run_seed)
+				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+			elif Input.is_action_just_pressed("ui_cancel"):
+				GameFlow.reset_run()
+				get_tree().change_scene_to_file("res://menu.tscn")
 
 func _attempts() -> int:
 	return deaths + 1
@@ -402,13 +422,15 @@ func _load_progress() -> void:
 		deaths = int(data.get("deaths", 0))
 		wins = int(data.get("wins", 0))
 
+## Scalany z resztą trwałego zapisu (prolog, Kronika, Pętla) — dawniej ten
+## zapis nadpisywał cały progress.json i gubił "seen_prolog" (Paczka 9).
 func _save_progress() -> void:
-	var data := {"deaths": deaths, "wins": wins}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_warning("Arena: nie udało się zapisać postępu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
+	if GameFlow.training:
 		return
-	file.store_string(JSON.stringify(data))
+	var patch := {"deaths": deaths, "wins": wins}
+	if wins > 0:
+		patch["loop_unlocked"] = true
+	GameFlow.merge_json_dict(SAVE_PATH, patch)
 
 ## Przycisk nagrody w HUD (decyzja autora 23.09) — to samo co klawisze R / Q.
 func _on_reward_button(kind: String) -> void:

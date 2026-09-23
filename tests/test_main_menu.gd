@@ -62,7 +62,7 @@ func test_changing_selection_cancels_pending_exit_confirmation(root: Node) -> vo
 ## assertować bez czekania na realny czas).
 func test_opening_options_switches_state_and_shows_options_screen(root: Node) -> void:
 	var menu := _fresh_menu(root)
-	menu._selected_index = 1 # "Opcje"
+	menu._selected_index = menu.MENU_ITEMS.find("Opcje")
 
 	var accept := InputEventAction.new()
 	accept.action = "ui_accept"

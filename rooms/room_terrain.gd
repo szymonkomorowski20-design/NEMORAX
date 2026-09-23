@@ -158,7 +158,7 @@ func _apply_plate_damage(group: int) -> void:
 			continue
 		var rect: Rect2 = plate["rect"]
 		if player != null and rect.grow(-4.0).has_point(player.global_position):
-			player.take_damage(EncounterPlan.TRAP_DAMAGE, rect.get_center(), false)
+			player.take_damage(EncounterPlan.TRAP_DAMAGE, rect.get_center(), false, self)
 		for enemy in get_tree().get_nodes_in_group("hittable"):
 			if enemy.get("is_dead") == true or not (enemy is Node2D):
 				continue

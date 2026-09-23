@@ -331,6 +331,15 @@ func show_death_overlay(reason: String = "") -> void:
 	lines.append("Enter — spróbuj ponownie      Escape — wyjdź do menu")
 	show_overlay("\n".join(lines), "death")
 
+## Paczka 9 (A17/E5): ekran końca z historią próby i radą na następny raz.
+const END_SCREEN_DEATH_KEYS := "Enter — spróbuj ponownie      S — to samo ziarno      Escape — wyjdź do menu"
+const END_SCREEN_VICTORY_KEYS := "Enter — nowa próba      S — to samo ziarno      Escape — wyjdź do menu"
+
+func show_run_summary(entry: Dictionary) -> void:
+	var lines := RunSummary.screen_lines(entry)
+	lines.append(END_SCREEN_VICTORY_KEYS if entry["result"] == "victory" else END_SCREEN_DEATH_KEYS)
+	show_overlay("\n".join(lines), "victory" if entry["result"] == "victory" else "death")
+
 func hide_overlay() -> void:
 	_overlay_active = false
 	overlay_frame.visible = false
@@ -703,10 +712,15 @@ func _draw_overlay() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(Palette.BACKGROUND, 0.85), true)
 	var font := ThemeDB.fallback_font
 	var lines := _overlay_text.split("\n")
-	var line_height := overlay_font_size * 1.4
+	# Długie podsumowanie próby (Paczka 9): tytuł duży, reszta mniejsza, żeby
+	# kilkanaście linii mieściło się w oknie 720 px.
+	var body_size := overlay_font_size if lines.size() <= 8 else 17
+	var line_height := body_size * 1.45
 	var start_y := size.y * 0.5 - (lines.size() - 1) * line_height * 0.5
 	for i in range(lines.size()):
 		var line: String = lines[i]
-		var text_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, overlay_font_size)
+		var fs := overlay_font_size + 6 if i == 0 and lines.size() > 8 else body_size
+		var text_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
 		var pos := Vector2((size.x - text_size.x) * 0.5, start_y + i * line_height)
-		draw_string(font, pos, line, HORIZONTAL_ALIGNMENT_LEFT, -1, overlay_font_size, Palette.PLAYER_BODY)
+		var color := MINIMAP_GOAL_COLOR if line.begins_with("Następnym razem") else Palette.PLAYER_BODY
+		draw_string(font, pos, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, color)

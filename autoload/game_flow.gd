@@ -593,20 +593,118 @@ func has_seen_prolog() -> bool:
 	return bool(data.get("seen_prolog", false))
 
 func mark_prolog_seen() -> void:
-	var data: Dictionary = {}
-	if FileAccess.file_exists(PERSISTENT_SAVE_PATH):
-		var existing := FileAccess.open(PERSISTENT_SAVE_PATH, FileAccess.READ)
-		if existing != null:
-			var parsed = JSON.parse_string(existing.get_as_text())
-			if typeof(parsed) == TYPE_DICTIONARY:
-				data = parsed
-	data["seen_prolog"] = true
-	var out := FileAccess.open(PERSISTENT_SAVE_PATH, FileAccess.WRITE)
+	write_persistent({"seen_prolog": true})
+
+## Trwały zapis między próbami (Paczka 9): prolog, zgony/zwycięstwa, Kronika,
+## spotkane wcielenia, odblokowana Pętla. ZAWSZE scalany — dawniej arena.gd
+## nadpisywała cały plik samymi deaths/wins i gubiła "seen_prolog".
+static func read_json_dict(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	return parsed if typeof(parsed) == TYPE_DICTIONARY else {}
+
+static func merge_json_dict(path: String, patch: Dictionary) -> void:
+	var data := read_json_dict(path)
+	data.merge(patch, true)
+	var out := FileAccess.open(path, FileAccess.WRITE)
 	if out == null:
-		push_warning("GameFlow: nie udało się zapisać seen_prolog (%s), błąd %d" % [PERSISTENT_SAVE_PATH, FileAccess.get_open_error()])
+		push_warning("GameFlow: nie udało się zapisać %s, błąd %d" % [path, FileAccess.get_open_error()])
 		return
 	out.store_string(JSON.stringify(data))
 	out.close()
+
+func read_persistent() -> Dictionary:
+	return read_json_dict(PERSISTENT_SAVE_PATH)
+
+func write_persistent(patch: Dictionary) -> void:
+	if training:
+		return # Komnata Echa nie zostawia śladów w postępie
+	merge_json_dict(PERSISTENT_SAVE_PATH, patch)
+
+# --- Paczka 9: czas próby, Pętla Otchłani, Kronika, Komnata Echa ---
+
+var run_time: float = 0.0 ## s aktywnej gry w tej próbie (bez pauz, zapisywane)
+var loop_level: int = 0 ## 0 = zwykła próba, 1 = Pętla Otchłani I
+const LOOP_RULES := {
+	1: {"name": "Pętla Otchłani I", "rule": "Poległy wróg zostawia na chwilę strefę Otchłani (zapowiedzianą). Skrzynie dają 4 relikwie do wyboru."},
+}
+const CHRONICLE_LIMIT := 20
+
+func _process(delta: float) -> void:
+	var scene := get_tree().current_scene
+	if scene != null and not get_tree().paused and scene.scene_file_path != "res://menu.tscn" and not training:
+		run_time += delta
+
+func loop_unlocked() -> bool:
+	return bool(read_persistent().get("loop_unlocked", false))
+
+func note_incarnation_met(chapter: int) -> void:
+	var met: Array = read_persistent().get("met_incarnations", [])
+	if not chapter in met and not float(chapter) in met:
+		met.append(chapter)
+		write_persistent({"met_incarnations": met})
+
+func met_incarnations() -> Array[int]:
+	var out: Array[int] = []
+	for c in read_persistent().get("met_incarnations", []):
+		out.append(int(c))
+	out.sort()
+	return out
+
+func chronicle() -> Array:
+	return read_persistent().get("chronicle", [])
+
+func add_chronicle_entry(entry: Dictionary) -> void:
+	var list: Array = chronicle()
+	list.push_front(entry)
+	while list.size() > CHRONICLE_LIMIT:
+		list.pop_back()
+	write_persistent({"chronicle": list})
+
+## Komnata Echa: trening jednego spotkanego wcielenia bez XP, relikwii,
+## fragmentów i postępu. Prawdziwy stan próby jest odkładany na bok (także
+## ścieżka zapisu), a po wyjściu wraca bez zmian.
+var training: bool = false
+var training_chapter: int = -1
+var _training_stash: Dictionary = {}
+
+func begin_training(chapter: int) -> void:
+	if not training:
+		_training_stash = {
+			"room_map": room_map.duplicate(true), "current_room_pos": current_room_pos, "entry_direction": entry_direction,
+			"visited_rooms": visited_rooms.duplicate(), "rooms_cleared_count": rooms_cleared_count,
+			"fragments_collected": fragments_collected.duplicate(), "saved_player_state": saved_player_state.duplicate(true),
+			"SAVE_PATH": SAVE_PATH, "run_time": run_time,
+		}
+	training = true
+	training_chapter = chapter
+	SAVE_PATH = "user://echo_training.json"
+	room_map = {Vector2i.ZERO: {"type": RoomType.SOUL, "chapter": chapter, "enemy_index": -1, "cleared": false, "has_chest": false, "chest_opened": false}}
+	current_room_pos = Vector2i.ZERO
+	entry_direction = Vector2i(0, -1)
+	# Siła wcielenia jak w połowie trasy; build gracza — ten z bieżącej próby.
+	rooms_cleared_count = maxi(8, int(_training_stash.get("rooms_cleared_count", 8)))
+	saved_player_state = _training_stash.get("saved_player_state", {}).duplicate(true)
+
+func end_training() -> void:
+	if not training:
+		return
+	room_map = _training_stash["room_map"]
+	current_room_pos = _training_stash["current_room_pos"]
+	entry_direction = _training_stash["entry_direction"]
+	visited_rooms = _training_stash["visited_rooms"]
+	rooms_cleared_count = _training_stash["rooms_cleared_count"]
+	fragments_collected.assign(_training_stash["fragments_collected"])
+	saved_player_state = _training_stash["saved_player_state"]
+	SAVE_PATH = _training_stash["SAVE_PATH"]
+	run_time = _training_stash["run_time"]
+	training = false
+	training_chapter = -1
+	_training_stash = {}
 
 ## seed_value >= 0 odtwarza konkretną próbę (testy, powtórka układu).
 func reset_run(seed_value: int = -1) -> void:
@@ -618,6 +716,8 @@ func reset_run(seed_value: int = -1) -> void:
 	run_intent = ""
 	pacts.clear()
 	pending_pact = -1
+	run_time = 0.0
+	loop_level = 0
 	reached_arena = false
 	_begin_seed(seed_value)
 	_generate_map()
@@ -664,6 +764,8 @@ func _load_progress() -> bool:
 	run_intent = str(data.get("run_intent", "brak"))
 	pacts = data.get("pacts", {})
 	pending_pact = int(data.get("pending_pact", -1))
+	run_time = float(data.get("run_time", 0.0))
+	loop_level = int(data.get("loop_level", 0))
 	var pos_data: Dictionary = data.get("current_room_pos", {})
 	current_room_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
 	var dir_data: Dictionary = data.get("entry_direction", {})
@@ -707,6 +809,8 @@ func _save_progress() -> void:
 		"run_intent": run_intent,
 		"pacts": pacts,
 		"pending_pact": pending_pact,
+		"run_time": run_time,
+		"loop_level": loop_level,
 		"map_version": MAP_VERSION,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)

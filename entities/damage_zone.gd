@@ -63,4 +63,4 @@ func _try_damage_player() -> void:
 		return
 	if player.is_invulnerable():
 		return
-	player.take_damage(tick_damage, global_position, false) # strefa na podłożu — tarcza nie pomaga
+	player.take_damage(tick_damage, global_position, false, self) # strefa na podłożu — tarcza nie pomaga

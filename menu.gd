@@ -10,7 +10,7 @@ extends Control
 ## responsywne bez przeliczania pikseli pod jeden ekran, i pozwala na tweeny
 ## per-pozycja zamiast zmiany stanu w _process().
 
-enum State { INTRO, IDLE, OPTIONS_OPEN, TRANSITIONING, EXITING }
+enum State { INTRO, IDLE, OPTIONS_OPEN, TRANSITIONING, EXITING, PANEL_OPEN }
 
 const TEX_BACKGROUND := preload("res://assets/sprites/menu/menu_background.png")
 const TEX_LOGO := preload("res://assets/sprites/menu/nemorax_logo.png")
@@ -18,7 +18,7 @@ const LOGO_SIZE := Vector2(480.0, 320.0) ## zachowuje proporcje źródłowego pl
 const FONT_ITEM := preload("res://assets/fonts/Cinzel-SemiBold.woff")
 const FONT_HINT := preload("res://assets/fonts/EBGaramond-Regular.woff")
 
-const MENU_ITEMS: Array[String] = ["Graj", "Opcje", "Wyjście"]
+const MENU_ITEMS: Array[String] = ["Graj", "Komnata Echa", "Kronika", "Opcje", "Wyjście"] ## Paczka 9: Komnata Echa + Kronika
 ## Jasnoszary, NIE czysta biel (dokument, sekcja 4) — i wyraźnie inny niż
 ## poprzedni Palette.HIT_FLASH (#FFFFFF, identyczny z Color.WHITE — to był
 ## prawdziwy bug: podświetlenie było niewidoczne, bo miało ten sam kolor co tło).
@@ -55,6 +55,9 @@ const HINT_TEXT_DEFAULT := "↑↓ wybór   Enter zatwierdź"
 const HINT_TEXT_CONFIRM_EXIT := "Na pewno wyjść?   Enter — tak    Escape — nie"
 
 func _ready() -> void:
+	# Wyjście z Komnaty Echa dowolną drogą (np. pauza → menu) przywraca próbę.
+	if GameFlow.training:
+		GameFlow.end_training()
 	var vp_size := get_viewport_rect().size
 
 	background.texture = TEX_BACKGROUND
@@ -68,7 +71,7 @@ func _ready() -> void:
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_SCALE
 	logo.size = LOGO_SIZE
-	logo.position = Vector2((vp_size.x - LOGO_SIZE.x) * 0.5, vp_size.y * 0.28)
+	logo.position = Vector2((vp_size.x - LOGO_SIZE.x) * 0.5, vp_size.y * 0.20) # wyżej — 5 pozycji menu (Paczka 9)
 	logo.z_index = -1
 	logo.pivot_offset = LOGO_SIZE * 0.5
 
@@ -84,7 +87,7 @@ func _ready() -> void:
 	_play_intro()
 
 func _build_menu_items(vp_size: Vector2) -> void:
-	var start_y := vp_size.y * 0.61
+	var start_y := vp_size.y * 0.62
 	for i in range(MENU_ITEMS.size()):
 		var label := Label.new()
 		label.text = MENU_ITEMS[i]
@@ -152,6 +155,8 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if keybind_screen.visible:
 		return
+	if _state == State.PANEL_OPEN:
+		return # MenuListPanel obsługuje własne wejście
 	if _state == State.OPTIONS_OPEN:
 		if not options_screen.visible:
 			_state = State.IDLE
@@ -257,13 +262,63 @@ func _draw_diamond(center: Vector2, color: Color) -> void:
 	draw_colored_polygon(points, color)
 
 func _activate_selected() -> void:
-	match _selected_index:
-		0:
+	match MENU_ITEMS[_selected_index]:
+		"Graj":
 			_transition_to_game()
-		1:
+		"Komnata Echa":
+			_open_echo()
+		"Kronika":
+			_open_chronicle()
+		"Opcje":
 			_open_options()
-		2:
+		"Wyjście":
 			_confirm_exit()
+
+# --- Paczka 9: Kronika i Komnata Echa ---
+var _panel: MenuListPanel
+
+func _ensure_panel() -> MenuListPanel:
+	if _panel == null:
+		_panel = MenuListPanel.new()
+		add_child(_panel)
+		_panel.closed.connect(func(): _state = State.IDLE; items_container.modulate.a = 1.0; queue_redraw())
+	return _panel
+
+func _open_chronicle() -> void:
+	var rows: Array = []
+	for e in GameFlow.chronicle():
+		var head := ("%s   %s   %s" % [str(e.get("date", "")).replace("T", " ").left(16), "Zwycięstwo" if e.get("result") == "victory" else "Porażka", e.get("stage", "")]).strip_edges()
+		var detail := "Czas %s · poziom %d · fragmenty %d/6 · intencja %s · pakt %s · ziarno %d" % [RunSummary.format_time(float(e.get("time", 0.0))), int(e.get("level", 0)), int(e.get("fragments", 0)), e.get("intent", "—"), e.get("pact", "—"), int(e.get("seed", 0))]
+		if e.get("result") == "death":
+			detail = "Ostatni cios: %s · " % e.get("cause", "?") + detail
+		rows.append([head, detail])
+	_state = State.PANEL_OPEN
+	items_container.modulate.a = 0.0
+	queue_redraw()
+	_ensure_panel().open("Kronika", rows, false, "Ostatnie próby — co zadziałało, co zabiło, jakie było ziarno.")
+
+func _open_echo() -> void:
+	var met := GameFlow.met_incarnations()
+	if met.is_empty():
+		Juice.play_ui_sfx(Juice.SND_UI_ERROR)
+		hint_label.text = "Komnata Echa otworzy się po pierwszym spotkaniu wcielenia."
+		return
+	var rows: Array = []
+	for c in met:
+		rows.append([GameFlow.INCARNATION_NAMES[c], RunSummary.INCARNATION_ADVICE[c]])
+	_state = State.PANEL_OPEN
+	items_container.modulate.a = 0.0
+	queue_redraw()
+	var panel := _ensure_panel()
+	for conn in panel.chosen.get_connections():
+		panel.chosen.disconnect(conn["callable"])
+	panel.chosen.connect(func(i: int): _start_training(met[i]))
+	panel.open("Komnata Echa", rows, true, "Trening bez nagród, XP i wpływu na próbę — build z bieżącej próby.")
+
+func _start_training(chapter: int) -> void:
+	_panel.visible = false
+	GameFlow.begin_training(chapter)
+	get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
 
 ## Krok 12 (OPTIONS_OPEN, dokument): "główne pozycje miękko znikają, panel
 ## opcji wchodzi z dołu lub z prawej" — dawniej to był twardy cut (options_screen

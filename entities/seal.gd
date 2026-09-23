@@ -51,6 +51,6 @@ func _physics_process(delta: float) -> void:
 
 func _explode() -> void:
 	if player and global_position.distance_to(player.global_position) <= seal_radius:
-		player.take_damage(seal_damage, global_position, false) # wybuch z podłoża — tarcza nie pomaga
+		player.take_damage(seal_damage, global_position, false, self) # wybuch z podłoża — tarcza nie pomaga
 	Juice.play_sfx_at(SND_EXPLOSION, global_position)
 	queue_free()
