@@ -159,20 +159,7 @@ func _on_boss_died(is_final: bool) -> void:
 ## scena całej gry (PLAN_CUTSCENEK.md 2.3, gdzie żyje cały twist): ciało "znika",
 ## chwila ciszy, wraca mała forma z pytaniem finałowym, zanim zdąży zaatakować.
 func _play_big_form_death() -> void:
-	# ui.gd (GameUI) NIE ma process_mode ALWAYS — jego _process() (jedyne
-	# miejsce wołające _update_bars()+queue_redraw(), czyli jedyne miejsce,
-	# które w ogóle SPRAWDZA hide_all na nowo) przestaje działać w tej samej
-	# klatce, w której get_tree().paused staje się true. Samo ustawienie
-	# hide_all=true tuż przed pauzą (nawet z jedną klatką odczekaną przez
-	# `await get_tree().process_frame` — sprawdzone, process_frame odpala się
-	# PRZED _process() tej klatki, nie po, więc i tak nie pomagało) nigdy nie
-	# zdążyło się przerysować: canvas zamrażał się na ostatniej klatce SPRZED
-	# hide_all, z paskiem/tekstem wciąż w pełni widocznymi pod całą resztą
-	# sekwencji. Wołamy więc _update_bars()/queue_redraw() wprost, zamiast
-	# czekać aż zrobi to _process(), którego już nie będzie.
-	ui.hide_all = true
-	ui._update_bars(0.0)
-	ui.queue_redraw()
+	ui.hide_for_cutscene()
 
 	# Jedna klatka bez pauzy pozwala boss._physics_process() przetworzyć
 	# is_dead=true (ustawione tuż przed emisją died() w take_damage()) i
@@ -189,8 +176,7 @@ func _play_big_form_death() -> void:
 	# przeżywa to okno bez zmian (create_timer ma domyślnie process_always=true),
 	# więc przesunięcie tu obu linii zamyka całą lukę, nie tylko jej część.
 	get_tree().paused = true
-	for hazard in get_tree().get_nodes_in_group("boss_hazard"):
-		hazard.queue_free()
+	_clear_boss_hazards()
 	# Duża forma jest is_dead=true w tym oknie — boss.gd sam pokazuje pozę
 	# "kolaps" (nemorax_large-form-collapse.png) przez _update_sprite_state(),
 	# więc nie trzeba już chować sprite'a na ślepo.
@@ -285,8 +271,17 @@ func _finale_taunt_text() -> String:
 			return tier["text"]
 	return FINALE_TAUNT_AT_100
 
+## Pieczęcie/strefy/pociski/przyzwańcy bossa żyją jako rodzeństwo bossa, nie
+## jego dzieci, więc nie znikają razem z nim. Po zwycięstwie drzewo zostaje
+## odpauzowane pod ekranem wyniku — zostawiony pocisk małej formy mógł trafić
+## gracza PO wygranej i nadpisać "victory" ekranem śmierci.
+func _clear_boss_hazards() -> void:
+	for hazard in get_tree().get_nodes_in_group("boss_hazard"):
+		hazard.queue_free()
+
 func _finish_victory() -> void:
 	_battle_over = true
+	_clear_boss_hazards()
 	var is_first_win := wins == 0
 	wins += 1
 	_save_progress()
@@ -332,6 +327,11 @@ func _play_victory_epilogue(is_first_win: bool) -> void:
 	_game_over_kind = "victory"
 
 func _on_player_died() -> void:
+	# _battle_over przed śmiercią gracza = już wygrana (gracz nie umiera dwa
+	# razy, take_damage pilnuje State.DEAD). queue_free() zagrożeń jest
+	# odroczone do końca klatki, więc strefa mogła jeszcze raz tyknąć.
+	if _battle_over:
+		return
 	_battle_over = true
 	deaths += 1
 	_save_progress()

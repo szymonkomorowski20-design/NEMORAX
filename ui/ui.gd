@@ -326,6 +326,24 @@ func hide_overlay() -> void:
 	_overlay_active = false
 	overlay_frame.visible = false
 
+## Wołać PRZED get_tree().paused = true. Ten węzeł nie ma PROCESS_MODE_ALWAYS,
+## a _process() to jedyne miejsce, które ponownie ocenia hide_all
+## (_update_bars + queue_redraw) — samo ustawienie flagi tuż przed pauzą
+## zostawiało zamrożoną ostatnią klatkę HUD-u pod dialogiem scenki.
+func hide_for_cutscene() -> void:
+	hide_all = true
+	_update_bars(0.0)
+	queue_redraw()
+
+## Jedna reguła prezentacji HP dla gracza i bossa. max przez roundi (nie int):
+## 100.0 * 1.15 to w double 114.999…, int() dawał 114, a ceili() tej samej
+## wartości 115 — stąd "115/114" przy pełnym HP fazy. Bieżące HP w górę
+## (0,3 HP żywego celu to "1", nie "0"), ale nigdy ponad wyświetlone maksimum.
+static func hp_label(current: float, maximum: float) -> String:
+	var max_display := roundi(maximum)
+	var current_display := clampi(ceili(current), 0, max_display)
+	return "%d / %d" % [current_display, max_display]
+
 ## Zastępuje dawne _draw_player_bar/_draw_resource_bars/_draw_boss_bar/
 ## _draw_dash_icon/_draw_heal_icon — teraz to prawdziwe sprite'y/TextureRect,
 ## więc tylko aktualizujemy region_rect/visible/modulate co klatkę.
@@ -415,7 +433,7 @@ func _draw_player_hp_text() -> void:
 	if player == null or hide_all or _overlay_active:
 		return
 	var font := ThemeDB.fallback_font
-	var label := "%d / %d" % [ceili(player.health), int(player.max_health)]
+	var label := hp_label(player.health, player.max_health)
 	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14)
 	var pos := _player_bar_pos + Vector2((player_bar_size.x - text_size.x) * 0.5, player_bar_size.y * 0.5 + text_size.y * 0.3)
 	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
@@ -443,7 +461,7 @@ func _draw_boss_hp_text() -> void:
 	if boss == null or not (boss is Boss) or hide_all or _overlay_active:
 		return
 	var font := ThemeDB.fallback_font
-	var label := "%d / %d" % [ceili(boss.health), int(boss.max_health)]
+	var label := hp_label(boss.health, boss.max_health)
 	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14)
 	var pos := _boss_bar_pos + Vector2(ARENA_WIDTH * 0.5 - text_size.x * 0.5, boss_bar_height + 42.0)
 	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)

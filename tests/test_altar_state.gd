@@ -70,6 +70,37 @@ func test_player_proximity_triggers_activation(root: Node) -> void:
 	_cleanup(altar, root)
 	GameFlow.fragments_collected = original
 
+## A3: gracz dochodzi do pedestału w ~0,5 s, a "Wszystkie fragmenty…" wisi 4 s
+## — pauza rytuału zamrażała ten komunikat i HUD pod dialogiem.
+func test_activation_hides_hud_before_the_ritual_cutscene(root: Node) -> void:
+	var original := GameFlow.fragments_collected
+	GameFlow.fragments_collected = ["A", "B", "C", "D", "E", "F"]
+
+	var altar := _fresh_altar(root)
+	NemoraxTest.assert_true(not altar.ui.hide_all, "przed aktywacją HUD widoczny")
+	altar.player.global_position = altar.ARENA_RECT.get_center()
+	altar._physics_process(0.0)
+	NemoraxTest.assert_true(altar.ui.hide_all, "aktywacja rytuału musi schować HUD i komunikaty")
+
+	_cleanup(altar, root)
+	GameFlow.fragments_collected = original
+
+## "Nemorax powstaje..." jako ostatni beat tej samej scenki — dawniej był to
+## show_taunt() PO cutscene.play(), które odpauzowuje drzewo, więc gracz
+## odzyskiwał sterowanie na summon_delay.
+func test_ritual_ends_with_rise_beat_inside_the_cutscene(root: Node) -> void:
+	var original := GameFlow.fragments_collected
+	GameFlow.fragments_collected = ["A", "B", "C", "D", "E", "F"]
+
+	var altar := _fresh_altar(root)
+	var beats: Array[DialogueBeat] = altar._build_ritual_beats()
+	NemoraxTest.assert_eq(beats.size(), altar.SOCKET_COLORS.size() + 1, "6 beatów gniazd + cięcie na powstanie")
+	NemoraxTest.assert_eq(beats[-1].text, "Nemorax powstaje...", "ostatni beat to cięcie na powstanie Nemoraksa")
+	NemoraxTest.assert_almost_eq(beats[-1].fallback_seconds, altar.summon_delay, 0.001, "czas cięcia zachowany (summon_delay)")
+
+	_cleanup(altar, root)
+	GameFlow.fragments_collected = original
+
 func test_ready_altar_does_not_trigger_when_player_far(root: Node) -> void:
 	var original := GameFlow.fragments_collected
 	GameFlow.fragments_collected = ["A", "B", "C", "D", "E", "F"]

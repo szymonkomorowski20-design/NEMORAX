@@ -437,11 +437,14 @@ func _process_lunge(delta: float) -> void:
 ## hitbox, nie widoczna sylwetka, więc samo clampowanie po nim pozwalało dużym
 ## posom (szczególnie duża forma) wizualnie wchodzić w ścianę mimo hitboxu
 ## wciąż w granicach areny.
+## Górny limit = zasięg kontaktu, jak w Incarnation — inaczej gracz przy
+## ścianie byłby poza zasięgiem ciała bossa.
 func _visual_margin() -> Vector2:
 	if sprite == null or sprite.texture == null:
 		return Vector2(radius, radius)
 	var half_size: Vector2 = sprite.texture.get_size() * 0.5 * sprite.scale.x
-	return Vector2(maxf(radius, half_size.x), maxf(radius, half_size.y))
+	var reach := radius + (player.radius if player != null else 0.0) - 2.0
+	return Vector2(clampf(half_size.x, radius, maxf(radius, reach)), clampf(half_size.y, radius, maxf(radius, reach)))
 
 func _clamp_to_arena(pos: Vector2) -> Vector2:
 	var r := arena_rect
@@ -469,7 +472,9 @@ func _drift_towards_player(delta: float) -> void:
 	var to_player: Vector2 = player.global_position - global_position
 	if to_player.length() > 1.0:
 		_facing_direction = to_player
-		global_position += to_player.normalized() * boss_drift_speed * delta
+		# Jedyny ruch bossa bez clampa — goniąc gracza przy ścianie duża forma
+		# wychodziła sylwetką (i hitboxem) daleko poza mur areny.
+		global_position = _clamp_to_arena(global_position + to_player.normalized() * boss_drift_speed * delta)
 
 ## Ruin (faza 4, dawniej Głód) — reguła bez zmian co do indeksu/treści.
 func _handle_hunger_regen(delta: float) -> void:
@@ -585,7 +590,7 @@ func _build_pattern_groups_instinct() -> Array[Dictionary]:
 	]
 
 func _attack_instinct_reposition_strike() -> void:
-	global_position = _random_arena_point(instinct_reposition_margin)
+	global_position = _clamp_to_arena(_random_arena_point(instinct_reposition_margin))
 	_set_cast_pose(TEX_TELEGRAPH_VARIANTS)
 	await get_tree().create_timer(instinct_strike_telegraph).timeout
 	if not is_dead:
@@ -817,8 +822,10 @@ func take_damage(amount: float) -> void:
 func _enter_phase(new_index: int) -> void:
 	phase_index = new_index
 	var multiplier: float = PHASE_HP_MULTIPLIERS[new_index] if new_index < PHASE_HP_MULTIPLIERS.size() else 1.0
-	health = phase_max_health * multiplier
-	max_health = phase_max_health * multiplier
+	# roundf: 100.0 * 1.15 w double to 114.999… — pula fazy ma być liczbą
+	# całkowitą w danych, nie tylko ładnie zaokrągloną w UI (GameUI.hp_label).
+	max_health = roundf(phase_max_health * multiplier)
+	health = max_health
 	current_color = Palette.PHASE_COLORS[phase_index]
 	_pattern_groups = _build_pattern_groups(phase_index)
 	_last_pattern_name = ""

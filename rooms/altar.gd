@@ -132,10 +132,19 @@ func _physics_process(_delta: float) -> void:
 func _begin_activation() -> void:
 	state = AltarState.ACTIVATING
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Gracz dochodzi do pedestału w ~0,5 s, a "Wszystkie fragmenty…" wisi 4 s —
+	# pauza zamrażała ten komunikat i cały HUD pod dialogiem rytuału.
+	ui.hide_for_cutscene()
 	get_tree().paused = true
 	_run_activation_sequence()
 
-func _run_activation_sequence() -> void:
+## Gniazda (6 beatów z portretem) + cięcie na "Nemorax powstaje..."
+## (PLAN_CUTSCENEK.md 2.2). To cięcie było dawniej ui.show_taunt() PO
+## cutscene.play() — a play() sam odpauzowuje drzewo na koniec, więc przez
+## summon_delay gracz odzyskiwał sterowanie (i komunikat nie przeżyłby
+## hide_all). Jako ostatni beat tej samej scenki: pauza trwa do końca, skip
+## działa na nim tak samo jak na reszcie.
+func _build_ritual_beats() -> Array[DialogueBeat]:
 	var beats: Array[DialogueBeat] = []
 	for i in range(_sockets.size()):
 		var beat := DialogueBeat.new()
@@ -143,22 +152,36 @@ func _run_activation_sequence() -> void:
 		beat.portrait = RITUAL_PORTRAITS[i]
 		beat.fallback_seconds = slot_activation_interval
 		beats.append(beat)
+	var rise := DialogueBeat.new()
+	rise.text = "Nemorax powstaje..."
+	rise.fallback_seconds = summon_delay
+	beats.append(rise)
+	return beats
+
+func _run_activation_sequence() -> void:
+	var beats := _build_ritual_beats()
 	# Gniazda zapalają się RÓWNOLEGLE z beatami, nie po nich — cutscene.play()
 	# nie ma haka "w trakcie beatu N zrób X", więc jadą własnym, tym samym
 	# timerem obok siebie (oba PROCESS_MODE_ALWAYS, oba niezależne od pauzy).
 	_light_sockets_in_rhythm()
 	await cutscene.play(beats)
-	ui.show_taunt("Nemorax powstaje...", summon_delay)
-	await get_tree().create_timer(summon_delay).timeout
-	get_tree().paused = false
+	# play() odpauzowało drzewo — GameFlow._transition() potrzebuje tego do
+	# swojego tweena (brak PROCESS_MODE_ALWAYS), ale gracz nie może w tym
+	# czasie chodzić ani zadać ciosu (skip scenki to ta sama akcja "attack").
+	player.set_physics_process(false) # całe wejście gracza czytane jest tam
 	# BOSS_ACTIVE/COMPLETE żyją w arena.gd (osobna scena) — ta zmiana stanu
 	# jest tu tylko na wypadek, gdyby coś jeszcze odpytało `state` w tej samej
 	# klatce przed zmianą sceny (change_scene_to_file nie jest natychmiastowe).
 	state = AltarState.BOSS_ACTIVE
+	GameFlow.capture_player_state(player)
 	GameFlow.complete_altar()
 
 func _light_sockets_in_rhythm() -> void:
 	for socket in _sockets:
+		# Pominięta scenka kończy rytuał i zmienia scenę, zanim ta pętla dojdzie
+		# do końca — bez tego pozostałe dźwięki gniazd grałyby już na arenie.
+		if not is_inside_tree() or state != AltarState.ACTIVATING:
+			return
 		socket.modulate = socket.modulate * SOCKET_FILLED_BRIGHTNESS
 		Juice.play_sfx_at(SND_ALTAR_POINT, socket.global_position)
 		await get_tree().create_timer(slot_activation_interval).timeout

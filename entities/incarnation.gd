@@ -216,7 +216,9 @@ func _drift_towards_player(delta: float) -> void:
 		return
 	_facing_direction = to_player
 	if keep_distance_range < 0.0:
-		global_position += to_player.normalized() * drift_speed * delta
+		# Pościg wręcz był jedynym ruchem bez clampa — to nim Mordrath/Tank
+		# wchodzili w mur, goniąc gracza stojącego przy ścianie.
+		global_position = _clamp_to_arena(global_position + to_player.normalized() * drift_speed * delta)
 		return
 	var distance := to_player.length()
 	var radial := to_player.normalized()
@@ -310,11 +312,17 @@ func _process_lunge(delta: float) -> void:
 ## że hitbox wciąż był w granicach areny. Margines liczony z FAKTYCZNEGO
 ## rozmiaru aktywnej tekstury (zmienia się między posami) razy sprite.scale,
 ## nie z osobnej, ręcznie dobieranej stałej per-archetyp.
+##
+## Górny limit = zasięg kontaktu (radius + promień gracza − 2): bez niego
+## wcielenia (radius 95, płótno 138 px od środka) stawały dalej od ściany niż
+## sięga ich kontakt, więc gracz przyklejony do ściany był dla nich
+## nietykalny. Realna kolizja ma pierwszeństwo przed wizualnym dopasowaniem.
 func _visual_margin() -> Vector2:
 	if sprite == null or sprite.texture == null:
 		return Vector2(radius, radius)
 	var half_size: Vector2 = sprite.texture.get_size() * 0.5 * sprite.scale.x
-	return Vector2(maxf(radius, half_size.x), maxf(radius, half_size.y))
+	var reach := radius + (player.radius if player != null else 0.0) - 2.0
+	return Vector2(clampf(half_size.x, radius, maxf(radius, reach)), clampf(half_size.y, radius, maxf(radius, reach)))
 
 func _clamp_to_arena(pos: Vector2) -> Vector2:
 	var r := arena_rect

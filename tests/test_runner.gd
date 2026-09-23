@@ -29,6 +29,10 @@ func _initialize() -> void:
 	# wewnątrz _initialize() nie mają tego problemu, bo kompilują się później).
 	var game_flow: Node = root.get_node("GameFlow")
 	game_flow.PERSISTENT_SAVE_PATH = "user://test_persistent_progress.json"
+	# To samo dla zapisu BIEŻĄCEGO przebiegu: reset_run(), clear_current_room(),
+	# skrzynie, ołtarz itd. w testach zapisywały dotąd prawdziwy
+	# user://gauntlet_progress.json gracza przy każdym uruchomieniu zestawu.
+	game_flow.SAVE_PATH = "user://test_gauntlet_progress.json"
 	game_flow.mark_prolog_seen()
 	var passed := 0
 	var failed := 0
