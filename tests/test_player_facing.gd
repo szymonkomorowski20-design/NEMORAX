@@ -58,6 +58,20 @@ func test_dash_pose_faces_dash_direction_source(root: Node) -> void:
 	NemoraxTest.assert_eq(player.sprite.flip_h, false, "side w lewo nie jest odbite")
 	_cleanup(player, root)
 
+func test_dash_afterimage_copies_actual_character_pose(root: Node) -> void:
+	var player := _fresh_player(root)
+	player.state = Player.State.DASHING
+	player._dash_direction = Vector2(1.0, 0.0)
+	player._spawn_trail_ghost()
+	var ghost: Sprite2D = player.get_child(player.get_child_count() - 1) as Sprite2D
+	NemoraxTest.assert_true(ghost != null, "dash powinien utworzyć kopię postaci")
+	NemoraxTest.assert_eq(ghost.texture, Player.TEX_DASH_SIDE, "powidok w prawo powinien używać pozy dasha z boku")
+	NemoraxTest.assert_eq(ghost.flip_h, true, "powidok powinien odbić pozę zgodnie z kierunkiem")
+	NemoraxTest.assert_eq(ghost.scale, player.sprite.scale, "powidok musi mieć rozmiar postaci")
+	NemoraxTest.assert_true(ghost.top_level, "powidok ma pozostać w miejscu, gdy gracz odjedzie")
+	NemoraxTest.assert_true(ghost.modulate.a < 0.5, "powidok nie może zasłaniać gracza")
+	_cleanup(player, root)
+
 func test_sword_windup_and_active_face_attack_direction_source(root: Node) -> void:
 	var player := _fresh_player(root)
 	player._swing_weapon = "sword"

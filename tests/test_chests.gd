@@ -54,8 +54,13 @@ func test_chest_open_grants_an_unowned_upgrade(root: Node) -> void:
 	# własną kopię. Array to obiekt referencyjny, więc mutacja JEGO zawartości
 	# faktycznie wraca do zewnętrznego zasięgu.
 	var received: Array = []
+	var offers: Array = []
 	chest.opened.connect(func(id: String): received.append(id))
+	chest.selection_requested.connect(func(ids: Array[String]): offers.assign(ids))
 	chest._open()
+	NemoraxTest.assert_eq(offers.size(), 3, "skrzynia pokazuje trzy różne relikwie")
+	NemoraxTest.assert_eq(received.size(), 0, "skrzynia nie przyznaje relikwii przed wyborem")
+	chest.choose(offers[0])
 
 	NemoraxTest.assert_eq(received.size(), 1, "sygnał opened powinien wyemitować się dokładnie raz")
 	NemoraxTest.assert_true(received[0] in Player.UPGRADE_IDS, "przyznane ID powinno być jednym z 10 znanych ulepszeń")
@@ -76,8 +81,12 @@ func test_chest_never_grants_an_already_owned_upgrade(root: Node) -> void:
 	root.add_child(chest)
 	chest.player = player
 	var received: Array = []
+	var offers: Array = []
 	chest.opened.connect(func(id: String): received.append(id))
+	chest.selection_requested.connect(func(ids: Array[String]): offers.assign(ids))
 	chest._open()
+	NemoraxTest.assert_eq(offers.size(), 1, "gdy została jedna relikwia, oferta pokazuje tylko ją")
+	chest.choose(offers[0])
 
 	NemoraxTest.assert_eq(received.size(), 1, "sygnał opened powinien wyemitować się dokładnie raz")
 	NemoraxTest.assert_eq(received[0], "soul_bond", "z jednym wolnym slotem skrzynia musi trafić właśnie na niego")

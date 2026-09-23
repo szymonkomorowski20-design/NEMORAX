@@ -57,8 +57,11 @@ func _physics_process(delta: float) -> void:
 
 func _try_damage_player() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
-	if player == null or player.is_invulnerable():
+	if player == null:
 		return
 	if global_position.distance_to(player.global_position) > zone_radius:
+		return
+	if player.is_invulnerable():
+		player.on_blocked_attack()
 		return
 	player.take_damage(tick_damage)

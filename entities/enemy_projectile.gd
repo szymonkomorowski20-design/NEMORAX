@@ -35,9 +35,13 @@ func _physics_process(delta: float) -> void:
 
 func _check_hit() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
-	if player == null or player.is_invulnerable():
+	if player == null:
 		return
 	if global_position.distance_to(player.global_position) > radius + player.radius:
+		return
+	if player.is_invulnerable():
+		player.on_blocked_attack()
+		queue_free()
 		return
 	player.take_damage(damage)
 	Juice.play_sfx_at(SND_IMPACT, global_position)

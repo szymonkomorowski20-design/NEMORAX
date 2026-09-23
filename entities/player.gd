@@ -15,10 +15,18 @@ signal died
 ## odmowa ma trzy różne przyczyny (cooldown/void-lock/stamina) zlane w jeden
 ## dźwięk, więc podświetlanie paska staminy byłoby czasem po prostu błędne.
 signal resource_denied(kind: String)
+signal skill_choice_ready
 
 enum State { NORMAL, DASHING, DEAD }
 
 const ProjectileScene := preload("res://entities/projectile.tscn")
+const SkillCatalog := preload("res://entities/skill_catalog.gd")
+const SkillProcs := preload("res://entities/skill_procs.gd")
+const VFX_FOLLOWUP := preload("res://assets/sprites/vfx/skills_preproduction/vfx_followup_slash.png")
+const VFX_BLOOM := preload("res://assets/sprites/vfx/skills_preproduction/vfx_void_bloom.png")
+const VFX_DASH_RING := preload("res://assets/sprites/vfx/skills_preproduction/vfx_dash_ring.png")
+const VFX_SPLIT := preload("res://assets/sprites/vfx/skills_preproduction/vfx_split_shard.png")
+const VFX_SECOND_BREATH := preload("res://assets/sprites/vfx/skills_preproduction/vfx_second_breath.png")
 
 # --- Sprite'y (zamiast dawnego _draw()) ---
 const TEX_BASE := preload("res://assets/sprites/gracz/player_base.png")
@@ -118,7 +126,6 @@ const TEX_HIT_VARIANTS := {"front": TEX_HIT, "front_diagonal": TEX_HIT_FRONT_DIA
 const TEX_DEATH_VARIANTS := {"front": TEX_DEATH, "front_diagonal": TEX_DEATH_FRONT_DIAGONAL, "side": TEX_DEATH_SIDE, "back_diagonal": TEX_DEATH_BACK_DIAGONAL, "back": TEX_DEATH_BACK}
 const TEX_SLASH_ARC := preload("res://assets/sprites/ekwipunek/sword_slash_arc.png")
 const TEX_WAND_CHARGE := preload("res://assets/sprites/ekwipunek/wand_charge.png")
-const TEX_DASH_TRAIL := preload("res://assets/sprites/ekwipunek/player_dash_trail.png")
 
 # --- Dźwięki ---
 const SND_DASH_START := preload("res://assets/audio/sfx/gracz/P01_dash_start.wav")
@@ -144,9 +151,14 @@ const SND_HURT := [
 	preload("res://assets/audio/sfx/p0/PLAYER_HURT_3.wav"),
 ]
 const SND_DEATH := preload("res://assets/audio/sfx/p0/PLAYER_DEATH.wav")
+const SND_SKILL_TWIN := preload("res://assets/audio/sfx/gracz/P08_sword_hit.wav")
+const SND_SKILL_SPLIT := preload("res://assets/audio/sfx/gracz/P11_wand_fire.wav")
+const SND_SKILL_VOID := preload("res://assets/audio/sfx/gracz/P12_wand_impact.wav")
 
 @onready var sprite: Sprite2D = $Sprite
 @onready var slash_arc: Sprite2D = $SlashArc
+var _wide_slash_left: Sprite2D
+var _wide_slash_right: Sprite2D
 @onready var wand_charge_sprite: Sprite2D = $WandCharge
 @onready var sfx: AudioStreamPlayer2D = $Sfx
 
@@ -170,7 +182,6 @@ var _walk_cycle_phase: float = 0.0
 @export var sprite_scale: float = 0.10 ## postać gracza — powiększona z 0.08 (KIERUNEK_WIZUALNY_REFERENCJE.md: gracz musi być czytelniejszy/większy od tła i wrogów)
 @export var slash_arc_scale: float = 0.09 ## wycinek ataku mieczem
 @export var wand_charge_scale: float = 0.05 ## kula ładowania różdżki
-@export var trail_ghost_scale: float = 0.08 ## kopie śladu dasha
 
 # --- Dash ---
 @export var input_buffer_window: float = 0.12 ## s, jak długo pamiętane jest wcześniejsze naciśnięcie dash/atak, żeby odpaliło się automatycznie w momencie, gdy znów będzie można (cooldown/zamach się kończy) — tylko dash i atak mają fazę/cooldown, którego wyścig z czasem naciśnięcia da się realnie wyczuć; blok/leczenie są ograniczone wyłącznie zasobem (stamina/stack), który nie zmienia się w tak krótkim oknie, więc bufor nic by im nie dał
@@ -224,7 +235,7 @@ var max_mana: float ## efektywna wartość — base_max_mana + punkty*mana_per_p
 # przy normalnym tempie gry. Każdy level = 1 punkt do wydania w jedną z 6 statystyk
 # (ui/stats_screen.gd, klawisz Tab).
 @export var max_level: int = 10
-@export var xp_per_level: float = 3.0
+@export var xp_per_level: float = 3.0 ## wartość zapasowa; wymagania poziomu liczy xp_required_for_next_level()
 @export var health_per_point: float = 10.0
 @export var stamina_per_point: float = 10.0
 @export var mana_per_point: float = 10.0
@@ -246,6 +257,25 @@ var level: int = 0
 var xp: float = 0.0
 var unspent_stat_points: int = 0
 var stat_points: Dictionary = {"health": 0, "stamina": 0, "mana": 0, "damage": 0, "speed": 0, "stamina_regen": 0}
+var skill_ranks: Dictionary = {}
+var pending_skill_choices: int = 0
+var skill_offers: Array[String] = []
+var _dash_ring_cooldown: float = 0.0
+var _second_breath_used: bool = false
+var _second_breath_scope: String = ""
+
+func enter_breath_scope(scope: String) -> void:
+	if _second_breath_scope != scope:
+		_second_breath_used = false
+		_second_breath_scope = scope
+var _volley_serial: int = 0
+var _volley_damage: Dictionary = {}
+var _attack_serial: int = 0
+var _bonus_damage: Dictionary = {}
+var _skill_procs
+var _weave_ready_weapon: String = ""
+var _weave_timer: float = 0.0
+var _block_parry_timer: float = 0.0
 
 # --- Blok (prawy przycisk myszy) — dodane na życzenie autora, poza dokumentem ---
 @export var block_stamina_cost_fraction: float = 0.75 ## ułamek MAX staminy zużywany na blok
@@ -413,6 +443,9 @@ var pull_strength: float = 0.0
 var input_reversed: bool = false
 
 func _ready() -> void:
+	_skill_procs = SkillProcs.new()
+	_skill_procs.player = self
+	add_child(_skill_procs)
 	_recompute_effective_stats()
 	health = max_health
 	stamina = max_stamina
@@ -427,6 +460,18 @@ func _ready() -> void:
 	add_child(contact_shadow)
 	slash_arc.scale = Vector2(slash_arc_scale, slash_arc_scale)
 	slash_arc.texture = TEX_SLASH_ARC
+	for side in [-1, 1]:
+		var extra := Sprite2D.new()
+		extra.texture = TEX_SLASH_ARC
+		extra.scale = slash_arc.scale
+		extra.modulate.a = 0.62
+		extra.visible = false
+		extra.z_index = slash_arc.z_index
+		add_child(extra)
+		if side < 0:
+			_wide_slash_left = extra
+		else:
+			_wide_slash_right = extra
 	wand_charge_sprite.texture = TEX_WAND_CHARGE
 	_update_visuals()
 
@@ -437,6 +482,9 @@ func _physics_process(delta: float) -> void:
 
 	_tick_timers(delta)
 	_tick_upgrade_timers(delta)
+	_dash_ring_cooldown = maxf(0.0, _dash_ring_cooldown - delta)
+	_weave_timer = maxf(0.0, _weave_timer - delta)
+	_block_parry_timer = maxf(0.0, _block_parry_timer - delta)
 	_handle_weapon_switch()
 	_handle_dash_input(delta)
 	_handle_attack_input(delta) # niezależne od stanu ruchu — da się zacząć w trakcie dasha
@@ -563,7 +611,7 @@ func _effective_dash_cooldown() -> float:
 	var cd := dash_cooldown
 	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("dash_cooldown"):
 		cd *= (1.0 + _soul_bond_effect["dash_cooldown"])
-	return cd
+	return maxf(0.35, cd * (1.0 - 0.08 * skill_rank("guard_quickstep")))
 
 func _process_dash(delta: float) -> void:
 	_dash_timer -= delta
@@ -571,6 +619,7 @@ func _process_dash(delta: float) -> void:
 	if _dash_timer <= 0.0:
 		state = State.NORMAL
 		velocity = Vector2.ZERO
+		_fire_dash_ring()
 		# Void Step (dokument): "on successful dash end" — dash zawsze faktycznie
 		# się zaczął, żeby dotrzeć tutaj (stan DASHING wchodzi się tylko przez
 		# udany start w _handle_dash_input), więc nie trzeba osobno tego sprawdzać.
@@ -591,7 +640,7 @@ func _process_normal_movement(delta: float) -> void:
 	if input_dir.length() > 0.01:
 		_last_move_direction = input_dir
 
-	var target_speed := max_speed * _upgrade_speed_multiplier()
+	var target_speed := minf(base_max_speed * 1.4, max_speed * _upgrade_speed_multiplier())
 	if _attack_phase != "":
 		target_speed *= attack_move_speed_fraction
 
@@ -619,7 +668,7 @@ func _upgrade_speed_multiplier() -> float:
 		mult *= (1.0 + _momentum_stacks * momentum_speed_per_stack)
 	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("move"):
 		mult *= (1.0 + _soul_bond_effect["move"])
-	return mult
+	return minf(1.4, mult * (1.0 + 0.05 * skill_rank("guard_fleetfoot")))
 
 ## Last Resolve (niskie HP) i Soul Bond/Instinct (+szybkość ataku) skracają
 ## czas trwania faz ataku (windup/active/recovery) — "szybszy atak" = krótsze
@@ -630,7 +679,11 @@ func _attack_speed_multiplier() -> float:
 		mult *= (1.0 + last_resolve_attack_speed_bonus)
 	if has_upgrade("soul_bond") and _soul_bond_timer > 0.0 and _soul_bond_effect.has("attack_speed"):
 		mult *= (1.0 + _soul_bond_effect["attack_speed"])
-	return mult
+	if _swing_weapon == "wand":
+		mult *= (1.0 + 0.08 * skill_rank("wand_rapid_cast"))
+	if _skill_procs != null:
+		mult *= (1.0 + _skill_procs.attack_speed_bonus())
+	return minf(1.8, mult)
 
 ## Soul Bond/Force (+odepchnięcie ZADAWANE) — dotyczy bloku i Second Impact;
 ## odepchnięcie OTRZYMYWANE (Iron Heart) jest osobne, patrz apply_knockback().
@@ -641,8 +694,11 @@ func _knockback_dealt_multiplier() -> float:
 
 func _can_afford_attack() -> bool:
 	if current_weapon == "wand":
-		return mana >= wand_mana_cost
+		return mana >= _wand_mana_cost()
 	return stamina >= sword_stamina_cost
+
+func _wand_mana_cost() -> float:
+	return maxf(15.0, wand_mana_cost - 2.0 * skill_rank("wand_mana_weave"))
 
 ## Niezależne od stanu ruchu (sekcja o broni: da się atakować w dowolnym
 ## momencie dasha, mieczem albo różdżką) — jedyny warunek to brak trwającego
@@ -684,6 +740,7 @@ func _handle_block_input() -> void:
 		return
 	stamina -= cost
 	_invuln_timer = max(_invuln_timer, block_invuln_duration)
+	_block_parry_timer = block_invuln_duration
 	_block_visual_timer = block_visual_duration
 	_play_sfx(SND_BLOCK_RAISE)
 	_perform_block_push()
@@ -762,25 +819,59 @@ func gain_xp(amount: float = 1.0) -> void:
 	if level >= max_level:
 		return
 	xp += amount
-	while xp >= xp_per_level and level < max_level:
-		xp -= xp_per_level
+	while level < max_level and xp >= xp_required_for_next_level():
+		xp -= xp_required_for_next_level()
 		level += 1
-		unspent_stat_points += 1
+		unspent_stat_points += 2
+		pending_skill_choices += 1
+		skill_choice_ready.emit()
 	if level >= max_level:
 		xp = 0.0
 
 ## Postęp do następnego levela (0-1) — do paska w ui/stats_screen.gd. 0 na max_level.
 func xp_ratio() -> float:
-	return 0.0 if level >= max_level else xp / xp_per_level
+	return 0.0 if level >= max_level else xp / xp_required_for_next_level()
+
+func xp_required_for_next_level() -> float:
+	if level < 3:
+		return 2.0
+	if level < 7:
+		return 3.0
+	return 4.0
+
+func skill_rank(id: String) -> int:
+	return int(skill_ranks.get(id, 0))
+
+func ensure_skill_offer() -> Array[String]:
+	if pending_skill_choices <= 0:
+		return []
+	if skill_offers.is_empty():
+		skill_offers = SkillCatalog.roll_offer(skill_ranks, level)
+	return skill_offers
+
+func choose_skill(id: String) -> bool:
+	if pending_skill_choices <= 0 or id not in ensure_skill_offer():
+		return false
+	var old_max := max_health
+	skill_ranks[id] = skill_rank(id) + 1
+	pending_skill_choices -= 1
+	skill_offers.clear()
+	_recompute_effective_stats()
+	if id == "guard_iron_skin":
+		health = minf(max_health, health + max_health - old_max)
+	return true
 
 ## Wywoływane z ui/stats_screen.gd po naciśnięciu Enter na wybranej statystyce.
 ## Zwraca false (i nic nie robi), jeśli nie ma punktów do wydania.
 func spend_stat_point(stat_key: String) -> bool:
 	if unspent_stat_points <= 0 or not stat_points.has(stat_key):
 		return false
+	var old_max_health := max_health
 	unspent_stat_points -= 1
 	stat_points[stat_key] += 1
 	_recompute_effective_stats()
+	if stat_key == "health":
+		health = minf(max_health, health + max_health - old_max_health)
 	return true
 
 ## Przelicza max_health/max_stamina/max_mana/max_speed/attack_damage/wand_damage/
@@ -793,6 +884,7 @@ func _recompute_effective_stats() -> void:
 	max_health = base_max_health + stat_points["health"] * health_per_point
 	if has_upgrade("iron_heart"):
 		max_health *= (1.0 + iron_heart_health_bonus)
+	max_health += 15.0 * skill_rank("guard_iron_skin")
 	max_stamina = base_max_stamina + stat_points["stamina"] * stamina_per_point
 	max_mana = base_max_mana + stat_points["mana"] * mana_per_point
 	max_speed = base_max_speed * (1.0 + stat_points["speed"] * speed_bonus_per_point)
@@ -812,9 +904,10 @@ func apply_knockback(impulse: Vector2) -> void:
 	_play_sfx(SND_KNOCKBACK)
 
 func _start_attack() -> void:
+	_attack_serial += 1
 	_swing_weapon = current_weapon # broń "zamrożona" na czas tego zamachu
 	if _swing_weapon == "wand":
-		mana -= wand_mana_cost
+		mana -= _wand_mana_cost()
 		_play_sfx(SND_WAND_CHARGE)
 	else:
 		stamina -= sword_stamina_cost
@@ -824,9 +917,12 @@ func _start_attack() -> void:
 	_attack_hit_targets.clear()
 	_current_attack_damage = _compute_attack_start_damage()
 	_current_attack_range = attack_range
+	if _swing_weapon == "sword":
+		_current_attack_range *= (1.0 + 0.10 * skill_rank("blade_long_edge"))
 	if has_upgrade("void_step") and _void_step_range_timer > 0.0:
 		_current_attack_range *= (1.0 + void_step_range_bonus)
 		_void_step_range_timer = 0.0 # zużyte, jednorazowo (dokument: "one range charge")
+	_current_attack_range = minf(_current_attack_range, base_attack_range * 1.65)
 
 ## Wołane RAZ na cały zamach (nie per-cel) — Blood Edge/Last Resolve/Soul
 ## Echo/Soul Bond nie mogą się różnić trafienie-do-trafienia w obrębie
@@ -835,6 +931,10 @@ func _start_attack() -> void:
 ## osobno w resolve_hit_damage() w chwili trafienia, nie tutaj.
 func _compute_attack_start_damage() -> float:
 	var base := wand_damage if _swing_weapon == "wand" else attack_damage
+	if _weave_timer > 0.0 and _weave_ready_weapon == _swing_weapon and skill_rank("guard_weapon_weave") > 0:
+		base *= (1.15 if skill_rank("guard_weapon_weave") == 1 else 1.25)
+		_weave_timer = 0.0
+		_weave_ready_weapon = ""
 	if has_upgrade("last_resolve") and _last_resolve_active:
 		base *= (1.0 + last_resolve_damage_bonus)
 	if has_upgrade("soul_echo") and _soul_echo_timer > 0.0:
@@ -845,6 +945,10 @@ func _compute_attack_start_damage() -> float:
 		base *= (1.0 + blood_edge_bonus)
 		_blood_edge_armed = false # zamach, który konsumuje uzbrojenie, zużywa je JEDNORAZOWO
 	return base
+
+func arm_weapon_weave(weapon: String) -> void:
+	_weave_ready_weapon = "wand" if weapon == "sword" else "sword"
+	_weave_timer = 3.0
 
 ## Faza ataku (windup/active/recovery) — CELOWO osobno od ruchu/dasha, żeby dało
 ## się machnąć mieczem albo strzelić z różdżki w dowolnym momencie dasha.
@@ -864,6 +968,7 @@ func _process_attack_phase(delta: float) -> void:
 			if is_sword:
 				_play_sfx(SND_SWORD_SWING)
 				_check_attack_hits()
+				_skill_procs.on_sword_active(_attack_direction, _current_attack_damage, _attack_serial)
 			else:
 				_fire_projectile() # różdżka strzela raz, w momencie wystrzału
 				_play_sfx(SND_WAND_FIRE)
@@ -876,14 +981,74 @@ func _process_attack_phase(delta: float) -> void:
 			_attack_phase = ""
 
 func _fire_projectile() -> void:
+	_volley_serial += 1
+	var volley_id := _volley_serial
 	var projectile = ProjectileScene.instantiate()
 	projectile.direction = _attack_direction
 	projectile.damage = _current_attack_damage
+	projectile.volley_id = volley_id
+	projectile.volley_base_damage = _current_attack_damage
+	projectile.pierce_remaining = skill_rank("wand_pierce")
+	projectile.attack_id = _attack_serial
+	projectile.homing_turn_rate = deg_to_rad(70.0 if skill_rank("wand_homing") == 1 else 120.0) if skill_rank("wand_homing") > 0 else 0.0
+	projectile.ricochet_remaining = skill_rank("wand_ricochet")
 	projectile.speed = wand_projectile_speed
 	projectile.lifetime = wand_projectile_lifetime
 	projectile.shooter = self # żeby pocisk mógł oddać manę za trafienie
 	projectile.global_position = global_position + _attack_direction * (radius + 6.0)
 	get_parent().add_child(projectile)
+	var split_rank := skill_rank("wand_split_bolt")
+	if split_rank > 0:
+		for angle in [-18.0, 18.0]:
+			var side = ProjectileScene.instantiate()
+			side.direction = _attack_direction.rotated(deg_to_rad(angle))
+			side.damage = _current_attack_damage * (0.50 if split_rank == 1 else 0.65)
+			side.volley_id = volley_id
+			side.volley_base_damage = _current_attack_damage
+			side.attack_id = _attack_serial
+			side.homing_turn_rate = projectile.homing_turn_rate
+			side.secondary = true
+			side.speed = wand_projectile_speed
+			side.lifetime = wand_projectile_lifetime
+			side.shooter = self
+			side.global_position = global_position + side.direction * (radius + 6.0)
+			get_parent().add_child(side)
+		var vfx_scale := 56.0 / float(maxi(1, VFX_SPLIT.get_width()))
+		AttackVfx.spawn(get_parent(), VFX_SPLIT, projectile.global_position, 0.22, vfx_scale, _attack_direction.angle())
+		play_skill_sfx(SND_SKILL_SPLIT, projectile.global_position, -13.0, 0.88)
+	if _volley_damage.size() > 48:
+		_volley_damage.clear()
+	var echo_rank := skill_rank("wand_echo_volley")
+	if echo_rank > 0:
+		get_tree().create_timer(0.14).timeout.connect(_fire_echo_projectile.bind(_attack_direction, _current_attack_damage * (0.55 if echo_rank == 1 else 0.70), _attack_serial))
+
+func _fire_echo_projectile(direction: Vector2, damage: float, attack_id: int) -> void:
+	if state == State.DEAD or get_parent() == null:
+		return
+	_volley_serial += 1
+	var echo = ProjectileScene.instantiate()
+	echo.secondary = true
+	echo.use_split_cap = false
+	echo.direction = direction
+	echo.damage = damage
+	echo.volley_id = _volley_serial
+	echo.volley_base_damage = _current_attack_damage
+	echo.attack_id = attack_id
+	echo.speed = wand_projectile_speed
+	echo.lifetime = wand_projectile_lifetime
+	echo.shooter = self
+	echo.global_position = global_position + direction * (radius + 6.0)
+	get_parent().add_child(echo)
+	AttackVfx.spawn(get_parent(), VFX_SPLIT, echo.global_position, 0.18, 45.0 / float(VFX_SPLIT.get_width()), direction.angle())
+
+func cap_volley_damage(target: Node, volley_id: int, amount: float, base_damage: float) -> float:
+	if skill_rank("wand_split_bolt") == 0:
+		return amount
+	var key := "%d:%d" % [volley_id, target.get_instance_id()]
+	var dealt := float(_volley_damage.get(key, 0.0))
+	var accepted := minf(amount, maxf(0.0, base_damage * 1.8 - dealt))
+	_volley_damage[key] = dealt + accepted
+	return accepted
 
 ## Wywoływane za KAŻDE celne trafienie wroga, niezależnie jaką bronią — jedyny
 ## sposób odzyskania many, a co heal_hits_per_stack-te takie trafienie dokłada
@@ -953,18 +1118,91 @@ func _apply_hunters_mark(target: Node, base_damage: float) -> float:
 ## rejestruje się trafienie pocisku, z opóźnieniem od wystrzału). Zastępuje
 ## dawne bezpośrednie wywołanie register_hit_on_enemy() z obu miejsc, żeby
 ## Blood Edge/Second Impact też odpalały się identycznie dla obu broni.
-func on_hit_confirmed(target: Node, damage_dealt: float) -> void:
+func on_hit_confirmed(target: Node, damage_dealt: float, weapon: String = "", health_before: float = -1.0, attack_id: int = -1) -> void:
 	register_hit_on_enemy()
+	if attack_id < 0:
+		attack_id = _attack_serial
+	if _skill_procs != null and weapon != "":
+		_skill_procs.on_primary_hit(target, damage_dealt, weapon, health_before, attack_id)
+	if weapon == "sword" and skill_rank("blade_twin_cut") > 0:
+		get_tree().create_timer(0.12).timeout.connect(_fire_twin_cut.bind(target, damage_dealt, global_position, attack_id))
+	if skill_rank("void_bloom") > 0 and target.get("is_dead") == true:
+		_fire_void_bloom(target.global_position, damage_dealt, target)
 	if has_upgrade("blood_edge"):
 		_blood_edge_armed = true
 		_blood_edge_timer = blood_edge_arm_duration
 	if has_upgrade("second_impact"):
-		_maybe_schedule_second_impact(target, damage_dealt)
+		_maybe_schedule_second_impact(target, damage_dealt, attack_id)
+
+func apply_skill_bonus(target: Node, requested: float, attack_id: int, base_damage: float) -> void:
+	if not is_instance_valid(target) or target.get("is_dead") == true or requested <= 0.0:
+		return
+	var amount := requested
+	if attack_id >= 0:
+		var key := "%d:%d" % [attack_id, target.get_instance_id()]
+		var total := float(_bonus_damage.get(key, base_damage))
+		amount = minf(requested, maxf(0.0, base_damage * 2.5 - total))
+		_bonus_damage[key] = total + amount
+		if _bonus_damage.size() > 64:
+			_bonus_damage.clear()
+	if amount > 0.0:
+		Juice.apply_hit(target, amount, Juice.boss_hit_hitstop, true)
+
+func _fire_twin_cut(target: Node, first_damage: float, origin: Vector2, attack_id: int = -1) -> void:
+	if not is_instance_valid(target) or target.get("is_dead") == true:
+		return
+	var direction: Vector2 = (target.global_position - origin).normalized()
+	var scale_value := 100.0 / float(maxi(1, VFX_FOLLOWUP.get_width()))
+	AttackVfx.spawn(get_parent(), VFX_FOLLOWUP, target.global_position, 0.24, scale_value, direction.angle())
+	apply_skill_bonus(target, first_damage * (0.55 if skill_rank("blade_twin_cut") == 1 else 0.70), attack_id, first_damage)
+	play_skill_sfx(SND_SKILL_TWIN, target.global_position, -10.0, 1.10)
+	if skill_rank("blade_third_cut") > 0 and target.get("is_dead") != true:
+		get_tree().create_timer(0.12).timeout.connect(_fire_third_cut.bind(target, first_damage, origin, attack_id))
+
+func _fire_third_cut(target: Node, first_damage: float, origin: Vector2, attack_id: int = -1) -> void:
+	if not is_instance_valid(target) or target.get("is_dead") == true:
+		return
+	var direction: Vector2 = (target.global_position - origin).normalized()
+	var scale_value := 85.0 / float(maxi(1, VFX_FOLLOWUP.get_width()))
+	AttackVfx.spawn(get_parent(), VFX_FOLLOWUP, target.global_position, 0.20, scale_value, direction.angle())
+	apply_skill_bonus(target, first_damage * 0.35, attack_id, first_damage)
+	play_skill_sfx(SND_SKILL_TWIN, target.global_position, -14.0, 1.22)
+
+func _fire_void_bloom(center: Vector2, primary_damage: float, killed_target: Node) -> void:
+	var rank := skill_rank("void_bloom")
+	var radius_value: float = [65.0, 85.0, 105.0][rank - 1]
+	var damage: float = primary_damage * [0.35, 0.45, 0.55][rank - 1]
+	var scale_value: float = radius_value * 2.0 / float(maxi(1, VFX_BLOOM.get_width()))
+	AttackVfx.spawn(get_parent(), VFX_BLOOM, center, 0.32, scale_value)
+	play_skill_sfx(SND_SKILL_VOID, center, -12.0, 0.72)
+	for other in get_tree().get_nodes_in_group("hittable"):
+		if other == killed_target or other.get("is_dead") == true:
+			continue
+		var target_radius: float = other.get("radius") if other.get("radius") != null else 0.0
+		if center.distance_to(other.global_position) <= radius_value + target_radius:
+			Juice.apply_hit(other, damage, 0.0, true)
+
+func _fire_dash_ring() -> void:
+	var rank := skill_rank("void_dash_ring")
+	if rank == 0 or _dash_ring_cooldown > 0.0:
+		return
+	_dash_ring_cooldown = 1.5
+	var radius_value := 75.0 if rank == 1 else 95.0
+	var damage := attack_damage * (0.35 if rank == 1 else 0.50)
+	var scale_value := radius_value * 2.0 / float(maxi(1, VFX_DASH_RING.get_width()))
+	AttackVfx.spawn(get_parent(), VFX_DASH_RING, global_position, 0.35, scale_value)
+	play_skill_sfx(SND_SKILL_VOID, global_position, -14.0, 0.80)
+	for target in get_tree().get_nodes_in_group("hittable"):
+		if target.get("is_dead") == true:
+			continue
+		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
+		if global_position.distance_to(target.global_position) <= radius_value + target_radius:
+			Juice.apply_hit(target, damage, 0.0, true)
 
 ## 30% szansy na kolejne, opóźnione trafienie za 45% obrażeń pierwszego —
 ## globalny cooldown (nie per-cel) pilnuje, żeby nie odpalało się bez końca
 ## przy szybkich wielotrafieniowych zamachach.
-func _maybe_schedule_second_impact(target: Node, base_damage: float) -> void:
+func _maybe_schedule_second_impact(target: Node, base_damage: float, attack_id: int = -1) -> void:
 	if _second_impact_cooldown_timer > 0.0:
 		return
 	if randf() >= second_impact_chance:
@@ -972,7 +1210,7 @@ func _maybe_schedule_second_impact(target: Node, base_damage: float) -> void:
 	_second_impact_cooldown_timer = second_impact_global_cooldown
 	var impact_damage := base_damage * second_impact_damage_fraction
 	get_tree().create_timer(second_impact_delay).timeout.connect(
-		_fire_second_impact.bind(target, impact_damage, global_position)
+		_fire_second_impact.bind(target, impact_damage, global_position, attack_id, base_damage)
 	)
 
 ## Rewaliduje cel przy odpaleniu (dokument: "revalidate target/location at
@@ -989,7 +1227,7 @@ func _maybe_schedule_second_impact(target: Node, base_damage: float) -> void:
 ## własny łuk cięcia w stronę celu (jak żywy zamach mieczem, ale
 ## odtworzony samodzielnie, bo gracz mógł już zdążyć się ruszyć/odwrócić)
 ## i osobną liczbę obrażeń (autoload/juice.gd, Juice.apply_hit is_bonus_hit).
-func _fire_second_impact(target: Node, damage: float, origin_pos: Vector2) -> void:
+func _fire_second_impact(target: Node, damage: float, origin_pos: Vector2, attack_id: int = -1, base_damage: float = 0.0) -> void:
 	if not is_instance_valid(target):
 		return
 	if target.get("is_dead") == true:
@@ -998,7 +1236,7 @@ func _fire_second_impact(target: Node, damage: float, origin_pos: Vector2) -> vo
 	var to_target: Vector2 = target.global_position - origin_pos
 	if get_parent() != null:
 		AttackVfx.spawn(get_parent(), TEX_SLASH_ARC, target.global_position, AttackVfx.DEFAULT_DURATION, slash_arc_scale, to_target.angle())
-	Juice.apply_hit(target, damage, Juice.boss_hit_hitstop, true)
+	apply_skill_bonus(target, damage, attack_id, base_damage)
 	if target.has_method("apply_knockback"):
 		var dir: Vector2 = target.global_position - origin_pos
 		var strength := second_impact_knockback_strength * _knockback_dealt_multiplier()
@@ -1016,7 +1254,7 @@ func activate_soul_bond(chapter: int) -> void:
 	_soul_bond_timer = soul_bond_duration
 
 func _check_attack_hits() -> void:
-	var half_angle := deg_to_rad(attack_angle_degrees) * 0.5
+	var half_angle := deg_to_rad(attack_angle_degrees + 25.0 * skill_rank("blade_wide_sweep")) * 0.5
 	for target in get_tree().get_nodes_in_group("hittable"):
 		if target in _attack_hit_targets:
 			continue
@@ -1040,8 +1278,9 @@ func _check_attack_hits() -> void:
 
 		_attack_hit_targets.append(target)
 		var damage := resolve_hit_damage(target, _current_attack_damage)
+		var health_before: float = target.get("health") if target.get("health") != null else -1.0
 		Juice.apply_hit(target, damage)
-		on_hit_confirmed(target, damage)
+		on_hit_confirmed(target, damage, "sword", health_before, _attack_serial)
 		_play_sfx(SND_SWORD_HIT)
 
 func _read_input_vector() -> Vector2:
@@ -1058,25 +1297,18 @@ func _update_trail(delta: float) -> void:
 		_trail_spawn_timer = dash_duration / float(max(1, dash_trail_count))
 		_spawn_trail_ghost()
 
-## Zanikająca kopia śladu dasha — osobny top_level Sprite2D zamiast wpisu w
-## tablicy do _draw(), żeby została w miejscu spawnu zamiast jechać z graczem.
+## Powidok prawdziwej pozy postaci; top_level zatrzymuje go w miejscu dasha.
 func _spawn_trail_ghost() -> void:
 	var ghost := Sprite2D.new()
-	ghost.texture = TEX_DASH_TRAIL
-	ghost.scale = Vector2(trail_ghost_scale, trail_ghost_scale)
-	# Grafika w spoczynku (bez obrotu) rysuje ostrą krawędź w prawo, a
-	# rozmywający się pył w lewo — czyli domyślnie "patrzy" w prawo (kąt 0).
-	# Bez obrotu wyglądała więc naturalnie WYŁĄCZNIE przy dashu w prawo, a przy
-	# dashu w lewo (i innych kierunkach) ostra krawędź i pył wychodziły
-	# odwrócone względem faktycznego ruchu — stąd "o 180 stopni źle" przy
-	# dashu w przeciwną stronę. Naprawione obracaniem do _dash_direction, nie
-	# stałym przesunięciem, żeby działało poprawnie pod każdym kątem, nie
-	# tylko w tym jednym, który akurat wyglądał źle.
-	ghost.rotation = _dash_direction.angle()
+	var facing := Facing.resolve(TEX_DASH_VARIANTS, _dash_direction)
+	ghost.texture = facing["texture"]
+	ghost.flip_h = facing["flip_h"]
+	ghost.scale = sprite.scale
+	ghost.z_index = sprite.z_index - 1
 	ghost.top_level = true
-	ghost.global_position = global_position
-	ghost.modulate = Color(1.0, 1.0, 1.0, 0.5)
 	add_child(ghost)
+	ghost.global_transform = sprite.global_transform
+	ghost.modulate = Color(0.38, 0.82, 0.88, 0.38)
 	var tw := create_tween()
 	tw.tween_property(ghost, "modulate:a", 0.0, dash_trail_lifetime)
 	tw.tween_callback(ghost.queue_free)
@@ -1093,8 +1325,11 @@ func take_damage(amount: float) -> void:
 	if state == State.DEAD:
 		return
 	if state == State.DASHING or _invuln_timer > 0.0:
+		on_blocked_attack()
 		return
 	health -= amount
+	if _skill_procs != null:
+		_skill_procs.on_damage_taken()
 	# Krok 8 komunikatów w walce: "obrażenia gracza" dotąd nie miały ŻADNEJ
 	# liczby przy samym graczu (tylko flash_white+hitstop) — DamageNumber
 	# (Second Impact) generalizuje się tu jeden do jednego.
@@ -1107,12 +1342,24 @@ func take_damage(amount: float) -> void:
 	_flash_frames = 2
 	Juice.hitstop(Juice.player_hit_hitstop)
 	if health <= 0.0:
-		health = 0.0
-		state = State.DEAD
-		_play_sfx(SND_DEATH)
-		died.emit()
+		if skill_rank("guard_second_breath") > 0 and not _second_breath_used:
+			_second_breath_used = true
+			health = 1.0
+			_invuln_timer = 1.0
+			_play_sfx(SND_HEAL_USE)
+			var scale_value := 100.0 / float(maxi(1, VFX_SECOND_BREATH.get_width()))
+			AttackVfx.spawn(get_parent(), VFX_SECOND_BREATH, global_position, 0.55, scale_value)
+		else:
+			health = 0.0
+			state = State.DEAD
+			_play_sfx(SND_DEATH)
+			died.emit()
 	else:
 		_play_sfx(SND_HURT[randi() % SND_HURT.size()])
+
+func on_blocked_attack() -> void:
+	if _block_parry_timer > 0.0 and _skill_procs != null:
+		_skill_procs.counterbrand()
 
 ## Wywoływane przez Ząb Zera przy wejściu gracza w strefę.
 func lock_dash(seconds: float) -> void:
@@ -1137,6 +1384,19 @@ func flash_white() -> void:
 func _play_sfx(stream: AudioStream) -> void:
 	sfx.stream = stream
 	sfx.play()
+
+func play_skill_sfx(stream: AudioStream, world_pos: Vector2, volume_db: float = -10.0, pitch: float = 1.0) -> void:
+	if get_parent() == null:
+		return
+	var sound := AudioStreamPlayer2D.new()
+	sound.stream = stream
+	sound.volume_db = volume_db
+	sound.pitch_scale = pitch
+	sound.bus = &"SFX"
+	get_parent().add_child(sound)
+	sound.global_position = world_pos
+	sound.finished.connect(sound.queue_free)
+	sound.play()
 
 ## Zastępuje dawny _draw() — wybiera właściwą teksturę wg priorytetu stanu i
 ## ustawia VFX ataku (wycinek miecza / kula różdżki) w miejsce dawnych rysowanych kształtów.
@@ -1176,7 +1436,17 @@ func _update_visuals() -> void:
 	if showing_slash:
 		slash_arc.rotation = _attack_direction.angle()
 		slash_arc.position = _attack_direction * (_current_attack_range * 0.5)
+		slash_arc.scale = Vector2.ONE * slash_arc_scale * (_current_attack_range / base_attack_range)
 		slash_arc.modulate.a = 0.5 if _attack_phase == "windup" else 1.0
+	var wide_rank := skill_rank("blade_wide_sweep")
+	for extra in [_wide_slash_left, _wide_slash_right]:
+		extra.visible = showing_slash and wide_rank > 0
+		if extra.visible:
+			var sign_value := -1.0 if extra == _wide_slash_left else 1.0
+			extra.position = slash_arc.position
+			extra.scale = slash_arc.scale
+			extra.rotation = slash_arc.rotation + deg_to_rad(sign_value * 12.5 * wide_rank)
+			extra.modulate.a = 0.3 if _attack_phase == "windup" else 0.62
 
 	var showing_wand := _attack_phase != "" and _swing_weapon == "wand"
 	wand_charge_sprite.visible = showing_wand

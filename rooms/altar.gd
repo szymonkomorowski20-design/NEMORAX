@@ -71,6 +71,7 @@ func _ready() -> void:
 	add_child(atmosphere)
 	_spawn_sockets()
 	player.global_position = ARENA_RECT.get_center() + Vector2(0, 200)
+	GameFlow.apply_player_state(player)
 	ui.player = player
 
 	if GameFlow.fragments_collected.size() >= GameFlow.CHAPTER_COUNT:

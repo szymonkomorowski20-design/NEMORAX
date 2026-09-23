@@ -37,6 +37,7 @@ const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 @onready var vision_overlay: VisionOverlay = $VisionOverlay
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
+var _skill_draft: SkillDraft
 @onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
 var _reversal_timer: Timer
@@ -59,6 +60,13 @@ func _ready() -> void:
 	_build_walls()
 
 	player.global_position = ARENA_RECT.get_center() + Vector2(0, 150)
+	GameFlow.apply_player_state(player)
+	player.enter_breath_scope("arena")
+	_skill_draft = SkillDraft.new()
+	$StatsLayer.add_child(_skill_draft)
+	player.skill_choice_ready.connect(func(): _skill_draft.call_deferred("open", player))
+	if player.pending_skill_choices > 0:
+		_skill_draft.call_deferred("open", player)
 	player.died.connect(_on_player_died)
 	# Priorytet 1, punkt 5: "wzmocnić gracza podczas bossa — minimalnie wyższy
 	# kontrast sylwetki względem podłogi... bez rozjaśniania całej areny".

@@ -7,6 +7,7 @@ class_name Chest
 ## konwencja interakcji, nie nowy bind.
 
 signal opened(upgrade_id: String)
+signal selection_requested(offers: Array[String])
 
 const TEX_CLOSED := preload("res://assets/sprites/pokoje/obiekty/chest/chest_closed.png")
 const TEX_OPEN := preload("res://assets/sprites/pokoje/obiekty/chest/chest_open.png")
@@ -26,6 +27,8 @@ const OPEN_LINGER_SECONDS := 0.6 # jak długo widać chest_open.png przed znikni
 
 var player: Player = null
 var _opened: bool = false
+var _choosing: bool = false
+var _offers: Array[String] = []
 
 func _ready() -> void:
 	sprite.texture = TEX_CLOSED
@@ -63,7 +66,7 @@ func _make_glow_texture() -> GradientTexture2D:
 	return tex
 
 func _physics_process(_delta: float) -> void:
-	if _opened or player == null:
+	if _opened or _choosing or player == null:
 		return
 	var pulse := 1.0 + pulse_strength * sin(Time.get_ticks_msec() / 1000.0 * pulse_speed)
 	sprite.scale = Vector2(BASE_SPRITE_SCALE, BASE_SPRITE_SCALE) * pulse
@@ -73,7 +76,7 @@ func _physics_process(_delta: float) -> void:
 	if Input.is_action_just_pressed("pickup"):
 		_open()
 
-## Losuje jedno z ulepszeń, których gracz JESZCZE nie ma (wszystkie 10 jest
+## Pokazuje trzy różne ulepszenia, których gracz JESZCZE nie ma (wszystkie 10 jest
 ## nie-stackowalnych, dokument sekcja 8/9) — pusta pula (wszystkie 10 już
 ## zdobyte) nic nie robi zamiast się wysypać, choć przy 5 skrzyniach/przebieg
 ## nigdy nie powinno się to zdarzyć.
@@ -84,18 +87,36 @@ func _open() -> void:
 			eligible.append(id)
 	if eligible.is_empty():
 		return
-	var chosen: String = eligible[randi() % eligible.size()]
-	player.acquire_upgrade(chosen)
+	eligible.shuffle()
+	_offers.clear()
+	for i in range(mini(3, eligible.size())):
+		_offers.append(eligible[i])
+	_choosing = true
+	selection_requested.emit(_offers)
+
+func resume_offer(offers: Array[String]) -> void:
+	if _opened or offers.is_empty():
+		return
+	_offers = offers.duplicate()
+	_choosing = true
+	selection_requested.emit(_offers)
+
+func choose(id: String) -> bool:
+	if not _choosing or id not in _offers or not player.acquire_upgrade(id):
+		return false
+	_offers.clear()
+	_choosing = false
 	_opened = true
 	sprite.texture = TEX_OPEN
 	sprite.scale = Vector2(BASE_SPRITE_SCALE, BASE_SPRITE_SCALE)
 	queue_redraw()
 	Juice.play_sfx_at(SND_OPEN[randi() % SND_OPEN.size()], global_position)
-	opened.emit(chosen)
+	opened.emit(id)
 	# Opóźnione zniknięcie (nie w teście headless bez tickującej pętli klatek,
 	# patrz established quirk) — żeby gracz zdążył zobaczyć chest_open.png
 	# zamiast skrzyni znikającej w tej samej klatce, w której się otworzyła.
 	get_tree().create_timer(OPEN_LINGER_SECONDS).timeout.connect(queue_free)
+	return true
 
 func _draw() -> void:
 	if _opened:

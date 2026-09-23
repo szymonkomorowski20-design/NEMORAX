@@ -35,6 +35,15 @@ func test_minimap_pip_color_dark_for_ordinary_visited_room(root: Node) -> void:
 	NemoraxTest.assert_true(color.is_equal_approx(GameUI.MINIMAP_VISITED_COLOR), "zwykły odwiedzony pokój powinien być ciemny, nie kolorowy")
 	_cleanup_ui(ui, root)
 
+func test_minimap_distinguishes_visited_rooms_from_unknown_neighbors(root: Node) -> void:
+	var ui := _fresh_ui(root)
+	var room_data := {"type": GameFlow.RoomType.RANDOM, "cleared": false}
+	var visited: Color = ui._minimap_pip_color(room_data, true, false)
+	var unknown: Color = ui._minimap_pip_color(room_data, false, false)
+	NemoraxTest.assert_true(visited.a > unknown.a * 4.0, "odwiedzony pokój musi być wyraźniejszy niż tylko odkryty sąsiad")
+	NemoraxTest.assert_true(GameUI.MINIMAP_VISIT_MARK_COLOR.a > 0.8, "odwiedzony pokój ma czytelną kropkę pamięci")
+	_cleanup_ui(ui, root)
+
 func test_minimap_pip_color_teal_for_current_room_regardless_of_type(root: Node) -> void:
 	var ui := _fresh_ui(root)
 	var color: Color = ui._minimap_pip_color({"type": GameFlow.RoomType.SOUL, "chapter": 3, "cleared": false}, true, true)

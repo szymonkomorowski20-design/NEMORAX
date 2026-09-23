@@ -115,9 +115,10 @@ func _check_contact() -> void:
 	if not _lunge_active:
 		super._check_contact()
 		return
-	if player.is_invulnerable():
-		return
 	if global_position.distance_to(player.global_position) > radius + player.radius:
+		return
+	if player.is_invulnerable():
+		player.on_blocked_attack()
 		return
 	player.take_damage(contact_damage)
 	var dir: Vector2 = player.global_position - global_position

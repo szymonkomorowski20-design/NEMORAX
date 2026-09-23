@@ -118,10 +118,10 @@ var orbit_direction: float = 1.0 ## losowane raz w _ready() podklasy (1.0 albo -
 ## mnożnik rośnie z numerem pokoju w GameFlow, patrz room.gd._spawn_random_enemy().
 ## Wywoływane PO add_child() — health jest już ustawione przez _ready() na
 ## bazowe max_health, więc trzeba je tutaj jawnie przeliczyć na nowo.
-func apply_difficulty_scale(multiplier: float) -> void:
+func apply_difficulty_scale(multiplier: float, damage_multiplier: float = -1.0) -> void:
 	max_health *= multiplier
 	health = max_health
-	contact_damage *= multiplier
+	contact_damage *= (multiplier if damage_multiplier < 0.0 else damage_multiplier)
 
 ## Modyfikator Elite (dokument sekcja 6.2) — na start tylko "Hardened", jedyny
 ## pakiet niewymagający dodatkowych haków per-atak (RapidCadence/Aftershock/
@@ -235,9 +235,10 @@ func _drift_towards_player(delta: float) -> void:
 ## Dotyk ciała zawsze rani (ta sama konwencja co Nemorax) — throttlowane przez
 ## nietykalność gracza po trafieniu.
 func _check_contact() -> void:
-	if player.is_invulnerable():
-		return
 	if global_position.distance_to(player.global_position) > radius + player.radius:
+		return
+	if player.is_invulnerable():
+		player.on_blocked_attack()
 		return
 	player.take_damage(contact_damage)
 	var dir: Vector2 = player.global_position - global_position
@@ -276,9 +277,10 @@ func _perform_random_skill() -> void:
 func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 	_set_skill_pose("pulse")
 	_play_sfx(SND_DAMAGE_PULSE)
-	if player.is_invulnerable():
-		return false
 	if global_position.distance_to(player.global_position) > pulse_radius:
+		return false
+	if player.is_invulnerable():
+		player.on_blocked_attack()
 		return false
 	player.take_damage(damage)
 	return true

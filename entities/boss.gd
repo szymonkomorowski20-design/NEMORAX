@@ -366,10 +366,13 @@ func _effective_attack_interval() -> float:
 	return base * low_health_tempo_multiplier if _is_low_health() else base
 
 func _check_body_contact() -> void:
-	if player == null or player.is_invulnerable():
+	if player == null:
 		return
 	var to_player: Vector2 = player.global_position - global_position
 	if to_player.length() > radius + player.radius:
+		return
+	if player.is_invulnerable():
+		player.on_blocked_attack()
 		return
 	var damage := (_lunge_damage_override if _lunge_damage_override >= 0.0 else lunge_damage) if _lunge_state == "active" else body_contact_damage
 	player.take_damage(damage)
@@ -383,9 +386,10 @@ func apply_knockback(impulse: Vector2) -> void:
 ## Wspólny prymityw pulsu (wzorem Incarnation._damage_pulse) — kilka wzorców
 ## różnych faz to po prostu pulsy o innym zasięgu/obrażeniach.
 func _damage_pulse(pulse_radius: float, damage: float) -> bool:
-	if player.is_invulnerable():
-		return false
 	if global_position.distance_to(player.global_position) > pulse_radius:
+		return false
+	if player.is_invulnerable():
+		player.on_blocked_attack()
 		return false
 	player.take_damage(damage)
 	var dir: Vector2 = player.global_position - global_position

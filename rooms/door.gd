@@ -12,6 +12,12 @@ const TEX_BOTTOM := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_bo
 const TEX_LEFT := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_left_v4.png")
 const TEX_RIGHT := preload("res://assets/sprites/pokoje/obiekty/rift_doorway_right_v4.png")
 const SPRITE_SCALE := 0.12
+## Aktywne światło portalu ma ok. 240 px szerokości (góra/dół) lub 220 px
+## wysokości (boki). Wyzwalacz obejmuje CAŁY otwór, ale tylko pas przy murze.
+## Gracz pojawia się 70 px od ściany, więc nie przejdzie z powrotem od razu.
+const INTEGRATED_HORIZONTAL_HALF_WIDTH := 120.0
+const INTEGRATED_VERTICAL_HALF_HEIGHT := 110.0
+const INTEGRATED_APPROACH_DEPTH := 58.0
 
 @export var trigger_range: float = 40.0
 @export var door_color: Color = Color("#C9C2B4")
@@ -19,11 +25,16 @@ const SPRITE_SCALE := 0.12
 var player: Player = null
 ## Ustawiane przez Room. Każdy bok wybiera własny asset.
 var wall_side: String = "top"
+## W zwykłym pokoju mur zawiera już portal; ten węzeł zostaje tylko wyzwalaczem przejścia.
+var use_integrated_visual: bool = false
 var _triggered: bool = false
 
 @onready var sprite: Sprite2D = $Sprite
 
 func _ready() -> void:
+	if use_integrated_visual:
+		sprite.visible = false
+		return
 	z_index = -3 # nad ścianą, pod postaciami i VFX
 	sprite.texture = _texture_for_wall_side()
 	sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
@@ -50,7 +61,22 @@ func _threshold_offset() -> Vector2:
 func _physics_process(_delta: float) -> void:
 	if _triggered or player == null:
 		return
-	if global_position.distance_to(player.global_position) <= trigger_range:
+	if _player_reaches_portal(player.global_position):
 		_triggered = true
 		entered.emit()
 		queue_free()
+
+func _player_reaches_portal(player_position: Vector2) -> bool:
+	if not use_integrated_visual:
+		return global_position.distance_to(player_position) <= trigger_range
+	var offset := player_position - global_position
+	match wall_side:
+		"top":
+			return absf(offset.x) <= INTEGRATED_HORIZONTAL_HALF_WIDTH and offset.y >= 0.0 and offset.y <= INTEGRATED_APPROACH_DEPTH
+		"bottom":
+			return absf(offset.x) <= INTEGRATED_HORIZONTAL_HALF_WIDTH and offset.y <= 0.0 and offset.y >= -INTEGRATED_APPROACH_DEPTH
+		"left":
+			return absf(offset.y) <= INTEGRATED_VERTICAL_HALF_HEIGHT and offset.x >= 0.0 and offset.x <= INTEGRATED_APPROACH_DEPTH
+		"right":
+			return absf(offset.y) <= INTEGRATED_VERTICAL_HALF_HEIGHT and offset.x <= 0.0 and offset.x >= -INTEGRATED_APPROACH_DEPTH
+	return false

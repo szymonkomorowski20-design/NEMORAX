@@ -319,6 +319,11 @@ func capture_player_state(player: Player) -> void:
 		"unspent_stat_points": player.unspent_stat_points,
 		"stat_points": player.stat_points.duplicate(),
 		"owned_upgrades": player.owned_upgrades.duplicate(),
+		"skill_ranks": player.skill_ranks.duplicate(),
+		"pending_skill_choices": player.pending_skill_choices,
+		"skill_offers": player.skill_offers.duplicate(),
+		"second_breath_used": player._second_breath_used,
+		"second_breath_scope": player._second_breath_scope,
 	}
 
 ## Wywoływane w room.gd zaraz po zespawnowaniu gracza — działa zarówno przy
@@ -338,6 +343,12 @@ func apply_player_state(player: Player) -> void:
 		player.stat_points[key] = int(loaded_points.get(key, 0))
 	var loaded_upgrades: Array = saved_player_state.get("owned_upgrades", [])
 	player.owned_upgrades.assign(loaded_upgrades) # PRZED _recompute_effective_stats(): Iron Heart/Razor Wind czytają has_upgrade()
+	player.skill_ranks = saved_player_state.get("skill_ranks", {}).duplicate()
+	player.pending_skill_choices = int(saved_player_state.get("pending_skill_choices", 0))
+	player.skill_offers.clear()
+	player.skill_offers.assign(saved_player_state.get("skill_offers", []))
+	player._second_breath_used = bool(saved_player_state.get("second_breath_used", false))
+	player._second_breath_scope = str(saved_player_state.get("second_breath_scope", ""))
 	player._recompute_effective_stats()
 
 	player.health = saved_player_state.get("health", player.health)

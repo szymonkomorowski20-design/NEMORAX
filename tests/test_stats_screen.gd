@@ -28,7 +28,7 @@ func test_open_pauses_tree_and_close_resumes(root: Node) -> void:
 
 func test_enter_spends_a_point_on_selected_stat(root: Node) -> void:
 	var room := _fresh_room(root)
-	room.player.gain_xp(); room.player.gain_xp(); room.player.gain_xp() # level 1, 1 punkt
+	room.player.gain_xp(); room.player.gain_xp() # level 1, 2 punkty
 
 	room.stats_screen.open(room.player)
 	NemoraxTest.assert_eq(room.stats_screen._selected_index, 0, "open() powinno zresetować zaznaczenie na 0 (health)")
@@ -38,7 +38,7 @@ func test_enter_spends_a_point_on_selected_stat(root: Node) -> void:
 	accept.pressed = true
 	room.stats_screen._unhandled_input(accept)
 
-	NemoraxTest.assert_eq(room.player.unspent_stat_points, 0, "Enter na zaznaczonej statystyce powinien wydać punkt")
+	NemoraxTest.assert_eq(room.player.unspent_stat_points, 1, "Enter na zaznaczonej statystyce powinien wydać jeden z dwóch punktów")
 	NemoraxTest.assert_eq(room.player.stat_points["health"], 1, "punkt powinien trafić w statystykę pod indeksem 0 (health)")
 
 	room.stats_screen._close()

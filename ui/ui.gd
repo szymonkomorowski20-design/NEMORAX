@@ -81,7 +81,9 @@ const RELIQUARY_PADDING := 12.0
 ## pokój ciemny, bieżący turkusowy, boss/cel jednym akcentem". Wcześniej każdy
 ## rozdział duszy (SOUL) dostawał inny kolor z Palette.PHASE_COLORS (tęcza) —
 ## usunięte na rzecz jednego, spójnego schematu.
-const MINIMAP_VISITED_COLOR := Color(0.14, 0.12, 0.17, 0.85) ## "ciemny" — zwykły odwiedzony pokój
+const MINIMAP_VISITED_COLOR := Color(0.29, 0.27, 0.35, 0.95) ## kamień — odwiedzony pokój
+const MINIMAP_UNKNOWN_COLOR := Color(1.0, 1.0, 1.0, 0.08) ## odkryty sąsiad, jeszcze nieodwiedzony
+const MINIMAP_VISIT_MARK_COLOR := Color(0.69, 0.83, 0.82, 0.90) ## czytelna kropka pamięci
 const MINIMAP_GOAL_COLOR := Color("#E8C547") ## złoto — WYŁĄCZNIE Ołtarz, jedyny "cel/boss" na mapie
 
 const BOSS_NAME := "Nemorax"
@@ -513,8 +515,14 @@ func _draw_minimap() -> void:
 		draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), _minimap_pip_color(data, visited, is_current), true)
 		if is_current:
 			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Palette.HIT_FLASH, false, 2.0)
-		elif data.get("type") == GameFlow.RoomType.SOUL and not data.get("cleared", false):
-			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
+		elif visited:
+			# Nie tylko ciemniejszy kolor: punkt w środku jednoznacznie znaczy "tu już byłem".
+			draw_rect(Rect2(draw_pos + Vector2(4.0, 4.0), Vector2(4.0, 4.0)), MINIMAP_VISIT_MARK_COLOR, true)
+			if data.get("type") == GameFlow.RoomType.SOUL and not data.get("cleared", false):
+				draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
+		else:
+			# Znany sąsiad to tylko pusty zarys — nie może udawać odwiedzonego.
+			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(0.7, 0.7, 0.8, 0.3), false, 1.0)
 
 ## "Mapa pamięci, nie kolorowa siatka debugowa — odwiedzony pokój ciemny,
 ## bieżący turkusowy, boss/cel jednym akcentem" (krok 7). SOUL dawniej dostawał
@@ -524,7 +532,7 @@ func _draw_minimap() -> void:
 ## ALTAR to JEDYNY "cel/boss" na mapie, więc jedyny z osobnym akcentem koloru.
 func _minimap_pip_color(data: Dictionary, visited: bool, is_current: bool) -> Color:
 	if not visited:
-		return Color(1.0, 1.0, 1.0, 0.12) # znany (sąsiad odwiedzonego), ale jeszcze nieodwiedzony
+		return MINIMAP_UNKNOWN_COLOR # znany (sąsiad odwiedzonego), ale jeszcze nieodwiedzony
 	if is_current:
 		return Palette.PLAYER_BODY
 	if data.get("type") == GameFlow.RoomType.ALTAR:

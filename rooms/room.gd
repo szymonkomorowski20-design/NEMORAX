@@ -20,7 +20,13 @@ const WALL_THICKNESS := 20.0
 const DoorScene := preload("res://rooms/door.tscn")
 const SoulScene := preload("res://rooms/soul.tscn")
 const ChestScene := preload("res://rooms/chest.tscn")
+const RelicDraftScript := preload("res://ui/relic_draft.gd")
 const RoomAtmosphereScene := preload("res://rooms/room_atmosphere.gd")
+const ROOM_THEME_SLUGS := ["vhar_nokh", "mordrath", "zha_ruun", "nekravor", "thal_gor", "orryx"]
+const RANDOM_THEME_SLUGS := [
+	"flooded_catacombs", "sunken_library", "frozen_crypt", "blood_ritual_hall",
+	"overgrown_ruins", "ash_battlefield", "crystal_cavern", "rusted_machine_hall",
+]
 
 const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_background.png")
 # W kolejności GameFlow.INCARNATION_SCENES (Vhar'Nokh...Orryx) — indeksowane
@@ -91,12 +97,16 @@ const SND_ROOM_CLEAR := preload("res://assets/audio/sfx/p0/AMB_ROOM_CLEAR.wav")
 @onready var ui: GameUI = $UILayer/UI
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
+var _skill_draft: SkillDraft
+var _relic_draft: Control
 @onready var music: AudioStreamPlayer = $Music
 @onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
 var incarnation: Incarnation
+var _active_enemies: Array[Incarnation] = []
 var _game_over_kind: String = "" # "" albo "death"
 var _room_data: Dictionary
+var _integrated_visual: IntegratedRoomVisual
 
 ## Ściany/tło poza areną celowo przyciemnione WZGLĘDEM podłogi (ta sama
 ## tekstura co podłoga inaczej czyta się jak rama obrazka, nie jak granica
@@ -111,19 +121,30 @@ func _ready() -> void:
 
 	var floor_tex: Texture2D
 	var wall_tex: Texture2D
+	var theme_slug: String
 	if _room_data.get("type") == GameFlow.RoomType.SOUL:
 		var chapter: int = _room_data.get("chapter", 0)
 		floor_tex = ROOM_FLOOR_TEXTURES[chapter]
 		wall_tex = ROOM_WALL_TEXTURES[chapter]
+		theme_slug = ROOM_THEME_SLUGS[chapter]
 	elif _room_data.get("type") == GameFlow.RoomType.RANDOM:
 		var theme_index: int = int(_room_data.get("enemy_index", 0)) % RANDOM_ROOM_FLOOR_TEXTURES.size()
 		floor_tex = RANDOM_ROOM_FLOOR_TEXTURES[theme_index]
 		wall_tex = RANDOM_ROOM_WALL_TEXTURES[theme_index]
+		theme_slug = RANDOM_THEME_SLUGS[theme_index]
 	else: # START — bez dedykowanego wyglądu, reużywam pierwszy motyw jako placeholder
 		floor_tex = ROOM_FLOOR_TEXTURES[0]
 		wall_tex = ROOM_WALL_TEXTURES[0]
-	Walls.build_floor(self, ARENA_RECT, floor_tex)
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS, wall_tex, WALL_MODULATE)
+		theme_slug = ROOM_THEME_SLUGS[0]
+	var integrated_visual := IntegratedRoomVisual.new()
+	if integrated_visual.configure(ARENA_RECT, theme_slug):
+		_integrated_visual = integrated_visual
+		add_child(_integrated_visual)
+		Walls.build(self, ARENA_RECT, WALL_THICKNESS) # tylko kolizje; wygląd w IntegratedRoomVisual
+	else:
+		integrated_visual.free()
+		Walls.build_floor(self, ARENA_RECT, floor_tex)
+		Walls.build(self, ARENA_RECT, WALL_THICKNESS, wall_tex, WALL_MODULATE)
 	_add_room_atmosphere()
 
 	var track: AudioStreamWAV = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
@@ -139,6 +160,14 @@ func _ready() -> void:
 	player.global_position = _player_spawn_position(center)
 	player.died.connect(_on_player_died)
 	GameFlow.apply_player_state(player) # ta sama migawka co przy wejściu do tego pokoju
+	player.enter_breath_scope("room:%d:%d" % [GameFlow.current_room_pos.x, GameFlow.current_room_pos.y])
+	_skill_draft = SkillDraft.new()
+	$StatsLayer.add_child(_skill_draft)
+	_relic_draft = RelicDraftScript.new()
+	$StatsLayer.add_child(_relic_draft)
+	player.skill_choice_ready.connect(func(): _skill_draft.call_deferred("open", player))
+	if player.pending_skill_choices > 0:
+		_skill_draft.call_deferred("open", player)
 
 	ui.player = player
 	ui.show_minimap = true
@@ -165,7 +194,7 @@ func _ready() -> void:
 				_spawn_doors_for_open_directions()
 				_maybe_spawn_chest()
 			else:
-				_spawn_enemy(GameFlow.current_random_enemy_scene_path(), true)
+				_spawn_random_encounter()
 		GameFlow.RoomType.SOUL:
 			if already_cleared:
 				_spawn_doors_for_open_directions()
@@ -188,7 +217,7 @@ func _room_display_name() -> String:
 		GameFlow.RoomType.ALTAR:
 			return "Ołtarz"
 		GameFlow.RoomType.RANDOM:
-			return "Komnata"
+			return "Komnata — zasadzka" if _random_group_count() > 1 else "Komnata"
 		_: # START
 			return ""
 
@@ -244,20 +273,44 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_TAB:
 		stats_screen.open(player)
 
-func _spawn_enemy(scene_path: String, is_random: bool) -> void:
+func _random_group_count() -> int:
+	if _room_data.get("type") != GameFlow.RoomType.RANDOM:
+		return 1
+	if int(_room_data.get("enemy_index", 0)) >= 8 or GameFlow.rooms_cleared_count < 3:
+		return 1
+	if GameFlow.rooms_cleared_count % 4 != 3:
+		return 1
+	return 2 if GameFlow.rooms_cleared_count < 12 else 3
+
+func _spawn_random_encounter() -> void:
+	var count := _random_group_count()
+	if count == 1:
+		_spawn_enemy(GameFlow.current_random_enemy_scene_path(), true)
+		return
+	var paths := [GameFlow.current_random_enemy_scene_path(), GameFlow.RANDOM_ENEMY_SCENES[0], GameFlow.RANDOM_ENEMY_SCENES[2]]
+	var offsets := [Vector2(-180, -90), Vector2(180, -90), Vector2(0, 115)]
+	for i in range(count):
+		_spawn_enemy(paths[i], true, offsets[i], true)
+
+func _spawn_enemy(scene_path: String, is_random: bool, offset: Vector2 = Vector2.ZERO, group_member: bool = false) -> void:
 	var scene: PackedScene = load(scene_path)
-	incarnation = scene.instantiate() as Incarnation
-	incarnation.arena_rect = ARENA_RECT
-	incarnation.global_position = ARENA_RECT.get_center() + incarnation_spawn_offset
-	incarnation.died.connect(_on_incarnation_died)
-	add_child(incarnation)
+	var spawned: Incarnation = scene.instantiate() as Incarnation
+	spawned.arena_rect = ARENA_RECT
+	spawned.global_position = ARENA_RECT.get_center() + (offset if offset != Vector2.ZERO else incarnation_spawn_offset)
+	spawned.died.connect(_on_incarnation_died.bind(spawned))
+	add_child(spawned)
+	_active_enemies.append(spawned)
+	if incarnation == null:
+		incarnation = spawned
 	if is_random:
 		# Rosnąca trudność losowych przeciwników z liczbą wyczyszczonych pokoi
 		# (ustalone z autorem) — wcielenia z duszami zachowują swoje ręcznie
 		# dobrane, stałe statystyki, więc ta gałąź ich nie dotyczy.
-		incarnation.apply_difficulty_scale(1.0 + GameFlow.rooms_cleared_count * GameFlow.RANDOM_ENEMY_DIFFICULTY_STEP)
-		if randf() < GameFlow.elite_chance_for_current_progress():
-			incarnation.apply_elite_modifier()
+		var n := GameFlow.rooms_cleared_count
+		var group_factor := 0.55 if group_member else 1.0
+		spawned.apply_difficulty_scale(minf(2.10, 1.0 + 0.045 * n) * group_factor, minf(1.45, 1.0 + 0.015 * n) * (0.70 if group_member else 1.0))
+		if not group_member and randf() < GameFlow.elite_chance_for_current_progress():
+			spawned.apply_elite_modifier()
 	ui.boss = incarnation
 
 ## Drzwi zamknięte na czas walki (jak w Isaacu, ustalone z autorem) — dopiero
@@ -271,23 +324,32 @@ func _spawn_doors_for_open_directions() -> void:
 		var pos := Walls.wall_point(ARENA_RECT, wall_side)
 		var neighbor := GameFlow.neighbor_data(direction)
 		var callback := _on_altar_door_entered if neighbor.get("type") == GameFlow.RoomType.ALTAR else _on_move_door_entered.bind(direction)
-		# Drzwi są osadzane DOKŁADNIE na linii ściany — rift_doorway_rotatable_v3
-		# jest symetryczny na wszystkie 4 strony, więc obrót pod wall_side
-		# wygląda poprawnie z każdej strony (patrz rooms/door.gd).
+		# Wyzwalacz stoi na linii ściany; portal jest częścią grafiki muru.
 		_spawn_door(pos, callback, wall_side)
 
 func _spawn_door(pos: Vector2, on_entered: Callable, wall_side: String) -> void:
 	var door: Door = DoorScene.instantiate()
 	door.player = player
 	door.wall_side = wall_side
+	if _integrated_visual != null:
+		_integrated_visual.set_portal_open(wall_side)
+		door.use_integrated_visual = true
 	door.global_position = pos
 	door.entered.connect(on_entered)
 	add_child(door)
 
-func _on_incarnation_died(fragment_name: String) -> void:
-	player.gain_xp() # 1 XP za każdego pokonanego przeciwnika, losowego i wcielenie jednakowo
+func _on_incarnation_died(fragment_name: String, dead_enemy: Incarnation = null) -> void:
+	if dead_enemy == null:
+		dead_enemy = incarnation
+	_active_enemies.erase(dead_enemy)
+	if not _active_enemies.is_empty():
+		if dead_enemy == incarnation:
+			incarnation = _active_enemies[0]
+			ui.boss = incarnation
+		return
+	player.gain_xp(2.0 if _room_data.get("type") == GameFlow.RoomType.SOUL or dead_enemy.is_elite else 1.0)
 	GameFlow.clear_current_room()
-	Juice.play_sfx_at(SND_ROOM_CLEAR, incarnation.global_position)
+	Juice.play_sfx_at(SND_ROOM_CLEAR, dead_enemy.global_position)
 	if _room_data.get("type") == GameFlow.RoomType.RANDOM:
 		# Losowi przeciwnicy nie dają fragmentów/dusz do podniesienia (ustalone
 		# z autorem) — od razu otwarte drzwi, bez kroku z podnoszeniem duszy.
@@ -299,9 +361,9 @@ func _on_incarnation_died(fragment_name: String) -> void:
 		_maybe_spawn_chest()
 		return
 	var soul: Soul = SoulScene.instantiate()
-	soul.color = incarnation.current_color
+	soul.color = dead_enemy.current_color
 	soul.player = player
-	soul.global_position = incarnation.global_position
+	soul.global_position = dead_enemy.global_position
 	soul.collected.connect(_on_soul_collected.bind(fragment_name))
 	add_child(soul)
 
@@ -338,11 +400,21 @@ func _maybe_spawn_chest() -> void:
 	chest.player = player
 	chest.global_position = ARENA_RECT.get_center() + incarnation_spawn_offset
 	chest.opened.connect(_on_chest_opened)
+	chest.selection_requested.connect(_on_chest_selection_requested.bind(chest))
 	add_child(chest)
+	var saved_room: Array = GameFlow.saved_player_state.get("pending_chest_room", [])
+	if saved_room == [GameFlow.current_room_pos.x, GameFlow.current_room_pos.y]:
+		var offers: Array[String] = []
+		offers.assign(GameFlow.saved_player_state.get("pending_chest_offers", []))
+		chest.call_deferred("resume_offer", offers)
+
+func _on_chest_selection_requested(offers: Array[String], chest: Chest) -> void:
+	_relic_draft.call_deferred("open", chest, offers)
 
 ## Krok 4/8: "karta relikwii w dolnej/środkowej części ekranu — ikona, nazwa,
 ## jedno zdanie efektu" — zastępuje dawny zwykły tekstowy toast.
 func _on_chest_opened(upgrade_id: String) -> void:
+	GameFlow.capture_player_state(player)
 	GameFlow.mark_chest_opened()
 	ui.show_relic_card(upgrade_id)
 

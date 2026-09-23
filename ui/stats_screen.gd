@@ -53,6 +53,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ui_accept"):
 		if player.spend_stat_point(Player.STAT_KEYS[_selected_index]):
 			Juice.play_ui_sfx(Juice.SND_UI_LEVEL_UP)
+			if get_tree().current_scene != null:
+				GameFlow.capture_player_state(player)
+				GameFlow._save_progress()
 		else:
 			Juice.play_ui_sfx(Juice.SND_UI_ERROR)
 	elif event.is_action_pressed("ui_cancel"):
