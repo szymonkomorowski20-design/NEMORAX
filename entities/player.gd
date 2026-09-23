@@ -310,6 +310,7 @@ var _stamina_regen_delay_timer: float = 0.0
 @export var counter_bonus: float = 0.25 ## +25% do JEDNEGO pierwotnego trafienia w oknie kontry
 const SHIELD_ARC_COLOR := Color("#C9D6E3")
 var _counter_timer: float = 0.0
+var _counter_hit_target: Node = null ## cel ciosu z okna kontry — do podwójnej postawy
 var _guard_break_flash: float = 0.0 ## s czerwonego łuku po przełamaniu gardy
 
 # --- Leczenie (E) — dodane na życzenie autora, poza dokumentem. System
@@ -1230,6 +1231,7 @@ func resolve_hit_damage(target: Node, base_damage: float) -> float:
 	if _counter_timer > 0.0:
 		# Okno kontry po udanym bloku — zużywa je jedno pierwotne trafienie.
 		_counter_timer = 0.0
+		_counter_hit_target = target
 		damage *= 1.0 + counter_bonus
 		if target is Node2D and get_parent() != null:
 			DamageNumber.spawn_text(get_parent(), (target as Node2D).global_position + Vector2(0.0, -60.0), "Kontra", SHIELD_ARC_COLOR, true)
@@ -1272,6 +1274,11 @@ func on_hit_confirmed(target: Node, damage_dealt: float, weapon: String = "", he
 		_confirmed_primary_hits.clear()
 		_confirmed_primary_hits[primary_key] = true
 	register_hit_on_enemy(not target.has_meta("summoned"))
+	# Postawa (prototyp E1): tylko trafienie PIERWOTNE, raz na atak i cel;
+	# cios z okna kontry po bloku narusza ją podwójnie.
+	if target.has_method("add_stance_damage"):
+		target.add_stance_damage(damage_dealt * (2.0 if _counter_hit_target == target else 1.0))
+	_counter_hit_target = null
 	if _skill_procs != null and weapon != "":
 		_skill_procs.on_primary_hit(target, damage_dealt, weapon, health_before, attack_id)
 	if weapon == "sword" and skill_rank("blade_twin_cut") > 0:

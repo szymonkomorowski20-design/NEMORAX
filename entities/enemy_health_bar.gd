@@ -21,6 +21,8 @@ const BACKGROUND_COLOR := Color(0.04, 0.03, 0.06, 0.85)
 const FILL_COLOR := Color("#D63B3B") # osobny od Palette.DANGER (ten zarezerwowany dla obrażeń ZADAWANYCH, nie otrzymywanych)
 const SHADOW_COLOR := Color(0.88, 0.85, 0.80, 0.9) ## "cień" poprzedniego HP — dokument: "aby ciosy miały wagę"
 const BAR_HEIGHT := 6.0
+const STANCE_COLOR := Color(0.93, 0.86, 0.62, 0.95) ## postawa — jasny, ciepły, inny niż HP
+const STANCE_IMMUNE_COLOR := Color(0.93, 0.86, 0.62, 0.3)
 const WIDTH_PER_RADIUS := 1.3 ## szerokość paska = radius encji * ten mnożnik — większy wróg, szerszy pasek
 const FADE_AFTER_NO_DAMAGE := 2.0 ## s, środek okna 1,5-2,5s z dokumentu
 const FADE_OUT_DURATION := 0.3 ## s, płynne zniknięcie zamiast nagłego pop-u
@@ -98,3 +100,13 @@ func _draw() -> void:
 	if _shadow_ratio > ratio:
 		draw_rect(Rect2(Vector2(-half, 0.0), Vector2(bar_width * _shadow_ratio, BAR_HEIGHT)), SHADOW_COLOR, true)
 	draw_rect(Rect2(Vector2(-half, 0.0), Vector2(bar_width * ratio, BAR_HEIGHT)), FILL_COLOR, true)
+	# Postawa (prototyp E1): cienka linia pod HP, nie drugi dominujący pasek.
+	# Przerywana w czasie odporności, żeby było widać, że teraz nie rośnie.
+	if _target.stance_enabled:
+		var y := BAR_HEIGHT + 2.0
+		if _target.is_stance_immune():
+			for i in 8:
+				var x0 := -half + bar_width * float(i) / 8.0
+				draw_rect(Rect2(Vector2(x0, y), Vector2(bar_width / 8.0 - 3.0, 2.0)), STANCE_IMMUNE_COLOR, true)
+		else:
+			draw_rect(Rect2(Vector2(-half, y), Vector2(bar_width * _target.stance_ratio(), 2.0)), STANCE_COLOR, true)

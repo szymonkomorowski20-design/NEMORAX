@@ -113,6 +113,72 @@ var orbit_direction: float = 1.0 ## losowane raz w _ready() podklasy (1.0 albo -
 @export var low_health_threshold: float = 0.40 ## ułamek max_health, poniżej którego przyspiesza
 @export var low_health_tempo_multiplier: float = 0.85 ## mnożnik telegrafu/odstępu ataku poniżej progu
 
+# --- Postawa (AUDYT E1, Paczka 4.3) — PROTOTYP, włączony tylko u Nekravora ---
+# Nabijają ją wyłącznie trafienia PIERWOTNE gracza (Player.on_hit_confirmed),
+# cios z okna kontry po bloku liczy się podwójnie. Pełna postawa = krótkie
+# odsłonięcie (bez ruchu, ataków i dotyku), potem odporność i wyższy próg —
+# żadnego stun-locka. Wskaźnik to cienka linia pod paskiem HP, nie drugi pasek.
+signal stance_broken
+@export var stance_enabled: bool = false
+@export var stance_threshold_fraction: float = 0.2 ## obrażenia pierwotne jako ułamek max HP do przełamania
+@export var stance_break_duration: float = 1.6
+@export var stance_immunity: float = 6.0 ## s po odsłonięciu bez nabijania postawy
+@export var stance_threshold_growth: float = 1.3 ## każde kolejne przełamanie wymaga więcej
+@export var stance_decay_delay: float = 3.0 ## s bez trafienia, po których postawa wraca
+@export var stance_decay_rate: float = 0.2 ## ułamek progu na sekundę
+const SND_STANCE_BREAK := preload("res://assets/audio/sfx/wcielenia/I05_contact_hit.wav")
+var stance: float = 0.0
+var stance_breaks: int = 0
+var _stance_threshold_mult: float = 1.0
+var _stance_break_timer: float = 0.0
+var _stance_immunity_timer: float = 0.0
+var _stance_decay_timer: float = 0.0
+
+func stance_threshold() -> float:
+	return max_health * stance_threshold_fraction * _stance_threshold_mult
+
+func stance_ratio() -> float:
+	return clampf(stance / maxf(stance_threshold(), 0.01), 0.0, 1.0)
+
+func is_stance_broken() -> bool:
+	return _stance_break_timer > 0.0
+
+func is_stance_immune() -> bool:
+	return _stance_immunity_timer > 0.0
+
+func add_stance_damage(amount: float) -> void:
+	if not stance_enabled or is_dead or is_stance_immune() or amount <= 0.0:
+		return
+	stance += amount
+	_stance_decay_timer = stance_decay_delay
+	if stance >= stance_threshold():
+		_break_stance()
+
+func _break_stance() -> void:
+	stance = 0.0
+	stance_breaks += 1
+	_stance_break_timer = stance_break_duration
+	_stance_immunity_timer = stance_break_duration + stance_immunity
+	_stance_threshold_mult *= stance_threshold_growth
+	_lunge_active = false
+	_telegraph_active = false
+	_knockback_velocity = Vector2.ZERO
+	_attack_timer = maxf(_attack_timer, 0.6) # po odsłonięciu krótki oddech, nie natychmiastowy atak
+	_play_sfx(SND_STANCE_BREAK)
+	if get_parent() != null:
+		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -radius - 40.0), "Przełamanie!", Palette.PLAYER_BODY, true)
+	stance_broken.emit()
+
+func _tick_stance(delta: float) -> void:
+	if not stance_enabled:
+		return
+	_stance_break_timer = maxf(0.0, _stance_break_timer - delta)
+	_stance_immunity_timer = maxf(0.0, _stance_immunity_timer - delta)
+	if _stance_decay_timer > 0.0:
+		_stance_decay_timer -= delta
+	elif stance > 0.0:
+		stance = maxf(0.0, stance - stance_threshold() * stance_decay_rate * delta)
+
 ## Skalowanie trudności dla pokoi z losowymi przeciwnikami (nie wcieleniami z
 ## duszami, które mają ręcznie dobrane, stałe statystyki na życzenie autora) —
 ## mnożnik rośnie z numerem pokoju w GameFlow, patrz room.gd._spawn_random_enemy().
@@ -163,6 +229,13 @@ func _physics_process(delta: float) -> void:
 		return
 	if is_dead:
 		_update_sprite_state() # inaczej poza śmierci nigdy by się nie pokazała
+		return
+
+	_tick_stance(delta)
+	if is_stance_broken():
+		# Odsłonięcie: bez ruchu, ataków i obrażeń od dotyku — okno na kontrę.
+		_tick_hit_recoil(delta)
+		_update_sprite_state()
 		return
 
 	_check_contact()
@@ -250,7 +323,7 @@ func _start_telegraph() -> void:
 	_play_sfx(SND_TELEGRAPH)
 	await get_tree().create_timer(_effective_telegraph_duration()).timeout
 	_telegraph_active = false
-	if not is_dead:
+	if not is_dead and not is_stance_broken():
 		_perform_random_skill()
 
 ## Wydzielone dla testowalności — czysta logika losowania indeksu bez
@@ -275,6 +348,8 @@ func _perform_random_skill() -> void:
 ## Zwraca true, jeśli gracz był w zasięgu i faktycznie oberwał (przydatne np.
 ## do leczenia się kosztem trafienia, patrz GlodIncarnation).
 func _damage_pulse(pulse_radius: float, damage: float) -> bool:
+	if is_stance_broken():
+		return false # dalsze kroki wzorca (await) nie odpalają w trakcie odsłonięcia
 	_set_skill_pose("pulse")
 	_play_sfx(SND_DAMAGE_PULSE)
 	if global_position.distance_to(player.global_position) > pulse_radius:
@@ -284,6 +359,8 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 	return player.take_damage(damage, global_position)
 
 func _pull_player(strength: float) -> void:
+	if is_stance_broken():
+		return
 	_set_skill_pose("pull")
 	var dir: Vector2 = global_position - player.global_position
 	if dir.length() > 1.0:
@@ -292,6 +369,8 @@ func _pull_player(strength: float) -> void:
 ## Poza "lunge" trzyma się cały czas trwania wypadu przez _lunge_active w
 ## _update_sprite_state(), nie przez _skill_pose_timer jak pulse/pull.
 func _lunge_toward_player(speed: float, duration: float) -> void:
+	if is_stance_broken():
+		return
 	_play_sfx(SND_LUNGE_START)
 	_lunge_active = true
 	_lunge_timer = duration
@@ -383,7 +462,7 @@ func _update_sprite_state() -> void:
 	var pose := "walk"
 	if is_dead:
 		pose = "death"
-	elif _flash_frames > 0:
+	elif _flash_frames > 0 or is_stance_broken():
 		pose = "hit"
 	elif _telegraph_active:
 		pose = "telegraph"

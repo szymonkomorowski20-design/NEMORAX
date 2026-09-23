@@ -20,6 +20,7 @@ var skills_seen := 0
 var last_skill := -1
 var results: Array = []
 var running := false
+var no_stance := false ## 4. argument "nostance" — porównanie prototypu postawy (Paczka 4.3)
 
 func _initialize() -> void:
 	await process_frame
@@ -31,6 +32,7 @@ func _initialize() -> void:
 	else:
 		chapters = [0, 1, 2, 3, 4, 5]
 	rooms_cleared = int(args[2]) if args.size() > 2 else 0
+	no_stance = args.size() > 3 and args[3] == "nostance"
 	var game_flow: Node = root.get_node("GameFlow")
 	game_flow.SAVE_PATH = "user://measure_run.json"
 	game_flow.PERSISTENT_SAVE_PATH = "user://measure_persistent.json"
@@ -51,6 +53,8 @@ func _fight(chapter: int) -> void:
 	await process_frame
 	player = room.player
 	enemy = room.incarnation
+	if no_stance:
+		enemy.stance_enabled = false
 	_apply_build()
 	active_time = 0.0
 	skills_seen = 0
@@ -60,7 +64,7 @@ func _fight(chapter: int) -> void:
 	while running:
 		await physics_frame
 		_tick()
-	results.append({"chapter": chapter, "name": game_flow.INCARNATION_NAMES[chapter], "time": active_time, "hp": hp, "skills": skills_seen})
+	results.append({"chapter": chapter, "name": game_flow.INCARNATION_NAMES[chapter], "time": active_time, "hp": hp, "skills": skills_seen, "breaks": enemy.stance_breaks})
 	root.remove_child(room)
 	room.queue_free()
 	await process_frame
@@ -115,5 +119,5 @@ func _tick() -> void:
 func _report() -> void:
 	print("=== WCIELENIA, build %s, wyczyszczone pokoje %d ===" % [build_name, rooms_cleared])
 	for r in results:
-		print("  %d %-22s HP %4.0f   czas %6.1f s   umiejętności: %d" % [r["chapter"], r["name"], r["hp"], r["time"], r["skills"]])
+		print("  %d %-22s HP %4.0f   czas %6.1f s   umiejętności: %d   przełamania postawy: %d" % [r["chapter"], r["name"], r["hp"], r["time"], r["skills"], r["breaks"]])
 	quit()
