@@ -116,6 +116,7 @@ var _play_rect: Rect2 = ARENA_RECT
 ## świata — KIERUNEK_WIZUALNY_REFERENCJE.md). Tło poza areną ciemniejsze
 ## jeszcze bardziej niż ściana — ma sugerować otchłań, nie kolejną powierzchnię.
 const WALL_MODULATE := Color(0.45, 0.45, 0.52, 1.0)
+const SOUL_BASE_HEALTH := 550.0 ## wcielenie z duszą przed skalowaniem postępem (Paczka 4)
 const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 
 func _ready() -> void:
@@ -319,6 +320,14 @@ func _spawn_enemy(scene_path: String, is_random: bool, offset: Vector2 = Vector2
 		spawned.apply_difficulty_scale(minf(2.10, 1.0 + 0.045 * n) * group_factor, minf(1.45, 1.0 + 0.015 * n) * (0.70 if group_member else 1.0))
 		if not group_member and randf() < GameFlow.elite_chance_for_current_progress():
 			spawned.apply_elite_modifier()
+	else:
+		# Paczka 4 (AUDYT, cel 25-50 s mocny / 45-75 s średni): przy stałych
+		# 160 HP wcielenie padało w 2-4 s, zanim użyło choć jednej
+		# umiejętności. Baza 550 HP i ta sama krzywa postępu co zwykli wrogowie
+		# (do 2,1x), bo pokój z duszą może trafić się wcześnie albo późno.
+		var soul_n := GameFlow.rooms_cleared_count
+		spawned.max_health = SOUL_BASE_HEALTH
+		spawned.apply_difficulty_scale(minf(2.10, 1.0 + 0.045 * soul_n), minf(1.45, 1.0 + 0.015 * soul_n))
 	ui.boss = incarnation
 
 ## Drzwi zamknięte na czas walki (jak w Isaacu, ustalone z autorem) — dopiero

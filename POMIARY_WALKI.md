@@ -62,6 +62,24 @@ Wnioski:
 - Czysty mag **kończy walkę**, ale przez ~77 s z 87 s czeka na manę do następnego strzału — działa, lecz może być frustrujący. **Decyzja dla autora:** zostawić (mag ma przeplatać miecz) albo podnieść `mana_combat_floor_regen`.
 - Goły build poziomu 1 nie jest realnym buildem finału; zostawiony jako dolny punkt odniesienia.
 
+## Paczka 4 — sześć wcieleń (pokój SOUL)
+
+Narzędzie: `debug/measure_incarnation.gd -- <build> <rozdział 0-5|all> [wyczyszczone_pokoje]` — prawdziwy pokój z duszą, ten sam bot co wyżej. Build `early` = poziom 3 (4 punkty, 2 rangi). Postęp dobrany do poziomu: poziom 3 ≈ 4 pokoje, 7 ≈ 16, 10 ≈ 26–28 (krzywa XP w `player.gd`).
+
+Przed: każde wcielenie miało stałe **160 HP** (bez skalowania postępem, a zwykli wrogowie rosną do 2,1×) i padało w **1,8–3,8 s**; mocny build nie widział ani jednej umiejętności.
+
+Po: baza **550 HP** × ta sama krzywa postępu co zwykli wrogowie (`1 + 0,045 × pokoje`, sufit 2,1×).
+
+| Build (pokoje) | HP | Bot | Szac. człowiek | Umiejętności wcielenia | Cel z audytu |
+|---|---|---|---|---|---|
+| early (4) | 649 | 35–41 s | ~60 s | 13–16 | — |
+| medium (16) | 946 | 41–47 s | ~70 s | 15–19 | 45–75 s ✓ |
+| sword (26) | 1155 | 17–18,5 s | ~28 s | 5–6 | 25–50 s ✓ |
+| hybrid (26) | 1155 | 19 s | ~30 s | 5 | 25–50 s ✓ |
+| wand (26) | 1155 | 12,6 s | ~20 s | 3 | lekko poniżej |
+
+Orryx (rozdział 5) jest o ~15% dłuższy od reszty — to jego mechanika znikania, nie HP.
+
 ## Ekonomia leczenia — wariant C
 
 Przed: 50% maks. HP co 10 trafień, 3 zapasy, natychmiast.
