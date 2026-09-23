@@ -24,6 +24,13 @@ const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 
 @export var body_fade_duration: float = 2.0 ## s, ekran gaśnie po "śmierci" dużej formy (sekcja 8)
 @export var finale_taunt_duration: float = 4.0 ## s, jak długo wisi pytanie finałowe
+## Reguła 7 (Odwrócenie) w fazie finałowej — NIE trwałe na resztę walki (za
+## małe HP formy i tak szybkie ataki 0,6s wystarczająco utrudniają tę fazę;
+## nieprzerwane odwrócone sterowanie do samego końca byłoby po prostu
+## nieczytelne, nie "trudne"). Zamiast tego okresowe, krótkie epizody: chwila
+## normalnego sterowania, potem krótki ostry epizod odwrócenia, w kółko.
+@export var reversal_normal_duration: float = 5.0 ## s, sterowanie normalne między epizodami
+@export var reversal_burst_duration: float = 2.5 ## s, jak długo trwa jeden epizod odwrócenia
 
 @onready var player: Player = $Player
 @onready var ui: GameUI = $UILayer/UI
@@ -31,6 +38,8 @@ const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
 @onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
+
+var _reversal_timer: Timer
 
 var boss: Boss
 
@@ -195,18 +204,54 @@ func _play_big_form_death() -> void:
 	# kontynuacja sceny, nie osobny byt.
 	boss.delay_next_attack(finale_taunt_duration)
 	boss.show_taunt_pose(finale_taunt_duration)
-	player.input_reversed = true # reguła siódma: Odwrócenie
+	_start_reversal_cycle() # reguła siódma: Odwrócenie — teraz okresowa, patrz komentarz przy reversal_normal_duration
 	ui.hide_all = true # interfejs znika w całości w fazie finałowej
 
-## Drwina przed finałową formą, coraz bardziej wprost o pętli w miarę
-## kolejnych porażek Strażnika w tym zapisie (FABULA_I_DIALOGI.md sekcja 3.5).
+## Timer (nie async-while+await) celowo — testowalne wprost wywołaniem
+## _on_reversal_timer_timeout() bez czekania na realny czas (ta sama zasada co
+## reszta menu/ekranów w tym projekcie), i samo się zatrzymuje: po ustawieniu
+## _battle_over kolejne wywołanie po prostu nic nie robi, zamiast wymagać
+## osobnej flagi "przerwij pętlę" pilnowanej w kilku miejscach.
+func _start_reversal_cycle() -> void:
+	player.input_reversed = false
+	_reversal_timer = Timer.new()
+	_reversal_timer.one_shot = true
+	add_child(_reversal_timer)
+	_reversal_timer.timeout.connect(_on_reversal_timer_timeout)
+	_reversal_timer.start(reversal_normal_duration)
+
+func _on_reversal_timer_timeout() -> void:
+	if _battle_over:
+		return
+	player.input_reversed = not player.input_reversed
+	_reversal_timer.start(reversal_burst_duration if player.input_reversed else reversal_normal_duration)
+
+## Drwina przed finałową formą, coraz bardziej wprost o pętli i coraz bardziej
+## perfidna w miarę kolejnych porażek Strażnika w tym zapisie (deaths, trwałe
+## między resetami — patrz _load_progress/_save_progress). FABULA_I_DIALOGI.md
+## sekcja 3.5: progi 3/10 to oryginalny, kanoniczny tekst; reszta to
+## rozszerzenie na życzenie autora, aż do 100 (potem jedna, stała, najciemniejsza
+## linia — sto to już nie licznik, to punkt bez powrotu dla samej drwiny).
+const FINALE_TAUNT_TIERS: Array[Dictionary] = [
+	{"below": 3, "text": "Czy pamiętasz, ile razy już mnie pokonałeś?"},
+	{"below": 10, "text": "Czy pamiętasz, ile razy już mnie pokonałeś? Bo ja pamiętam każdy."},
+	{"below": 20, "text": "Dwadzieścia prób i wciąż myślisz, że to Ty prowadzisz tę rozmowę?"},
+	{"below": 30, "text": "Za każdym razem inny Strażnik. Za każdym razem to samo pierwsze spojrzenie — jakbyś nigdy wcześniej nie stał w tej sali."},
+	{"below": 40, "text": "Wiesz, co jest najlepsze? Ty nie pamiętasz nic. A ja pamiętam wszystko. To nie jest walka. To jest powtórka, którą oglądam z Twojej strony ekranu."},
+	{"below": 50, "text": "Czterdzieści... nie, pięćdziesiąt. Straciłem już rachubę tego, kim byłeś przed chwilą, kiedy jeszcze myślałeś, że wygrasz."},
+	{"below": 60, "text": "Chcesz wiedzieć, co czuje więzień, który uczy strażnika, jak go zabić? Ulgę. Za każdym razem większą ulgę."},
+	{"below": 70, "text": "Jesteś coraz bliżej. Nie zwycięstwa — mnie. Im dłużej to trwa, tym mniej dzieli nas różnicy."},
+	{"below": 80, "text": "Osiemdziesiąt twarzy, które myślały, że są pierwsze. Twoja różni się tylko numerem."},
+	{"below": 90, "text": "Powiedz mi szczerze — ile z tych prób pamiętasz Ty, a ile ja odgrywam za Ciebie, żebyś miał wrażenie, że próbowałeś?"},
+	{"below": 100, "text": "Dziewięćdziesiąt kilka. Setka tuż za rogiem. Zastanawiam się, czy przy stu w ogóle będziesz jeszcze kimś, kogo warto drażnić — czy tylko cyfrą."},
+]
+const FINALE_TAUNT_AT_100 := "Sto. Przestałem liczyć Strażników i zacząłem liczyć powroty. To już nie jest Twoja porażka. To mój kalendarz."
+
 func _finale_taunt_text() -> String:
-	if deaths < 3:
-		return "Czy pamiętasz, ile razy już mnie pokonałeś?"
-	elif deaths < 10:
-		return "Czy pamiętasz, ile razy już mnie pokonałeś? Bo ja pamiętam każdy."
-	else:
-		return "Czy pamiętasz, ile razy już mnie pokonałeś? Nie musisz. Ja policzę za nas oboje. To jedno, co zawsze mi zostaje."
+	for tier in FINALE_TAUNT_TIERS:
+		if deaths < int(tier["below"]):
+			return tier["text"]
+	return FINALE_TAUNT_AT_100
 
 func _finish_victory() -> void:
 	_battle_over = true

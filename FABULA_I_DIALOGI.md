@@ -134,10 +134,12 @@ Proponowane rozszerzenie (dwa kolejne toasty, po istniejącym):
 
 ### 3.5 Wielki zwrot — drwina przed finałową formą
 
-Obecny tekst (`arena.gd`): *"Czy pamiętasz, ile razy już mnie pokonałeś?\n\n%d"*
-
-Rozszerzenie warstwowe zależne od `deaths` (im więcej porażek Strażnika w tym
-zapisie, tym bardziej wprost istota mówi o pętli):
+Zaimplementowane w `arena.gd` (`FINALE_TAUNT_TIERS` + `_finale_taunt_text()`) —
+warstwowe rozszerzenie zależne od `deaths` (trwałe między resetami przebiegu,
+patrz `_load_progress`/`_save_progress`): im więcej porażek Strażnika w tym
+zapisie, tym bardziej wprost i bardziej perfidnie istota mówi o pętli. Progi
+3/10 to oryginalny, kanoniczny tekst; reszta — na życzenie autora, żeby drwina
+nie "zamrażała się" po dziesiątej porażce, tylko rosła aż do stu:
 
 **deaths < 3 (świeży zapis):**
 > "Czy pamiętasz, ile razy już mnie pokonałeś?"
@@ -145,9 +147,45 @@ zapisie, tym bardziej wprost istota mówi o pętli):
 **deaths 3-9:**
 > "Czy pamiętasz, ile razy już mnie pokonałeś? Bo ja pamiętam każdy."
 
-**deaths 10+:**
-> "Czy pamiętasz, ile razy już mnie pokonałeś? Nie musisz. Ja policzę za
-> nas oboje. To jedno, co zawsze mi zostaje."
+**deaths 10-19:**
+> "Dwadzieścia prób i wciąż myślisz, że to Ty prowadzisz tę rozmowę?"
+
+**deaths 20-29:**
+> "Za każdym razem inny Strażnik. Za każdym razem to samo pierwsze
+> spojrzenie — jakbyś nigdy wcześniej nie stał w tej sali."
+
+**deaths 30-39:**
+> "Wiesz, co jest najlepsze? Ty nie pamiętasz nic. A ja pamiętam wszystko.
+> To nie jest walka. To jest powtórka, którą oglądam z Twojej strony ekranu."
+
+**deaths 40-49:**
+> "Czterdzieści... nie, pięćdziesiąt. Straciłem już rachubę tego, kim byłeś
+> przed chwilą, kiedy jeszcze myślałeś, że wygrasz."
+
+**deaths 50-59:**
+> "Chcesz wiedzieć, co czuje więzień, który uczy strażnika, jak go zabić?
+> Ulgę. Za każdym razem większą ulgę."
+
+**deaths 60-69:**
+> "Jesteś coraz bliżej. Nie zwycięstwa — mnie. Im dłużej to trwa, tym mniej
+> dzieli nas różnicy."
+
+**deaths 70-79:**
+> "Osiemdziesiąt twarzy, które myślały, że są pierwsze. Twoja różni się
+> tylko numerem."
+
+**deaths 80-89:**
+> "Powiedz mi szczerze — ile z tych prób pamiętasz Ty, a ile ja odgrywam za
+> Ciebie, żebyś miał wrażenie, że próbowałeś?"
+
+**deaths 90-99:**
+> "Dziewięćdziesiąt kilka. Setka tuż za rogiem. Zastanawiam się, czy przy
+> stu w ogóle będziesz jeszcze kimś, kogo warto drażnić — czy tylko cyfrą."
+
+**deaths ≥ 100 (stała, ostatnia linia — sto to punkt bez powrotu dla samej
+drwiny, nie kolejny próg do przekroczenia):**
+> "Sto. Przestałem liczyć Strażników i zacząłem liczyć powroty. To już nie
+> jest Twoja porażka. To mój kalendarz."
 
 ### 3.6 Epilog po zwycięstwie (nowy tekst, PRZED istniejącym ekranem statystyk)
 
