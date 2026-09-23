@@ -226,7 +226,10 @@ var stamina_regen_rate: float ## efektywna wartość — base_stamina_regen_rate
 @export var base_max_mana: float = 100.0 ## przed bonusem z punktów "mana"
 var max_mana: float ## efektywna wartość — base_max_mana + punkty*mana_per_point
 @export var wand_mana_cost: float = 25.0
-@export var mana_regen_per_hit: float = 15.0 ## mana nie regeneruje się z czasem — wyłącznie za trafienia wroga
+@export var mana_regen_per_hit: float = 15.0 ## w walce mana wraca wyłącznie za pierwotne trafienia wroga
+@export var mana_out_of_combat_regen: float = 10.0 ## /s, TYLKO gdy w pokoju nie ma żywych wrogów (bez nieskończonego ostrzału w walce)
+var _combat_check_timer: float = 0.0
+var _out_of_combat: bool = false
 
 # --- Poziom postaci i punkty statystyk (na życzenie autora, poza dokumentem) ---
 # 1 XP za KAŻDE pokonanie przeciwnika (patrz gain_xp(), wołane z room.gd/arena.gd),
@@ -289,9 +292,12 @@ var _block_parry_timer: float = 0.0
 # "stacków": trafienia ładują pasek co heal_hits_per_stack aż do max_heal_stacks
 # ładunków w banku naraz — E zużywa JEDEN stack na naciśnięcie, więc gracz sam
 # decyduje, czy leczy się od razu, czy odkłada zapas na później. ---
-@export var heal_hits_per_stack: int = 10 ## ile celnych trafień wroga ładuje jeden stack leczenia
-@export var max_heal_stacks: int = 3 ## ile stacków leczenia można nabankować naraz
-@export var heal_amount_fraction: float = 0.5 ## ułamek MAX zdrowia odzyskiwany JEDNYM stackiem
+# Wariant C (AUDYT_I_PLAN_ROZBUDOWY_GRY_DLA_CLAUDE.md) zamiast dawnego
+# 50% / 10 trafień / 3 zapasy natychmiast — to niwelowało całe ryzyko finału.
+@export var heal_hits_per_stack: int = 12 ## ile pierwotnych trafień wroga ładuje jeden stack leczenia
+@export var max_heal_stacks: int = 2 ## ile stacków leczenia można nabankować naraz
+@export var heal_amount_fraction: float = 0.3 ## ułamek MAX zdrowia odzyskiwany JEDNYM stackiem
+@export var heal_channel_time: float = 0.55 ## s użycia; trafienie przerywa, stack znika dopiero po udanym leczeniu
 @export var heal_visual_duration: float = 0.4 ## s, jak długo pokazuje się poza leczenia
 
 # --- Odepchnięcie (dodane na życzenie autora) ---
@@ -407,6 +413,7 @@ var stamina: float
 var mana: float
 var _heal_charge_hits: int = 0 ## postęp w stronę NASTĘPNEGO stacka (0..heal_hits_per_stack-1)
 var _heal_stacks: int = 0 ## ile stacków jest już gotowych do zużycia (0..max_heal_stacks)
+var _heal_channel_timer: float = 0.0
 var _heal_visual_timer: float = 0.0
 var _knockback_timer: float = 0.0
 
@@ -488,9 +495,11 @@ func _physics_process(delta: float) -> void:
 	_block_parry_timer = maxf(0.0, _block_parry_timer - delta)
 	_handle_weapon_switch()
 	_handle_dash_input(delta)
-	_handle_attack_input(delta) # niezależne od stanu ruchu — da się zacząć w trakcie dasha
+	if _heal_channel_timer <= 0.0:
+		_handle_attack_input(delta) # niezależne od stanu ruchu — da się zacząć w trakcie dasha
 	_handle_block_input()
 	_handle_heal_input()
+	_tick_heal_channel(delta)
 
 	match state:
 		State.DASHING:
@@ -502,6 +511,7 @@ func _physics_process(delta: float) -> void:
 		_process_attack_phase(delta) # leci równolegle, niezależnie od ruchu/dasha
 
 	_tick_stamina_regen(delta)
+	_tick_out_of_combat_mana(delta)
 	move_and_slide()
 	_update_trail(delta)
 	_update_walk_cycle(delta)
@@ -558,6 +568,19 @@ func _tick_upgrade_timers(delta: float) -> void:
 
 ## Stamina regeneruje się, gdy nie dashuję i nie macham mieczem (mana NIE regeneruje
 ## się z czasem w ogóle — wyłącznie za trafienia, patrz register_hit_on_enemy()).
+## Sprawdzane co 0,5 s, nie co klatkę — skan grupy "hittable".
+func _tick_out_of_combat_mana(delta: float) -> void:
+	_combat_check_timer -= delta
+	if _combat_check_timer <= 0.0:
+		_combat_check_timer = 0.5
+		_out_of_combat = true
+		for enemy in get_tree().get_nodes_in_group("hittable"):
+			if enemy.get("is_dead") != true:
+				_out_of_combat = false
+				break
+	if _out_of_combat:
+		mana = minf(max_mana, mana + mana_out_of_combat_regen * delta)
+
 func _tick_stamina_regen(delta: float) -> void:
 	var is_spending_stamina := state == State.DASHING or (_attack_phase != "" and _swing_weapon == "sword")
 	if not is_spending_stamina:
@@ -770,9 +793,33 @@ func _handle_heal_input() -> void:
 		return
 	if not Input.is_action_just_pressed("heal"):
 		return
+	if _heal_channel_timer > 0.0:
+		return
 	if _heal_stacks <= 0:
 		_play_sfx(SND_ATTACK_DENIED)
 		resource_denied.emit("heal")
+		return
+	_heal_channel_timer = heal_channel_time
+	_play_sfx(SND_HEAL_CHARGE_TICK)
+
+func is_heal_channeling() -> bool:
+	return _heal_channel_timer > 0.0
+
+func _tick_heal_channel(delta: float) -> void:
+	if _heal_channel_timer <= 0.0:
+		return
+	_heal_channel_timer -= delta
+	if _heal_channel_timer <= 0.0:
+		_heal_channel_timer = 0.0
+		_complete_heal()
+
+func _interrupt_heal_channel() -> void:
+	if _heal_channel_timer > 0.0:
+		_heal_channel_timer = 0.0
+		resource_denied.emit("heal")
+
+func _complete_heal() -> void:
+	if _heal_stacks <= 0 or state == State.DEAD:
 		return
 	_heal_stacks -= 1
 	_heal_visual_timer = heal_visual_duration
@@ -1055,9 +1102,11 @@ func cap_volley_damage(target: Node, volley_id: int, amount: float, base_damage:
 ## sposób odzyskania many, a co heal_hits_per_stack-te takie trafienie dokłada
 ## jeden stack leczenia (do max_heal_stacks — powyżej banku trafienia nic już
 ## nie robią, żeby nie liczyć w nieskończoność stanu, który i tak przepadnie).
-func register_hit_on_enemy() -> void:
+## heal_progress=false dla przyzwańców (meta "summoned", bez XP) — mana nadal
+## wraca, żeby mag mógł walczyć z dodatkami, ale nie da się na nich farmić leczenia.
+func register_hit_on_enemy(heal_progress: bool = true) -> void:
 	mana = min(max_mana, mana + mana_regen_per_hit)
-	if _heal_stacks >= max_heal_stacks:
+	if not heal_progress or _heal_stacks >= max_heal_stacks:
 		return
 	_heal_charge_hits += 1
 	if _heal_charge_hits >= heal_hits_per_stack:
@@ -1131,7 +1180,7 @@ func on_hit_confirmed(target: Node, damage_dealt: float, weapon: String = "", he
 	if _confirmed_primary_hits.size() > 2048:
 		_confirmed_primary_hits.clear()
 		_confirmed_primary_hits[primary_key] = true
-	register_hit_on_enemy()
+	register_hit_on_enemy(not target.has_meta("summoned"))
 	if _skill_procs != null and weapon != "":
 		_skill_procs.on_primary_hit(target, damage_dealt, weapon, health_before, attack_id)
 	if weapon == "sword" and skill_rank("blade_twin_cut") > 0:
@@ -1342,6 +1391,7 @@ func take_damage(amount: float) -> void:
 		on_blocked_attack()
 		return
 	health -= amount
+	_interrupt_heal_channel()
 	if _skill_procs != null:
 		_skill_procs.on_damage_taken()
 	# Krok 8 komunikatów w walce: "obrażenia gracza" dotąd nie miały ŻADNEJ

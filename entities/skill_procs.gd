@@ -70,7 +70,7 @@ func on_sword_active(direction: Vector2, damage: float, attack_id: int) -> void:
 		var lateral := absf(direction.cross(to_target))
 		var radius_value: float = target.get("radius") if target.get("radius") != null else 0.0
 		if forward >= -radius_value and forward <= 140.0 + radius_value and lateral <= 34.0 + radius_value:
-			player.apply_skill_bonus(target, damage * (0.50 if rank == 1 else 0.65), attack_id, damage)
+			player.apply_skill_bonus(target, damage * (0.50 if rank == 1 else 0.65), attack_id, damage, "blade_wave")
 
 func on_primary_hit(target: Node, damage: float, weapon: String, health_before: float, attack_id: int) -> void:
 	var id := target.get_instance_id()
@@ -84,7 +84,7 @@ func on_primary_hit(target: Node, damage: float, weapon: String, health_before: 
 			info["last"] = now
 			if info["count"] >= (4 if sunder_rank == 1 else 3):
 				info["count"] = 0
-				player.apply_skill_bonus(target, damage * (0.75 if sunder_rank == 1 else 1.0), attack_id, damage)
+				player.apply_skill_bonus(target, damage * (0.75 if sunder_rank == 1 else 1.0), attack_id, damage, "sunder")
 				AttackVfx.spawn(player.get_parent(), VFX_IMPACT, target.global_position, 0.25, 90.0 / float(VFX_IMPACT.get_width()))
 				player.play_skill_sfx(player.SND_SKILL_TWIN, target.global_position, -9.0, 0.72)
 			_sunder[id] = info
@@ -138,7 +138,7 @@ func _burst_rupture(target: Node, damage: float, attack_id: int, rank: int) -> v
 		if center.distance_to(other.global_position) > radius_value + target_radius:
 			continue
 		if other == target:
-			player.apply_skill_bonus(other, burst_damage, attack_id, damage)
+			player.apply_skill_bonus(other, burst_damage, attack_id, damage, "rupture")
 		else:
 			Juice.apply_hit(other, burst_damage, 0.0, true, "rupture_aoe")
 

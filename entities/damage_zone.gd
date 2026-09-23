@@ -18,7 +18,7 @@ const TELEGRAPH_SAFETY_MARGIN := 1.12
 @export var telegraph_duration: float = 0.9
 @export var duration: float = 3.5
 @export var tick_damage: float = 5.0
-@export var tick_interval: float = 0.5
+@export var tick_interval: float = 0.75 ## AUDYT C: ciągła strefa najwyżej jedno trafienie co 0,75–1 s
 
 @onready var sprite: Sprite2D = $Sprite
 

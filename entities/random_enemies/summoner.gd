@@ -59,6 +59,7 @@ func _skill_summon() -> void:
 	AttackVfx.spawn(get_parent(), VFX_SKILL, global_position, telegraph_duration, 0.4)
 	for i in range(summon_count):
 		var add: Incarnation = ChaserScene.instantiate()
+		add.set_meta("summoned", true) # bez XP i bez ładowania leczenia gracza
 		var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized() * 60.0
 		var spawn_pos := _clamp_to_arena(global_position + offset)
 		AttackVfx.spawn(get_parent(), VFX_ATTACK, spawn_pos, 0.35, 0.3)

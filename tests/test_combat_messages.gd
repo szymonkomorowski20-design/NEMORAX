@@ -115,9 +115,10 @@ func test_heal_use_spawns_a_positive_damage_number(root: Node) -> void:
 	Input.action_press("heal")
 	player._handle_heal_input()
 	Input.action_release("heal")
+	player._tick_heal_channel(player.heal_channel_time)
 
 	NemoraxTest.assert_true(root.get_child_count() > children_before, "użycie leczenia powinno dodać widoczną liczbę odzyskanego HP")
-	NemoraxTest.assert_almost_eq(player.health, 60.0, 0.01, "sam efekt leczenia (50% max) nie powinien się zmienić przez dodanie liczby")
+	NemoraxTest.assert_almost_eq(player.health, 10.0 + 100.0 * player.heal_amount_fraction, 0.01, "sam efekt leczenia nie powinien się zmienić przez dodanie liczby")
 	_cleanup(player, root)
 
 func test_show_relic_card_uses_separate_channel_from_center_message(root: Node) -> void:

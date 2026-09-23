@@ -121,3 +121,37 @@ func test_phase_transition_logs_only_hp_left_in_old_phase(root: Node) -> void:
 	root.remove_child(boss)
 	boss.queue_free()
 	Juice.reset_damage_metrics()
+
+## A6 / Paczka 2: podwójny i trzeci cios na dużym hitboksie bossa to efekty
+## wtórne — obrażenia liczone osobno, ale bez drugiego trafienia pierwotnego
+## (mana, leczenie) i bez kaskady proców.
+func test_twin_and_third_cut_on_boss_are_secondary_without_cascade(root: Node) -> void:
+	var previous_reduce_flashing := Palette.reduce_flashing
+	Palette.reduce_flashing = true
+	Juice.reset_damage_metrics()
+	var player: Player = load("res://entities/player.tscn").instantiate()
+	root.add_child(player)
+	player.skill_ranks["blade_sunder"] = 2
+	player.mana = 0.0
+	var boss: Boss = load("res://entities/boss.tscn").instantiate()
+	root.add_child(boss)
+	var dealt: float = Juice.apply_hit(boss, 10.0, 0.0, false, "sword_primary", false)
+	player.on_hit_confirmed(boss, dealt, "sword", boss.health + dealt, 501)
+	# Rangi dopiero teraz: inaczej on_hit_confirmed zaplanowałby prawdziwe cięcie
+	# timerem, które odpaliłoby po usunięciu gracza z drzewa.
+	player.skill_ranks["blade_twin_cut"] = 2
+	player._fire_twin_cut(boss, dealt, player.global_position, 501)
+	player.skill_ranks["blade_third_cut"] = 1
+	player._fire_third_cut(boss, dealt, player.global_position, 501)
+	var totals := Juice.damage_totals_snapshot()
+	NemoraxTest.assert_almost_eq(float(totals.get("twin_cut", 0.0)), 7.0, 0.01, "podwójny cios rangi 2 = 70% pierwszego")
+	NemoraxTest.assert_almost_eq(float(totals.get("third_cut", 0.0)), 3.5, 0.01, "trzeci cios = 35% pierwszego")
+	NemoraxTest.assert_eq(player.get_heal_charge_hits(), 1, "trzy cięcia jednego ataku = jedno trafienie pierwotne dla leczenia")
+	NemoraxTest.assert_almost_eq(player.mana, player.mana_regen_per_hit, 0.01, "i jeden zwrot many")
+	NemoraxTest.assert_true(not totals.has("sunder"), "cięcia wtórne nie nabijają licznika Łamacza pancerza (brak kaskady)")
+	root.remove_child(boss)
+	boss.queue_free()
+	root.remove_child(player)
+	player.queue_free()
+	Juice.reset_damage_metrics()
+	Palette.reduce_flashing = previous_reduce_flashing

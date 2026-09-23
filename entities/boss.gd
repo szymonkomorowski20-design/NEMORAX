@@ -672,6 +672,7 @@ func _attack_dominion_summon() -> void:
 		var add: Incarnation = ChaserScene.instantiate()
 		var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized() * 80.0
 		add.add_to_group("boss_hazard")
+		add.set_meta("summoned", true) # bez ładowania leczenia gracza
 		get_parent().add_child(add)
 		add.arena_rect = arena_rect
 		add.global_position = _clamp_to_arena(global_position + offset)
