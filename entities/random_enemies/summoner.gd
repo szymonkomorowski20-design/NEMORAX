@@ -65,5 +65,7 @@ func _skill_summon() -> void:
 		AttackVfx.spawn(get_parent(), VFX_ATTACK, spawn_pos, 0.35, 0.3)
 		get_parent().add_child(add)
 		add.arena_rect = arena_rect
+		add.obstacles = obstacles # przeszkody układu pokoju (Paczka 5)
+		add.slow_zones = slow_zones
 		add.global_position = spawn_pos
 		add.apply_difficulty_scale(summon_strength_fraction)

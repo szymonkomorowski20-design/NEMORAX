@@ -33,6 +33,15 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	global_position += direction * speed * delta
+	var terrain := get_tree().get_first_node_in_group("room_terrain")
+	if terrain != null:
+		var step: String = terrain.projectile_step(self)
+		if step == "blocked":
+			Juice.play_sfx_at(SND_IMPACT, global_position)
+			queue_free()
+			return
+		if step == "bounced":
+			sprite.rotation = direction.angle()
 	if _reflected:
 		_check_reflected_hit()
 	else:

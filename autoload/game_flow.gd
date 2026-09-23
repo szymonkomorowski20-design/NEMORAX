@@ -123,10 +123,45 @@ var saved_player_state: Dictionary = {}
 const FADE_DURATION := 0.12 ## s, każda z dwóch połówek przejścia
 var _fade_rect: ColorRect
 
+## Ziarno próby (Paczka 5): cała mapa, motywy, układy i pokój pułapek wynikają
+## z run_seed; losowanie w pokoju (elity, wybór przepisu) z room_rng(pos).
+## Ten sam seed = ten sam układ próby.
+var run_seed: int = 0
+var _rng := RandomNumberGenerator.new()
+## Podpisy ostatnich walk W KOLEJNOŚCI ODWIEDZANIA — reguła "bez trzech
+## podobnych walk pod rząd" (EncounterPlan.would_repeat_three).
+var recent_encounters: Array[String] = []
+
 func _ready() -> void:
 	_setup_fade_overlay()
+	_begin_seed()
 	if not _load_progress():
 		_generate_map()
+
+func _begin_seed(seed_value: int = -1) -> void:
+	var fresh := RandomNumberGenerator.new()
+	fresh.randomize()
+	run_seed = seed_value if seed_value >= 0 else int(fresh.randi() & 0x7fffffff)
+	_rng.seed = run_seed
+
+## Osobny, powtarzalny generator dla jednego pokoju (niezależny od kolejności
+## odwiedzania innych pokoi).
+func room_rng(pos: Vector2i, salt: int = 0) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash([run_seed, pos.x, pos.y, salt])
+	return r
+
+func record_encounter(sig: String) -> void:
+	recent_encounters.append(sig)
+	while recent_encounters.size() > 4:
+		recent_encounters.pop_front()
+
+func _shuffle_seeded(arr: Array) -> void:
+	for i in range(arr.size() - 1, 0, -1):
+		var j := _rng.randi_range(0, i)
+		var tmp = arr[i]
+		arr[i] = arr[j]
+		arr[j] = tmp
 
 func _setup_fade_overlay() -> void:
 	var layer := CanvasLayer.new()
@@ -166,15 +201,15 @@ func _generate_map() -> void:
 	var placed := 0
 	var last_enemy := -1
 	while placed < RANDOM_ROOM_COUNT and not frontier.is_empty():
-		var idx := randi() % frontier.size()
+		var idx := _rng.randi() % frontier.size()
 		var pos: Vector2i = frontier[idx]
 		frontier.remove_at(idx)
 		if room_map.has(pos):
 			continue
-		var enemy_index := randi() % RANDOM_ENEMY_SCENES.size()
+		var enemy_index := _rng.randi() % RANDOM_ENEMY_SCENES.size()
 		if RANDOM_ENEMY_SCENES.size() > 1:
 			while enemy_index == last_enemy:
-				enemy_index = randi() % RANDOM_ENEMY_SCENES.size()
+				enemy_index = _rng.randi() % RANDOM_ENEMY_SCENES.size()
 		last_enemy = enemy_index
 		room_map[pos] = {"type": RoomType.RANDOM, "chapter": -1, "enemy_index": enemy_index, "cleared": false, "has_chest": false, "chest_opened": false}
 		placed += 1
@@ -193,6 +228,39 @@ func _generate_map() -> void:
 		room_map[altar_pos] = {"type": RoomType.ALTAR, "chapter": -1, "enemy_index": -1, "cleared": false, "has_chest": false, "chest_opened": false}
 
 	_assign_chest_rooms()
+	_assign_room_plans()
+
+## Paczka 5: motyw, układ geometrii i JEDEN pokój pułapek (pilotaż) dla
+## pokoi RANDOM — raz, z ziarna, zapisywane razem z mapą.
+func _assign_room_plans() -> void:
+	var random_positions: Array = []
+	for pos in room_map.keys():
+		if room_map[pos]["type"] == RoomType.RANDOM:
+			random_positions.append(pos)
+	# Pułapka: nie w pokoju sąsiadującym ze startem (pierwsze kroki bez pułapek).
+	var trap_candidates: Array = []
+	for pos in random_positions:
+		if absi(pos.x) + absi(pos.y) >= 2:
+			trap_candidates.append(pos)
+	var trap_pos = trap_candidates[_rng.randi() % trap_candidates.size()] if not trap_candidates.is_empty() else null
+	for pos in random_positions:
+		var d: Dictionary = room_map[pos]
+		d["trap"] = pos == trap_pos
+		if d["trap"]:
+			d["theme"] = EncounterPlan.THEME_RUSTED
+			d["layout"] = "open"
+			d["enemy_index"] = EncounterPlan.TRAP_ENEMIES[_rng.randi() % EncounterPlan.TRAP_ENEMIES.size()]
+			continue
+		# Rdzawa hala (indeks 7, ostatni) = wyłącznie pokój pułapek w pilotażu.
+		var theme := _rng.randi() % EncounterPlan.THEME_RUSTED
+		d["theme"] = theme
+		if theme == EncounterPlan.THEME_LIBRARY:
+			d["layout"] = "oslona" # akcent biblioteki: regały-osłony
+		elif theme == EncounterPlan.THEME_FLOODED:
+			d["layout"] = "open" # akcent katakumby to płycizna, bez dodatkowej geometrii
+		else:
+			var roll := _rng.randf()
+			d["layout"] = "open" if roll < 0.55 else ["dwa_filary", "kolumnada", "oslona"][_rng.randi() % 3]
 
 ## Skrzynie (dokument sekcja 9, zaadaptowane na siatkę — patrz stała
 ## CHEST_COUNT): wybiera CHEST_COUNT z JUŻ postawionych pokoi RANDOM, raz, na
@@ -202,7 +270,7 @@ func _assign_chest_rooms() -> void:
 	for pos in room_map.keys():
 		if room_map[pos]["type"] == RoomType.RANDOM:
 			random_positions.append(pos)
-	random_positions.shuffle()
+	_shuffle_seeded(random_positions)
 	var count: int = mini(CHEST_COUNT, random_positions.size())
 	for i in range(count):
 		room_map[random_positions[i]]["has_chest"] = true
@@ -222,7 +290,7 @@ func _neighbors_of(pos: Vector2i) -> Array[Vector2i]:
 ## dokładnie to złapał test_soul_and_altar_rooms_are_dead_ends.
 func _pick_leaf_attachment_point():
 	var positions := room_map.keys()
-	positions.shuffle()
+	_shuffle_seeded(positions)
 	for pos in positions:
 		# Pokój z duszą/ołtarz NIGDY nie może być "rodzicem" kolejnego
 		# specjalnego pokoju — inaczej sam zyskałby drugie połączenie i
@@ -240,7 +308,7 @@ func _pick_leaf_attachment_point():
 			if occupied_neighbors == 1:
 				candidates.append(n)
 		if not candidates.is_empty():
-			return candidates[randi() % candidates.size()]
+			return candidates[_rng.randi() % candidates.size()]
 	return null
 
 func current_room_data() -> Dictionary:
@@ -442,12 +510,15 @@ func mark_prolog_seen() -> void:
 	out.store_string(JSON.stringify(data))
 	out.close()
 
-func reset_run() -> void:
+## seed_value >= 0 odtwarza konkretną próbę (testy, powtórka układu).
+func reset_run(seed_value: int = -1) -> void:
 	Juice.reset_damage_metrics()
 	rooms_cleared_count = 0
 	fragments_collected.clear()
 	saved_player_state.clear()
+	recent_encounters.clear()
 	reached_arena = false
+	_begin_seed(seed_value)
 	_generate_map()
 	_save_progress()
 
@@ -477,7 +548,15 @@ func _load_progress() -> bool:
 			"cleared": bool(entry.get("cleared", false)),
 			"has_chest": bool(entry.get("has_chest", false)),
 			"chest_opened": bool(entry.get("chest_opened", false)),
+			# Paczka 5 — stare zapisy: motyw jak dawniej z indeksu wroga, bez układu i pułapki.
+			"theme": int(entry.get("theme", maxi(0, int(entry.get("enemy_index", 0))) % EncounterPlan.THEME_COUNT)),
+			"layout": str(entry.get("layout", "open")),
+			"trap": bool(entry.get("trap", false)),
 		}
+	if data.has("seed"):
+		run_seed = int(data["seed"])
+		_rng.seed = run_seed
+	recent_encounters.assign(data.get("recent_encounters", []))
 	var pos_data: Dictionary = data.get("current_room_pos", {})
 	current_room_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
 	var dir_data: Dictionary = data.get("entry_direction", {})
@@ -501,6 +580,7 @@ func _save_progress() -> void:
 			"type": d["type"], "chapter": d["chapter"],
 			"enemy_index": d["enemy_index"], "cleared": d["cleared"],
 			"has_chest": d.get("has_chest", false), "chest_opened": d.get("chest_opened", false),
+			"theme": d.get("theme", 0), "layout": d.get("layout", "open"), "trap": d.get("trap", false),
 		})
 	var visited_array := []
 	for pos in visited_rooms.keys():
@@ -514,6 +594,8 @@ func _save_progress() -> void:
 		"fragments_collected": fragments_collected,
 		"reached_arena": reached_arena,
 		"saved_player_state": saved_player_state,
+		"seed": run_seed,
+		"recent_encounters": recent_encounters,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:

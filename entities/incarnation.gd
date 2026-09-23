@@ -309,7 +309,7 @@ func _drift_towards_player(delta: float) -> void:
 	if keep_distance_range < 0.0:
 		# Pościg wręcz był jedynym ruchem bez clampa — to nim Mordrath/Tank
 		# wchodzili w mur, goniąc gracza stojącego przy ścianie.
-		global_position = _clamp_to_arena(global_position + to_player.normalized() * drift_speed * delta)
+		global_position = _clamp_to_arena(global_position + to_player.normalized() * drift_speed * _terrain_speed_factor() * delta)
 		return
 	var distance := to_player.length()
 	var radial := to_player.normalized()
@@ -321,7 +321,7 @@ func _drift_towards_player(delta: float) -> void:
 	elif orbit_mode:
 		move = radial.rotated(PI * 0.5 * orbit_direction) * drift_speed
 	if move != Vector2.ZERO:
-		global_position = _clamp_to_arena(global_position + move * delta)
+		global_position = _clamp_to_arena(global_position + move * _terrain_speed_factor() * delta)
 
 ## Dotyk ciała zawsze rani (ta sama konwencja co Nemorax) — throttlowane przez
 ## nietykalność gracza po trafieniu.
@@ -397,7 +397,7 @@ func _lunge_toward_player(speed: float, duration: float) -> void:
 
 func _process_lunge(delta: float) -> void:
 	_lunge_timer -= delta
-	global_position = _clamp_to_arena(global_position + _lunge_direction * _lunge_speed * delta)
+	global_position = _clamp_to_arena(global_position + _lunge_direction * _lunge_speed * _terrain_speed_factor() * delta)
 	if _lunge_timer <= 0.0:
 		_lunge_active = false
 
@@ -420,13 +420,28 @@ func _visual_margin() -> Vector2:
 	var reach := radius + (2.0 * player.radius if player != null else 0.0) - 2.0
 	return Vector2(clampf(half_size.x, radius, maxf(radius, reach)), clampf(half_size.y, radius, maxf(radius, reach)))
 
+## Przeszkody układu pokoju (Paczka 5) — ustawiane przez room.gd. Wróg nie ma
+## fizyki, więc każdy ruch (dryf, wypad, odrzut) jest z nich wypychany tutaj.
+var obstacles: Array[Rect2] = []
+## Płycizna zalanej katakumby (akcent motywu) — spowalnia wrogów tak samo jak gracza.
+var slow_zones: Array[Rect2] = []
+
+func _terrain_speed_factor() -> float:
+	for z in slow_zones:
+		if z.has_point(global_position):
+			return EncounterPlan.SLOW_LANE_MULTIPLIER
+	return 1.0
+
 func _clamp_to_arena(pos: Vector2) -> Vector2:
 	var r := arena_rect
 	var margin := _visual_margin()
-	return Vector2(
+	var clamped := Vector2(
 		clamp(pos.x, r.position.x + margin.x, r.position.x + r.size.x - margin.x),
 		clamp(pos.y, r.position.y + margin.y, r.position.y + r.size.y - margin.y)
 	)
+	if obstacles.is_empty():
+		return clamped
+	return EncounterPlan.push_out_of(obstacles, clamped, radius)
 
 func take_damage(amount: float) -> float:
 	if is_dead or amount <= 0.0:

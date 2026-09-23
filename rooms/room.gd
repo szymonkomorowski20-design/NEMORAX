@@ -132,7 +132,7 @@ func _ready() -> void:
 		wall_tex = ROOM_WALL_TEXTURES[chapter]
 		theme_slug = ROOM_THEME_SLUGS[chapter]
 	elif _room_data.get("type") == GameFlow.RoomType.RANDOM:
-		var theme_index: int = int(_room_data.get("enemy_index", 0)) % RANDOM_ROOM_FLOOR_TEXTURES.size()
+		var theme_index: int = int(_room_data.get("theme", int(_room_data.get("enemy_index", 0)) % RANDOM_ROOM_FLOOR_TEXTURES.size()))
 		floor_tex = RANDOM_ROOM_FLOOR_TEXTURES[theme_index]
 		wall_tex = RANDOM_ROOM_WALL_TEXTURES[theme_index]
 		theme_slug = RANDOM_THEME_SLUGS[theme_index]
@@ -151,6 +151,8 @@ func _ready() -> void:
 		Walls.build_floor(self, ARENA_RECT, floor_tex)
 		Walls.build(self, ARENA_RECT, WALL_THICKNESS, wall_tex, WALL_MODULATE)
 	_add_room_atmosphere()
+	if _room_data.get("type") == GameFlow.RoomType.RANDOM:
+		_build_terrain(wall_tex)
 
 	var track: AudioStreamWAV = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
 	# Ustawiane w kodzie, nie tylko w .import — headless `--import` (używane w
@@ -291,21 +293,81 @@ func _random_group_count() -> int:
 		return 1
 	return 2 if GameFlow.rooms_cleared_count < 12 else 3
 
-func _spawn_random_encounter() -> void:
-	var count := _random_group_count()
-	if count == 1:
-		_spawn_enemy(GameFlow.current_random_enemy_scene_path(), true)
-		return
-	var paths := [GameFlow.current_random_enemy_scene_path(), GameFlow.RANDOM_ENEMY_SCENES[0], GameFlow.RANDOM_ENEMY_SCENES[2]]
-	var offsets := [Vector2(-180, -90), Vector2(180, -90), Vector2(0, 115)]
-	for i in range(count):
-		_spawn_enemy(paths[i], true, offsets[i], true)
+## Teren (Paczka 5): przeszkody układu, akcent motywu, pokój pułapek.
+var terrain: RoomTerrain
 
-func _spawn_enemy(scene_path: String, is_random: bool, offset: Vector2 = Vector2.ZERO, group_member: bool = false) -> void:
+func _build_terrain(wall_tex: Texture2D) -> void:
+	terrain = RoomTerrain.new()
+	terrain.setup(_play_rect, str(_room_data.get("layout", "open")), int(_room_data.get("theme", 0)), bool(_room_data.get("trap", false)))
+	terrain.wall_texture = wall_tex
+	add_child(terrain)
+	if bool(_room_data.get("cleared", false)):
+		terrain.stop_trap()
+	if terrain.slow_lane.has_area():
+		player.slow_zones = [terrain.slow_lane]
+	if terrain.accent != "" and not bool(_room_data.get("cleared", false)):
+		# Po banerze tytułu pokoju (1,2 s, ten sam kanał) — zapowiedź zasady miejsca.
+		var label: String = EncounterPlan.ACCENT_LABEL[terrain.accent]
+		get_tree().create_timer(1.3).timeout.connect(func(): if is_instance_valid(ui): ui.show_taunt(label, 2.2))
+
+## Plan walki pokoju RANDOM (Paczka 5): przepis grupowy albo pojedynczy wróg,
+## z regułą "bez trzech podobnych walk pod rząd". Deterministyczny z ziarna
+## próby i pozycji pokoju. Zwraca [[indeks_wroga, ranga], ...] i podpis.
+func _plan_random_encounter() -> Dictionary:
+	var rng := GameFlow.room_rng(GameFlow.current_room_pos, 1)
+	var enemy_index := int(_room_data.get("enemy_index", 0))
+	var progress := GameFlow.rooms_cleared_count
+	var recipe_id := ""
+	if _random_group_count() > 1 and not bool(_room_data.get("trap", false)):
+		var allowed := EncounterPlan.recipes_allowed(progress)
+		if not allowed.is_empty():
+			recipe_id = allowed[rng.randi() % allowed.size()]
+	var sig := EncounterPlan.signature(recipe_id, enemy_index)
+	if EncounterPlan.would_repeat_three(GameFlow.recent_encounters, sig):
+		if recipe_id != "":
+			var others := EncounterPlan.recipes_allowed(progress).filter(func(id): return id != recipe_id)
+			recipe_id = others[rng.randi() % others.size()] if not others.is_empty() else ""
+		if recipe_id == "" and not bool(_room_data.get("trap", false)):
+			enemy_index = EncounterPlan.alternative_enemy(enemy_index, rng.randi())
+		sig = EncounterPlan.signature(recipe_id, enemy_index)
+	var members: Array = []
+	if recipe_id != "":
+		members = EncounterPlan.RECIPES[recipe_id]["members"]
+	else:
+		members = [[enemy_index, "front"]]
+	return {"members": members, "signature": sig, "recipe": recipe_id}
+
+func _spawn_random_encounter() -> void:
+	var plan := _plan_random_encounter()
+	GameFlow.record_encounter(plan["signature"])
+	var ranks: Array = []
+	for m in plan["members"]:
+		ranks.append(m[1])
+	var points := EncounterPlan.spawn_points(_play_rect, GameFlow.entry_direction, ranks)
+	var group := (plan["members"] as Array).size() > 1
+	var rng := GameFlow.room_rng(GameFlow.current_room_pos, 2)
+	for i in (plan["members"] as Array).size():
+		var index: int = int(plan["members"][i][0])
+		_spawn_enemy_at(GameFlow.RANDOM_ENEMY_SCENES[index], points[i], group, rng)
+
+## Spawn w konkretnym punkcie planu spotkania (Paczka 5) — elita losowana z
+## generatora pokoju, więc ten sam seed daje tę samą walkę.
+func _spawn_enemy_at(scene_path: String, point: Vector2, group_member: bool, rng: RandomNumberGenerator) -> void:
+	var offset := point - _play_rect.get_center()
+	if offset == Vector2.ZERO:
+		offset = Vector2(0.0, -0.01)
+	_spawn_enemy(scene_path, true, offset, group_member, rng.randf())
+
+func _spawn_enemy(scene_path: String, is_random: bool, offset: Vector2 = Vector2.ZERO, group_member: bool = false, elite_roll: float = -1.0) -> void:
 	var scene: PackedScene = load(scene_path)
 	var spawned: Incarnation = scene.instantiate() as Incarnation
 	spawned.arena_rect = _play_rect
 	spawned.global_position = _play_rect.get_center() + (offset if offset != Vector2.ZERO else incarnation_spawn_offset)
+	if terrain != null:
+		spawned.obstacles = terrain.obstacles
+		if terrain.slow_lane.has_area():
+			spawned.slow_zones = [terrain.slow_lane]
+		spawned.global_position = EncounterPlan.push_out_of(terrain.obstacles, spawned.global_position, EncounterPlan.SPAWN_OBSTACLE_CLEARANCE)
 	spawned.died.connect(_on_incarnation_died.bind(spawned))
 	add_child(spawned)
 	_active_enemies.append(spawned)
@@ -318,7 +380,8 @@ func _spawn_enemy(scene_path: String, is_random: bool, offset: Vector2 = Vector2
 		var n := GameFlow.rooms_cleared_count
 		var group_factor := 0.55 if group_member else 1.0
 		spawned.apply_difficulty_scale(minf(2.10, 1.0 + 0.045 * n) * group_factor, minf(1.45, 1.0 + 0.015 * n) * (0.70 if group_member else 1.0))
-		if not group_member and randf() < GameFlow.elite_chance_for_current_progress():
+		var roll := elite_roll if elite_roll >= 0.0 else randf()
+		if not group_member and roll < GameFlow.elite_chance_for_current_progress():
 			spawned.apply_elite_modifier()
 	else:
 		# Paczka 4 (AUDYT, cel 25-50 s mocny / 45-75 s średni): przy stałych
@@ -366,6 +429,8 @@ func _on_incarnation_died(fragment_name: String, dead_enemy: Incarnation = null)
 		return
 	player.gain_xp(2.0 if _room_data.get("type") == GameFlow.RoomType.SOUL or dead_enemy.is_elite else 1.0)
 	GameFlow.clear_current_room()
+	if terrain != null:
+		terrain.stop_trap() # nagroda i przejście bez pułapki po walce
 	Juice.play_sfx_at(SND_ROOM_CLEAR, dead_enemy.global_position)
 	if _room_data.get("type") == GameFlow.RoomType.RANDOM:
 		# Losowi przeciwnicy nie dają fragmentów/dusz do podniesienia (ustalone

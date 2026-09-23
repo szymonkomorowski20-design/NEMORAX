@@ -313,6 +313,7 @@ var _stamina_regen_delay_timer: float = 0.0
 @export var counter_bonus: float = 0.25 ## +25% do JEDNEGO pierwotnego trafienia w oknie kontry
 const SHIELD_ARC_COLOR := Color("#C9D6E3")
 var _counter_timer: float = 0.0
+var slow_zones: Array[Rect2] = [] ## płycizna zalanej katakumby (room.gd, Paczka 5)
 var _counter_hit_target: Node = null ## cel ciosu z okna kontry — do podwójnej postawy
 var _guard_break_flash: float = 0.0 ## s czerwonego łuku po przełamaniu gardy
 
@@ -709,6 +710,10 @@ func _process_normal_movement(delta: float) -> void:
 		target_speed *= attack_move_speed_fraction
 	if _shield_up:
 		target_speed *= shield_move_multiplier
+	for z in slow_zones:
+		if z.has_point(global_position):
+			target_speed *= EncounterPlan.SLOW_LANE_MULTIPLIER
+			break
 
 	var target_velocity := input_dir * target_speed
 
