@@ -25,11 +25,11 @@ const SND_CHANNEL_INTERRUPTED := preload("res://assets/audio/sfx/wcielenia/I09_c
 ## bez potrzeby osobnej flagi na to, KTÓRY skill jest telegrafowany.
 var _channel_interrupted: bool = false
 
-func take_damage(amount: float) -> void:
-	if _telegraph_active and not _channel_interrupted:
+func take_damage(amount: float) -> float:
+	if amount > 0.0 and not is_dead and _telegraph_active and not _channel_interrupted:
 		_channel_interrupted = true
 		_play_sfx(SND_CHANNEL_INTERRUPTED)
-	super.take_damage(amount)
+	return super.take_damage(amount)
 
 func _ready() -> void:
 	max_health = 58.0

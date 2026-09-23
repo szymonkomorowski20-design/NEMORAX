@@ -18,6 +18,20 @@ extends Node
 var _hitstop_active := false
 var _shake_time_left := 0.0
 
+## Diagnostyka balansu (Paczka 2): rzeczywiste obrażenia, nie nominalna siła
+## efektu. Sumy obejmują całą próbę od ostatniego resetu; lista zachowuje
+## tylko ostatnie trafienia, żeby długi run nie zużywał pamięci bez końca.
+const DAMAGE_EVENT_LIMIT := 512
+var damage_totals: Dictionary = {}
+var damage_events: Array[Dictionary] = []
+
+func reset_damage_metrics() -> void:
+	damage_totals.clear()
+	damage_events.clear()
+
+func damage_totals_snapshot() -> Dictionary:
+	return damage_totals.duplicate()
+
 ## Opcje — Grafika: "screen shake" (włącz/wyłącz). `var`, ustawiane z
 ## ui/options_screen.gd i zapisywane w user://settings.json.
 var shake_enabled: bool = true
@@ -86,6 +100,12 @@ func _update_debug_label() -> void:
 		lines.append("dash_cooldown: %.2f   buffered_dash: %.2f   buffered_attack: %.2f   heal_stacks: %d" % [
 			player._dash_cooldown_timer, player._buffered_dash_timer, player._buffered_attack_timer, player.get_heal_stacks(),
 		])
+	var window_start := Time.get_ticks_msec() - 5000
+	var recent_damage := 0.0
+	for event in damage_events:
+		if int(event["time_msec"]) >= window_start:
+			recent_damage += float(event["damage"])
+	lines.append("damage DPS/5s: %.1f   totals: %s" % [recent_damage / 5.0, str(damage_totals)])
 	_debug_label.text = "\n".join(lines)
 
 ## Zatrzymuje grę na `duration` sekund w czasie rzeczywistym. Kolejne wywołanie
@@ -121,15 +141,39 @@ func screen_shake() -> void:
 ## pocisk), a dokument wprost zastrzega trzęsienie kamery WYŁĄCZNIE dla
 ## ciężkich ataków (patrz np. boss.gd._start_transform_invulnerability(),
 ## gdzie zostaje wywołane bezpośrednio dla konkretnego, rzadkiego momentu).
-func apply_hit(target: Node, damage: float, hitstop_duration: float = boss_hit_hitstop, is_bonus_hit: bool = false) -> void:
-	if target.has_method("take_damage"):
-		target.take_damage(damage)
+func apply_hit(target: Node, damage: float, hitstop_duration: float = boss_hit_hitstop, is_bonus_hit: bool = false, source: String = "secondary", show_feedback: bool = true) -> float:
+	if not is_instance_valid(target) or not target.has_method("take_damage") or damage <= 0.0:
+		return 0.0
+	var health_before = target.get("health")
+	var phase_before = target.get("phase_index")
+	var reported = target.take_damage(damage)
+	var dealt := 0.0
+	if typeof(reported) in [TYPE_FLOAT, TYPE_INT]:
+		dealt = maxf(0.0, float(reported))
+	elif typeof(health_before) in [TYPE_FLOAT, TYPE_INT]:
+		var health_after = target.get("health")
+		if typeof(health_after) in [TYPE_FLOAT, TYPE_INT]:
+			dealt = maxf(0.0, float(health_before) - float(health_after))
+	else:
+		dealt = damage
+	if dealt <= 0.0:
+		return 0.0
+	damage_totals[source] = float(damage_totals.get(source, 0.0)) + dealt
+	damage_events.append({
+		"time_msec": Time.get_ticks_msec(), "target_id": target.get_instance_id(),
+		"target_name": target.name, "phase": phase_before, "source": source, "damage": dealt,
+	})
+	if damage_events.size() > DAMAGE_EVENT_LIMIT:
+		damage_events.pop_front()
+	if not show_feedback:
+		return dealt
 	if target.has_method("flash_white"):
 		target.flash_white()
 	if target is Node2D:
 		var parent: Node = target.get_parent() if target.get_parent() != null else get_tree().current_scene
-		DamageNumber.spawn(parent, target.global_position, damage, Palette.DANGER, is_bonus_hit)
+		DamageNumber.spawn(parent, target.global_position, dealt, Palette.DANGER, is_bonus_hit)
 	hitstop(hitstop_duration)
+	return dealt
 
 ## Odtwarza jednorazowy dźwięk w danym miejscu świata i sam się sprząta po
 ## zakończeniu — do obiektów, które znikają (queue_free()) w tej samej klatce,

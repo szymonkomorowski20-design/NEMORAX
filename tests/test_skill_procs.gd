@@ -30,6 +30,7 @@ func _finish(player: Player, enemies: Array, root: Node) -> void:
 	player.queue_free()
 
 func test_bleed_ticks_without_generating_extra_heal_charge(root: Node) -> void:
+	Juice.reset_damage_metrics()
 	var player := _fresh_player(root)
 	var target := _enemy(root, Vector2(100, 100))
 	player.skill_ranks["blade_bleed"] = 1
@@ -38,7 +39,10 @@ func test_bleed_ticks_without_generating_extra_heal_charge(root: Node) -> void:
 	player._skill_procs._tick_bleeds(1.0)
 	NemoraxTest.assert_almost_eq(target.health, 988.0, 0.01, "krwawienie rangi 1 zadaje 12% obrażeń na sekundę")
 	NemoraxTest.assert_eq(player.get_heal_charge_hits(), charges, "DoT nie nabija leczenia")
+	NemoraxTest.assert_almost_eq(float(Juice.damage_totals_snapshot().get("bleed", 0.0)), 12.0, 0.01,
+		"krwawienie jest liczone osobno od pierwotnego ciosu")
 	_finish(player, [target], root)
+	Juice.reset_damage_metrics()
 
 func test_sunder_procs_on_fourth_primary_hit(root: Node) -> void:
 	var old_reduce := Palette.reduce_flashing

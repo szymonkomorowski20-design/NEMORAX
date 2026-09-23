@@ -443,6 +443,7 @@ func mark_prolog_seen() -> void:
 	out.close()
 
 func reset_run() -> void:
+	Juice.reset_damage_metrics()
 	rooms_cleared_count = 0
 	fragments_collected.clear()
 	saved_player_state.clear()

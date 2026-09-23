@@ -56,6 +56,7 @@ func test_start_room_plays_prolog_once(root: Node) -> void:
 
 	NemoraxTest.assert_true(root.get_tree().paused, "pierwsze wejście do pokoju startowego powinno odpalić prolog i spauzować drzewo")
 	NemoraxTest.assert_true(GameFlow.has_seen_prolog(), "wejście do pokoju startowego powinno od razu oznaczyć prolog jako widziany")
+	NemoraxTest.assert_true(room.ui.hide_all, "prolog musi ukryć HUD i komunikaty pod dialogiem")
 
 	root.get_tree().paused = false
 	root.remove_child(room)

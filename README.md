@@ -137,6 +137,16 @@ mają wyglądać poszczególne sceny, w [PLAN_CUTSCENEK.md](PLAN_CUTSCENEK.md).
 - `tests/` — pełny zestaw testów headless (`godot --headless --script
   res://tests/test_runner.gd`)
 
+### Testy w Godot na Windows
+
+Z katalogu projektu uruchom w PowerShellu `./run_tests.ps1`. Skrypt korzysta
+z `Godot_v4.7.2-stable_win64_console.exe` na pulpicie albo z polecenia
+`godot`/`godot4`, najpierw importuje zasoby, potem uruchamia wszystkie testy
+bez otwierania okna gry. Zwraca kod błędu, gdy testy nie przejdą. Inna
+instalacja: `./run_tests.ps1 -GodotExecutable 'C:\sciezka\do\Godot.exe'`.
+Gdy zasoby są już zaimportowane, można użyć `-SkipImport`. Runner zapisuje
+testowe postępy pod osobnymi nazwami, nie nadpisuje zwykłego zapisu gry.
+
 Wszystkie liczby wpływające na odczucia z gry (prędkości, obrażenia, czasy,
 koszty zasobów) są `@export` — do dostrojenia bezpośrednio w Inspectorze
 Godota.

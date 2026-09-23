@@ -74,3 +74,41 @@ func test_every_enemy_reaches_player_hugging_each_wall(root: Node) -> void:
 		enemy.queue_free()
 	root.remove_child(player)
 	player.queue_free()
+
+func test_mordrath_reaches_player_without_entering_integrated_wall(root: Node) -> void:
+	var playable := IntegratedRoomVisual.play_rect(ARENA)
+	var player: Player = load("res://entities/player.tscn").instantiate()
+	root.add_child(player)
+	var enemy: Incarnation = load("res://entities/incarnations/cisza_incarnation.tscn").instantiate()
+	enemy.arena_rect = playable
+	root.add_child(enemy)
+	enemy.player = player
+	enemy._update_sprite_state()
+	NemoraxTest.assert_true(enemy._visual_margin().y >= enemy.radius + player.radius + 8.0,
+		"Mordrath potrzebuje dodatkowego odstępu od muru dla widocznych stóp")
+	var positions := [
+		Vector2(playable.get_center().x, playable.position.y + player.radius),
+		Vector2(playable.get_center().x, playable.end.y - player.radius),
+		Vector2(playable.position.x + player.radius, playable.get_center().y),
+		Vector2(playable.end.x - player.radius, playable.get_center().y),
+	]
+	for player_pos in positions:
+		player.global_position = player_pos
+		enemy.global_position = playable.get_center()
+		for i in range(300):
+			enemy._drift_towards_player(0.05)
+		var margin: Vector2 = enemy._visual_margin()
+		NemoraxTest.assert_true(enemy.global_position.x >= playable.position.x + margin.x - 0.01,
+			"Mordrath nie wchodzi w lewy zintegrowany mur")
+		NemoraxTest.assert_true(enemy.global_position.x <= playable.end.x - margin.x + 0.01,
+			"Mordrath nie wchodzi w prawy zintegrowany mur")
+		NemoraxTest.assert_true(enemy.global_position.y >= playable.position.y + margin.y - 0.01,
+			"Mordrath nie wchodzi w górny zintegrowany mur")
+		NemoraxTest.assert_true(enemy.global_position.y <= playable.end.y - margin.y + 0.01,
+			"Mordrath nie wchodzi w dolny zintegrowany mur")
+		NemoraxTest.assert_true(enemy.global_position.distance_to(player_pos) <= enemy.radius + player.radius + 1.0,
+			"Mordrath musi dosięgnąć gracza przy każdym z czterech murów")
+	root.remove_child(enemy)
+	enemy.queue_free()
+	root.remove_child(player)
+	player.queue_free()

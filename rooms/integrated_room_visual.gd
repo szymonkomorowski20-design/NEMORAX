@@ -8,6 +8,19 @@ const PORTAL_SHADER := preload("res://rooms/integrated_portal_seal.gdshader")
 const FLOOR_REGION := Rect2(150.0, 175.0, 1236.0, 674.0)
 const SIDES := ["top", "bottom", "left", "right"]
 
+## Sprite muru jest wyśrodkowany na linii granicy (Walls.wall_point), więc
+## jego widoczna, wewnętrzna krawędź leży w głębi prostokąta areny. Zmierzone
+## progiem alfa 0,5 na wszystkich 14 motywach (rozrzut ±5 px): góra ~48,
+## dół ~45, lewo ~37, prawo ~38 px. Kolizja zaczyna się na tej krawędzi —
+## inaczej gracz i wrogowie stawali na grafice muru. Grafiki nie da się zamiast
+## tego wysunąć na zewnątrz: górny mur z koroną portalu wyszedłby poza ekran.
+const WALL_INNER_INSET := {"top": 48.0, "bottom": 45.0, "left": 37.0, "right": 38.0}
+
+static func play_rect(arena_rect: Rect2) -> Rect2:
+	return Rect2(
+		arena_rect.position + Vector2(WALL_INNER_INSET["left"], WALL_INNER_INSET["top"]),
+		arena_rect.size - Vector2(WALL_INNER_INSET["left"] + WALL_INNER_INSET["right"], WALL_INNER_INSET["top"] + WALL_INNER_INSET["bottom"]))
+
 var _portal_sprites: Dictionary = {}
 
 func configure(arena_rect: Rect2, theme_slug: String) -> bool:

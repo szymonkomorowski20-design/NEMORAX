@@ -441,13 +441,13 @@ func _process_lunge(delta: float) -> void:
 ## hitbox, nie widoczna sylwetka, więc samo clampowanie po nim pozwalało dużym
 ## posom (szczególnie duża forma) wizualnie wchodzić w ścianę mimo hitboxu
 ## wciąż w granicach areny.
-## Górny limit = zasięg kontaktu, jak w Incarnation — inaczej gracz przy
-## ścianie byłby poza zasięgiem ciała bossa.
+## Górny limit uwzględnia także odstęp środka gracza od samej ściany;
+## bez tego duża sylwetka bossa nadal nachodziła na mury mimo clampa.
 func _visual_margin() -> Vector2:
 	if sprite == null or sprite.texture == null:
 		return Vector2(radius, radius)
 	var half_size: Vector2 = sprite.texture.get_size() * 0.5 * sprite.scale.x
-	var reach := radius + (player.radius if player != null else 0.0) - 2.0
+	var reach := radius + (2.0 * player.radius if player != null else 0.0) - 2.0
 	return Vector2(clampf(half_size.x, radius, maxf(radius, reach)), clampf(half_size.y, radius, maxf(radius, reach)))
 
 func _clamp_to_arena(pos: Vector2) -> Vector2:
@@ -805,14 +805,15 @@ func _random_arena_point(margin: float) -> Vector2:
 		randf_range(r.position.y + margin, r.position.y + r.size.y - margin)
 	)
 
-func take_damage(amount: float) -> void:
-	if is_dead or _invulnerable:
-		return
+func take_damage(amount: float) -> float:
+	if is_dead or _invulnerable or amount <= 0.0:
+		return 0.0
+	var dealt := minf(amount, health)
 	health -= amount
 	_time_since_hit = 0.0
 	if health > 0.0:
 		_play_sfx(SND_HURT)
-		return
+		return dealt
 
 	health = 0.0
 	var last_phase_index := Palette.PHASE_COLORS.size() - 1
@@ -822,6 +823,7 @@ func take_damage(amount: float) -> void:
 		died.emit(is_final_phase)
 	else:
 		_enter_phase(phase_index + 1)
+	return dealt
 
 func _enter_phase(new_index: int) -> void:
 	phase_index = new_index

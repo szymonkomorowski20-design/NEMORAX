@@ -135,7 +135,7 @@ func _check_contact() -> void:
 		return
 	super._check_contact()
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float) -> float:
 	if _intangible:
-		return
-	super.take_damage(amount)
+		return 0.0
+	return super.take_damage(amount)

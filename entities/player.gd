@@ -272,6 +272,7 @@ var _volley_serial: int = 0
 var _volley_damage: Dictionary = {}
 var _attack_serial: int = 0
 var _bonus_damage: Dictionary = {}
+var _confirmed_primary_hits: Dictionary = {}
 var _skill_procs
 var _weave_ready_weapon: String = ""
 var _weave_timer: float = 0.0
@@ -1119,9 +1120,18 @@ func _apply_hunters_mark(target: Node, base_damage: float) -> float:
 ## dawne bezpośrednie wywołanie register_hit_on_enemy() z obu miejsc, żeby
 ## Blood Edge/Second Impact też odpalały się identycznie dla obu broni.
 func on_hit_confirmed(target: Node, damage_dealt: float, weapon: String = "", health_before: float = -1.0, attack_id: int = -1) -> void:
-	register_hit_on_enemy()
+	if not is_instance_valid(target) or damage_dealt <= 0.0:
+		return
 	if attack_id < 0:
 		attack_id = _attack_serial
+	var primary_key := "%d:%d" % [attack_id, target.get_instance_id()]
+	if _confirmed_primary_hits.has(primary_key):
+		return # kilka pocisków tej samej salwy może zranić cel, ale nie farmi many/proców
+	_confirmed_primary_hits[primary_key] = true
+	if _confirmed_primary_hits.size() > 2048:
+		_confirmed_primary_hits.clear()
+		_confirmed_primary_hits[primary_key] = true
+	register_hit_on_enemy()
 	if _skill_procs != null and weapon != "":
 		_skill_procs.on_primary_hit(target, damage_dealt, weapon, health_before, attack_id)
 	if weapon == "sword" and skill_rank("blade_twin_cut") > 0:
@@ -1134,19 +1144,22 @@ func on_hit_confirmed(target: Node, damage_dealt: float, weapon: String = "", he
 	if has_upgrade("second_impact"):
 		_maybe_schedule_second_impact(target, damage_dealt, attack_id)
 
-func apply_skill_bonus(target: Node, requested: float, attack_id: int, base_damage: float) -> void:
+func apply_skill_bonus(target: Node, requested: float, attack_id: int, base_damage: float, source: String = "skill_proc") -> void:
 	if not is_instance_valid(target) or target.get("is_dead") == true or requested <= 0.0:
 		return
 	var amount := requested
+	var key := ""
+	var total := 0.0
 	if attack_id >= 0:
-		var key := "%d:%d" % [attack_id, target.get_instance_id()]
-		var total := float(_bonus_damage.get(key, base_damage))
+		key = "%d:%d" % [attack_id, target.get_instance_id()]
+		total = float(_bonus_damage.get(key, base_damage))
 		amount = minf(requested, maxf(0.0, base_damage * 2.5 - total))
-		_bonus_damage[key] = total + amount
-		if _bonus_damage.size() > 64:
-			_bonus_damage.clear()
 	if amount > 0.0:
-		Juice.apply_hit(target, amount, Juice.boss_hit_hitstop, true)
+		var dealt: float = Juice.apply_hit(target, amount, Juice.boss_hit_hitstop, true, source)
+		if attack_id >= 0:
+			_bonus_damage[key] = total + dealt
+			if _bonus_damage.size() > 64:
+				_bonus_damage.clear()
 
 func _fire_twin_cut(target: Node, first_damage: float, origin: Vector2, attack_id: int = -1) -> void:
 	if not is_instance_valid(target) or target.get("is_dead") == true:
@@ -1154,7 +1167,7 @@ func _fire_twin_cut(target: Node, first_damage: float, origin: Vector2, attack_i
 	var direction: Vector2 = (target.global_position - origin).normalized()
 	var scale_value := 100.0 / float(maxi(1, VFX_FOLLOWUP.get_width()))
 	AttackVfx.spawn(get_parent(), VFX_FOLLOWUP, target.global_position, 0.24, scale_value, direction.angle())
-	apply_skill_bonus(target, first_damage * (0.55 if skill_rank("blade_twin_cut") == 1 else 0.70), attack_id, first_damage)
+	apply_skill_bonus(target, first_damage * (0.55 if skill_rank("blade_twin_cut") == 1 else 0.70), attack_id, first_damage, "twin_cut")
 	play_skill_sfx(SND_SKILL_TWIN, target.global_position, -10.0, 1.10)
 	if skill_rank("blade_third_cut") > 0 and target.get("is_dead") != true:
 		get_tree().create_timer(0.12).timeout.connect(_fire_third_cut.bind(target, first_damage, origin, attack_id))
@@ -1165,7 +1178,7 @@ func _fire_third_cut(target: Node, first_damage: float, origin: Vector2, attack_
 	var direction: Vector2 = (target.global_position - origin).normalized()
 	var scale_value := 85.0 / float(maxi(1, VFX_FOLLOWUP.get_width()))
 	AttackVfx.spawn(get_parent(), VFX_FOLLOWUP, target.global_position, 0.20, scale_value, direction.angle())
-	apply_skill_bonus(target, first_damage * 0.35, attack_id, first_damage)
+	apply_skill_bonus(target, first_damage * 0.35, attack_id, first_damage, "third_cut")
 	play_skill_sfx(SND_SKILL_TWIN, target.global_position, -14.0, 1.22)
 
 func _fire_void_bloom(center: Vector2, primary_damage: float, killed_target: Node) -> void:
@@ -1180,7 +1193,7 @@ func _fire_void_bloom(center: Vector2, primary_damage: float, killed_target: Nod
 			continue
 		var target_radius: float = other.get("radius") if other.get("radius") != null else 0.0
 		if center.distance_to(other.global_position) <= radius_value + target_radius:
-			Juice.apply_hit(other, damage, 0.0, true)
+			Juice.apply_hit(other, damage, 0.0, true, "void_bloom")
 
 func _fire_dash_ring() -> void:
 	var rank := skill_rank("void_dash_ring")
@@ -1197,7 +1210,7 @@ func _fire_dash_ring() -> void:
 			continue
 		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
 		if global_position.distance_to(target.global_position) <= radius_value + target_radius:
-			Juice.apply_hit(target, damage, 0.0, true)
+			Juice.apply_hit(target, damage, 0.0, true, "dash_ring")
 
 ## 30% szansy na kolejne, opóźnione trafienie za 45% obrażeń pierwszego —
 ## globalny cooldown (nie per-cel) pilnuje, żeby nie odpalało się bez końca
@@ -1236,7 +1249,7 @@ func _fire_second_impact(target: Node, damage: float, origin_pos: Vector2, attac
 	var to_target: Vector2 = target.global_position - origin_pos
 	if get_parent() != null:
 		AttackVfx.spawn(get_parent(), TEX_SLASH_ARC, target.global_position, AttackVfx.DEFAULT_DURATION, slash_arc_scale, to_target.angle())
-	apply_skill_bonus(target, damage, attack_id, base_damage)
+	apply_skill_bonus(target, damage, attack_id, base_damage, "second_impact")
 	if target.has_method("apply_knockback"):
 		var dir: Vector2 = target.global_position - origin_pos
 		var strength := second_impact_knockback_strength * _knockback_dealt_multiplier()
@@ -1279,9 +1292,10 @@ func _check_attack_hits() -> void:
 		_attack_hit_targets.append(target)
 		var damage := resolve_hit_damage(target, _current_attack_damage)
 		var health_before: float = target.get("health") if target.get("health") != null else -1.0
-		Juice.apply_hit(target, damage)
-		on_hit_confirmed(target, damage, "sword", health_before, _attack_serial)
-		_play_sfx(SND_SWORD_HIT)
+		var dealt: float = Juice.apply_hit(target, damage, Juice.boss_hit_hitstop, false, "sword_primary")
+		if dealt > 0.0:
+			on_hit_confirmed(target, dealt, "sword", health_before, _attack_serial)
+			_play_sfx(SND_SWORD_HIT)
 
 func _read_input_vector() -> Vector2:
 	var v := Input.get_vector("move_left", "move_right", "move_up", "move_down")

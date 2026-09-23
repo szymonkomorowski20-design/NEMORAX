@@ -107,6 +107,9 @@ var _active_enemies: Array[Incarnation] = []
 var _game_over_kind: String = "" # "" albo "death"
 var _room_data: Dictionary
 var _integrated_visual: IntegratedRoomVisual
+## Obszar gry: kolizja, spawny, granice wrogów, drzwi. ARENA_RECT zostaje dla
+## samej grafiki — w pokoju zintegrowanym mur zajmuje brzeg ARENA_RECT.
+var _play_rect: Rect2 = ARENA_RECT
 
 ## Ściany/tło poza areną celowo przyciemnione WZGLĘDEM podłogi (ta sama
 ## tekstura co podłoga inaczej czyta się jak rama obrazka, nie jak granica
@@ -140,7 +143,8 @@ func _ready() -> void:
 	if integrated_visual.configure(ARENA_RECT, theme_slug):
 		_integrated_visual = integrated_visual
 		add_child(_integrated_visual)
-		Walls.build(self, ARENA_RECT, WALL_THICKNESS) # tylko kolizje; wygląd w IntegratedRoomVisual
+		_play_rect = IntegratedRoomVisual.play_rect(ARENA_RECT)
+		Walls.build(self, _play_rect, WALL_THICKNESS) # tylko kolizje; wygląd w IntegratedRoomVisual
 	else:
 		integrated_visual.free()
 		Walls.build_floor(self, ARENA_RECT, floor_tex)
@@ -156,7 +160,7 @@ func _ready() -> void:
 	music.stream = track
 	music.play()
 
-	var center := ARENA_RECT.get_center()
+	var center := _play_rect.get_center()
 	player.global_position = _player_spawn_position(center)
 	player.died.connect(_on_player_died)
 	GameFlow.apply_player_state(player) # ta sama migawka co przy wejściu do tego pokoju
@@ -229,7 +233,7 @@ func _player_spawn_position(center: Vector2) -> Vector2:
 	if GameFlow.entry_direction == Vector2i.ZERO:
 		return center + player_start_offset
 	var wall_side := GameFlow.opposite_wall_for_direction(GameFlow.entry_direction)
-	var wall_pos := Walls.wall_point(ARENA_RECT, wall_side)
+	var wall_pos := Walls.wall_point(_play_rect, wall_side)
 	var inward := (center - wall_pos).normalized() * 70.0
 	return wall_pos + inward
 
@@ -253,7 +257,11 @@ func _play_prolog() -> void:
 		beat.text = line
 		beat.fallback_seconds = 2.0
 		beats.append(beat)
+	# Ta sama warstwa co przy rytuale ołtarza (A3): bez tego HUD zamrażał się
+	# pod półprzezroczystym tłem prologu.
+	ui.hide_for_cutscene()
 	await cutscene.play(beats)
+	ui.hide_all = false
 
 func _add_room_atmosphere() -> void:
 	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
@@ -295,8 +303,8 @@ func _spawn_random_encounter() -> void:
 func _spawn_enemy(scene_path: String, is_random: bool, offset: Vector2 = Vector2.ZERO, group_member: bool = false) -> void:
 	var scene: PackedScene = load(scene_path)
 	var spawned: Incarnation = scene.instantiate() as Incarnation
-	spawned.arena_rect = ARENA_RECT
-	spawned.global_position = ARENA_RECT.get_center() + (offset if offset != Vector2.ZERO else incarnation_spawn_offset)
+	spawned.arena_rect = _play_rect
+	spawned.global_position = _play_rect.get_center() + (offset if offset != Vector2.ZERO else incarnation_spawn_offset)
 	spawned.died.connect(_on_incarnation_died.bind(spawned))
 	add_child(spawned)
 	_active_enemies.append(spawned)
@@ -321,7 +329,7 @@ func _spawn_doors_for_open_directions() -> void:
 		if not GameFlow.is_direction_open(direction):
 			continue
 		var wall_side := GameFlow.wall_for_direction(direction)
-		var pos := Walls.wall_point(ARENA_RECT, wall_side)
+		var pos := Walls.wall_point(_play_rect, wall_side)
 		var neighbor := GameFlow.neighbor_data(direction)
 		var callback := _on_altar_door_entered if neighbor.get("type") == GameFlow.RoomType.ALTAR else _on_move_door_entered.bind(direction)
 		# Wyzwalacz stoi na linii ściany; portal jest częścią grafiki muru.
@@ -398,7 +406,7 @@ func _maybe_spawn_chest() -> void:
 		return
 	var chest: Chest = ChestScene.instantiate()
 	chest.player = player
-	chest.global_position = ARENA_RECT.get_center() + incarnation_spawn_offset
+	chest.global_position = _play_rect.get_center() + incarnation_spawn_offset
 	chest.opened.connect(_on_chest_opened)
 	chest.selection_requested.connect(_on_chest_selection_requested.bind(chest))
 	add_child(chest)

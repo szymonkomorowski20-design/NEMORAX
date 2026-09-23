@@ -315,15 +315,15 @@ func _process_lunge(delta: float) -> void:
 ## rozmiaru aktywnej tekstury (zmienia się między posami) razy sprite.scale,
 ## nie z osobnej, ręcznie dobieranej stałej per-archetyp.
 ##
-## Górny limit = zasięg kontaktu (radius + promień gracza − 2): bez niego
-## wcielenia (radius 95, płótno 138 px od środka) stawały dalej od ściany niż
-## sięga ich kontakt, więc gracz przyklejony do ściany był dla nich
-## nietykalny. Realna kolizja ma pierwszeństwo przed wizualnym dopasowaniem.
+## Górny limit uwzględnia, że środek gracza stoi promień gracza OD ściany:
+## wróg może zatrzymać się w odległości radius + 2*player.radius od muru i
+## nadal go dotknąć. Poprzedni limit radius + player.radius − 2 ucinał
+## sylwetkę Mordratha na grafice dolnej ściany mimo poprawnego clampa.
 func _visual_margin() -> Vector2:
 	if sprite == null or sprite.texture == null:
 		return Vector2(radius, radius)
 	var half_size: Vector2 = sprite.texture.get_size() * 0.5 * sprite.scale.x
-	var reach := radius + (player.radius if player != null else 0.0) - 2.0
+	var reach := radius + (2.0 * player.radius if player != null else 0.0) - 2.0
 	return Vector2(clampf(half_size.x, radius, maxf(radius, reach)), clampf(half_size.y, radius, maxf(radius, reach)))
 
 func _clamp_to_arena(pos: Vector2) -> Vector2:
@@ -334,9 +334,10 @@ func _clamp_to_arena(pos: Vector2) -> Vector2:
 		clamp(pos.y, r.position.y + margin.y, r.position.y + r.size.y - margin.y)
 	)
 
-func take_damage(amount: float) -> void:
-	if is_dead:
-		return
+func take_damage(amount: float) -> float:
+	if is_dead or amount <= 0.0:
+		return 0.0
+	var dealt := minf(amount, health)
 	health -= amount
 	if health <= 0.0:
 		health = 0.0
@@ -345,6 +346,7 @@ func take_damage(amount: float) -> void:
 		died.emit(fragment_name)
 	else:
 		_play_sfx(Palette.MATERIAL_HURT_SOUNDS[hit_material])
+	return dealt
 
 func flash_white() -> void:
 	if Palette.reduce_flashing:

@@ -122,7 +122,7 @@ func _tick_bleeds(delta: float) -> void:
 			continue
 		entry["time"] = float(entry["time"]) - delta
 		# Bez hitstopu/flashu w każdej klatce; DoT nie uruchamia proców.
-		target.take_damage(float(entry["dps"]) * delta)
+		Juice.apply_hit(target, float(entry["dps"]) * delta, 0.0, true, "bleed", false)
 		_bleeds[id] = entry
 
 func _burst_rupture(target: Node, damage: float, attack_id: int, rank: int) -> void:
@@ -140,7 +140,7 @@ func _burst_rupture(target: Node, damage: float, attack_id: int, rank: int) -> v
 		if other == target:
 			player.apply_skill_bonus(other, burst_damage, attack_id, damage)
 		else:
-			Juice.apply_hit(other, burst_damage, 0.0, true)
+			Juice.apply_hit(other, burst_damage, 0.0, true, "rupture_aoe")
 
 func _on_primary_kill(target: Node, damage: float, health_before: float) -> void:
 	var center: Vector2 = target.global_position
@@ -179,7 +179,7 @@ func _on_primary_kill(target: Node, damage: float, health_before: float) -> void
 		var nearby := _nearby_targets(center, 85.0, target)
 		if spill > 0.0 and not nearby.is_empty():
 			for other in nearby:
-				Juice.apply_hit(other, spill / float(nearby.size()), 0.0, true)
+				Juice.apply_hit(other, spill / float(nearby.size()), 0.0, true, "execution_spill")
 
 func _nearby_targets(center: Vector2, max_distance: float, excluded: Node = null) -> Array:
 	var found: Array = []
@@ -242,7 +242,7 @@ func _tick_orbit(delta: float) -> void:
 			var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
 			if shard.global_position.distance_to(target.global_position) <= 12.0 + target_radius:
 				_orbit_next_hit[id] = Time.get_ticks_msec() + 1000
-				Juice.apply_hit(target, player.attack_damage * 0.25, 0.0, true)
+				Juice.apply_hit(target, player.attack_damage * 0.25, 0.0, true, "orbit")
 
 func counterbrand() -> void:
 	var rank: int = player.skill_rank("guard_counterbrand")
@@ -257,4 +257,4 @@ func counterbrand() -> void:
 			continue
 		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
 		if center.distance_to(target.global_position) <= 80.0 + target_radius:
-			Juice.apply_hit(target, player.attack_damage * (0.60 if rank == 1 else 0.90), 0.0, true)
+			Juice.apply_hit(target, player.attack_damage * (0.60 if rank == 1 else 0.90), 0.0, true, "counterbrand")

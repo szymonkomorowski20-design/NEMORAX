@@ -69,9 +69,10 @@ func _check_hit() -> void:
 			final_damage = shooter.cap_volley_damage(target, volley_id, final_damage, volley_base_damage)
 		if final_damage > 0.0:
 			var health_before: float = target.get("health") if target.get("health") != null else -1.0
-			Juice.apply_hit(target, final_damage)
-			if has_shooter and not secondary:
-				shooter.on_hit_confirmed(target, final_damage, "wand", health_before, attack_id)
+			var dealt: float = Juice.apply_hit(target, final_damage, Juice.boss_hit_hitstop, false,
+				"wand_secondary" if secondary else "wand_primary")
+			if dealt > 0.0 and has_shooter and not secondary:
+				shooter.on_hit_confirmed(target, dealt, "wand", health_before, attack_id)
 		Juice.play_sfx_at(SND_IMPACT, global_position)
 		if pierce_remaining > 0:
 			pierce_remaining -= 1
