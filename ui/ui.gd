@@ -535,14 +535,51 @@ func _input(event: InputEvent) -> void:
 ## odwiedzonych (znani, ale nieodwiedzeni) jako przygaszony zarys, reszta w
 ## ogóle nierysowana. Ołtarz i pokoje z duszą dostają dodatkową obwódkę, żeby
 ## wyróżniały się jako cel, nie przystanek.
+## Paczka 7 (A13): duża mapa pod klawiszem "toggle_map" (M) — te same dane,
+## większe pola, symbole typów i legenda. Nie pauzuje gry.
+var big_map: bool = false
+
 func _draw_minimap() -> void:
 	if not show_minimap or hide_all or _overlay_active:
 		return
-	var pip_size := 12.0
+	if big_map:
+		_draw_big_map()
+	var pip_size := 14.0
 	var gap := 4.0
 	var spacing := pip_size + gap
 	var box_size := Vector2(6, 6) * spacing
 	var anchor := Vector2(VIEWPORT_SIZE.x - box_size.x - 20.0, 20.0) + box_size * 0.5 - Vector2(pip_size, pip_size) * 0.5
+	_draw_map_pips(anchor, pip_size, spacing, 3)
+	var hint := "[%s] mapa" % Keybinds.display_for("toggle_map")
+	draw_string(ThemeDB.fallback_font, Vector2(VIEWPORT_SIZE.x - 20.0 - box_size.x - 52.0, 32.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.5))
+
+func _draw_big_map() -> void:
+	var panel := Rect2(Vector2(240.0, 70.0), Vector2(800.0, 560.0))
+	draw_rect(panel, Color(0.03, 0.02, 0.05, 0.92), true)
+	draw_rect(panel, RELIQUARY_BORDER_COLOR, false, 2.0)
+	var pip := 26.0
+	var spacing := pip + 7.0
+	var center := panel.get_center() - Vector2(90.0, 0.0) - Vector2(pip, pip) * 0.5
+	_draw_map_pips(center, pip, spacing, 8)
+	var font := ThemeDB.fallback_font
+	var y := panel.position.y + 40.0
+	draw_string(font, Vector2(panel.end.x - 200.0, y), "Legenda", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, MINIMAP_GOAL_COLOR)
+	for kind in ["soul", "altar", "chest", "trap", "elite", "rest"]:
+		y += 30.0
+		MapMarker.draw_marker(self, Vector2(panel.end.x - 188.0, y - 5.0), 16.0, kind)
+		draw_string(font, Vector2(panel.end.x - 168.0, y), MapMarker.LABELS[kind], HORIZONTAL_ALIGNMENT_LEFT, 160.0, 13, Color.WHITE)
+	y += 30.0
+	draw_rect(Rect2(Vector2(panel.end.x - 196.0, y - 13.0), Vector2(16, 16)), Palette.PLAYER_BODY, true)
+	draw_string(font, Vector2(panel.end.x - 168.0, y), "Tu jesteś", HORIZONTAL_ALIGNMENT_LEFT, 160.0, 13, Color.WHITE)
+	y += 26.0
+	draw_rect(Rect2(Vector2(panel.end.x - 196.0, y - 13.0), Vector2(16, 16)), MINIMAP_VISITED_COLOR, true)
+	draw_rect(Rect2(Vector2(panel.end.x - 191.0, y - 8.0), Vector2(6, 6)), MINIMAP_VISIT_MARK_COLOR, true)
+	draw_string(font, Vector2(panel.end.x - 168.0, y), "Odwiedzony", HORIZONTAL_ALIGNMENT_LEFT, 160.0, 13, Color.WHITE)
+	y += 26.0
+	draw_rect(Rect2(Vector2(panel.end.x - 196.0, y - 13.0), Vector2(16, 16)), Color(0.7, 0.7, 0.8, 0.5), false, 1.5)
+	draw_string(font, Vector2(panel.end.x - 168.0, y), "Znany, nieodwiedzony", HORIZONTAL_ALIGNMENT_LEFT, 160.0, 13, Color.WHITE)
+
+func _draw_map_pips(anchor: Vector2, pip_size: float, spacing: float, radius: int) -> void:
 
 	var revealed := {}
 	for pos in GameFlow.visited_rooms.keys():
@@ -556,6 +593,8 @@ func _draw_minimap() -> void:
 		var data: Dictionary = GameFlow.room_map.get(pos, {})
 		if data.is_empty():
 			continue
+		if absi(pos.x - GameFlow.current_room_pos.x) > radius or absi(pos.y - GameFlow.current_room_pos.y) > radius:
+			continue # tylko to, co mieści się w polu mapy
 		var offset := Vector2(pos.x - GameFlow.current_room_pos.x, pos.y - GameFlow.current_room_pos.y) * spacing
 		var draw_pos := anchor + offset
 		var visited: bool = GameFlow.visited_rooms.has(pos)
@@ -565,12 +604,14 @@ func _draw_minimap() -> void:
 			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Palette.HIT_FLASH, false, 2.0)
 		elif visited:
 			# Nie tylko ciemniejszy kolor: punkt w środku jednoznacznie znaczy "tu już byłem".
-			draw_rect(Rect2(draw_pos + Vector2(4.0, 4.0), Vector2(4.0, 4.0)), MINIMAP_VISIT_MARK_COLOR, true)
+			draw_rect(Rect2(draw_pos + Vector2(pip_size, pip_size) * 0.36, Vector2(pip_size, pip_size) * 0.28), MINIMAP_VISIT_MARK_COLOR, true)
 			if data.get("type") == GameFlow.RoomType.SOUL and not data.get("cleared", false):
 				draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
 		else:
 			# Znany sąsiad to tylko pusty zarys — nie może udawać odwiedzonego.
-			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(0.7, 0.7, 0.8, 0.3), false, 1.0)
+			draw_rect(Rect2(draw_pos, Vector2(pip_size, pip_size)), Color(0.7, 0.7, 0.8, 0.5), false, 1.5)
+		# Paczka 7: symbol typu (ryzyko/nagroda) — ten sam co nad drzwiami.
+		MapMarker.draw_marker(self, draw_pos + Vector2(pip_size, pip_size) * 0.5, pip_size * 0.62, MapMarker.kind_for(data))
 
 ## "Mapa pamięci, nie kolorowa siatka debugowa — odwiedzony pokój ciemny,
 ## bieżący turkusowy, boss/cel jednym akcentem" (krok 7). SOUL dawniej dostawał

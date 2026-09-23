@@ -16,6 +16,9 @@ func _initialize() -> void:
 	var mins: Array[int] = []
 	var depths: Array[int] = []
 	var traps_on_path := 0
+	var levels: Array[int] = []
+	var elites: Array[int] = []
+	var rests: Array[int] = []
 	for s in n:
 		gf.reset_run(5000 + s)
 		var dist := {Vector2i.ZERO: 0}
@@ -44,6 +47,22 @@ func _initialize() -> void:
 			if gf.room_map[p].get("trap", false):
 				trap_needed = true
 		traps_on_path += 1 if trap_needed else 0
+		# XP na minimalnej trasie: RANDOM 1 (elita 2), SOUL 2 — krzywa z player.gd.
+		var xp := 0.0
+		for p in needed:
+			var d: Dictionary = gf.room_map[p]
+			if d["type"] == gf.RoomType.SOUL:
+				xp += 2.0
+			elif d["type"] == gf.RoomType.RANDOM and not d.get("rest", false):
+				xp += 2.0 if d.get("elite", false) else 1.0
+		levels.append(_level_for_xp(xp))
+		var e := 0
+		var r := 0
+		for p in gf.room_map:
+			e += 1 if gf.room_map[p].get("elite", false) else 0
+			r += 1 if gf.room_map[p].get("rest", false) else 0
+		elites.append(e)
+		rests.append(r)
 		mins.append(needed.size())
 		depths.append(deepest)
 	mins.sort()
@@ -53,4 +72,18 @@ func _initialize() -> void:
 	print("minimalna trasa do 6 dusz + ołtarza: min %d, mediana %d, max %d pokoi" % [mins[0], mins[n / 2], mins[-1]])
 	print("najgłębszy cel od startu: min %d, mediana %d, max %d przejść" % [depths[0], depths[n / 2], depths[-1]])
 	print("pokój pułapek na minimalnej trasie: %d / %d seedów" % [traps_on_path, n])
+	levels.sort()
+	elites.sort()
+	print("poziom gracza po minimalnej trasie (przed finałem): min %d, mediana %d, max %d" % [levels[0], levels[n / 2], levels[-1]])
+	print("elity na mapie: min %d, mediana %d, max %d   |   odpoczynki: %d" % [elites[0], elites[n / 2], elites[-1], rests[0]])
 	quit()
+
+func _level_for_xp(xp: float) -> int:
+	var level := 0
+	while level < 10:
+		var need := 2.0 if level < 3 else (3.0 if level < 7 else 4.0)
+		if xp < need:
+			break
+		xp -= need
+		level += 1
+	return level

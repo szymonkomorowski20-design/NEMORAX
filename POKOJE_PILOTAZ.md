@@ -51,3 +51,24 @@ Pozostałe 4 motywy (krypta, sala rytuału, ruiny, pole bitwy) — bez akcentu d
 ## Do oceny w grze (autor)
 - Czy przeszkody i płycizna są czytelne podczas walki; czy pokój pułapek da się przejść bez obrażeń bez dasha.
 - Czy rozpoznajesz mechanicznie co najmniej dwa motywy (warunek odbioru).
+
+# Paczka 7 — trasy, mapa, ziarno
+
+## Ryzyko i nagroda widoczne przed wejściem
+- Symbole typów pokoju (kształt + kolor): **dusza** (okrąg), **ołtarz** (romb), **skrzynia** (złoty prostokąt, dopóki nieotwarta), **pułapka** (trójkąt), **elita** (korona), **odpoczynek** (krzyż). Te same na minimapie, dużej mapie i **nad drzwiami** (obok otworu, z podpisem).
+- **Elita decydowana przy generowaniu mapy** (szansa rośnie z odległością od startu, 5–35%) — widać ją zanim się wejdzie; dawniej rzut przy wejściu. Mediana 4 elity na mapę.
+- **2 pokoje odpoczynku** (≥ 3 przejścia od startu, nie pułapka/skrzynia/elita): bez walki, jednorazowo +30% życia, bez XP. To „oddech” i realny wybór trasy.
+- Sąsiednie komnaty nie dostają tego samego motywu (bez serii identycznie wyglądających pokoi).
+
+## Mapa (A13)
+- Minimapa: pola 14 px, obecny / odwiedzony (kropka) / znany (obrys) + symbol typu; przycięta do promienia 3 pokoi (nie wychodzi poza pole).
+- **Duża mapa pod M** (bez pauzy) z legendą.
+
+## Ziarno i zapis
+- Ten sam seed + te same decyzje = ta sama mapa, motywy, układy, elity, odpoczynki, pułapka i oferty run.
+- Zapis zawiera `seed`, `map_version` (3), plan pokoi (elita, odpoczynek, motyw, pułapka) i stan odpoczynku; wczytanie niczego nie losuje ponownie. Starsze zapisy wczytują się z wartościami domyślnymi.
+
+## Tempo (`debug/measure_route.gd`, 20 seedów)
+- Minimalna trasa do 6 dusz + ołtarza: 20–26 pokoi (mediana 22) z 32.
+- **Poziom gracza po minimalnej trasie: 8–10 (mediana 9)** — skrót nie prowadzi do finału, którego nie da się wygrać (strojenie z Paczki 4 zakłada poziom 7–10).
+- Otwarte: prawdziwy „skrót” (krótsza droga za mniej nagród) wymaga zmiany kształtu mapy — dusze wiszą na długich gałęziach. Do decyzji po teście, czy wystarcza wybór między elitą/pułapką/odpoczynkiem na rozgałęzieniach.

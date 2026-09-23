@@ -13,7 +13,7 @@ var SETTINGS_PATH := "user://settings.json" ## var (nie const) tylko po to, żeb
 ## rebindowanie klawisza, który otwiera sam ekran rebindingu, robiłoby bałagan.
 const REBINDABLE_ACTIONS: Array[String] = [
 	"move_left", "move_right", "move_up", "move_down",
-	"dash", "attack", "block", "weapon_sword", "weapon_wand", "heal", "pickup", "open_runes", "open_relic",
+	"dash", "attack", "block", "weapon_sword", "weapon_wand", "heal", "pickup", "open_runes", "open_relic", "toggle_map",
 ]
 
 const ACTION_LABELS := {
@@ -30,6 +30,7 @@ const ACTION_LABELS := {
 	"pickup": "Podniesienie duszy",
 	"open_runes": "Wybór runy / punkty",
 	"open_relic": "Wybór relikwii",
+	"toggle_map": "Duża mapa",
 }
 
 func _ready() -> void:

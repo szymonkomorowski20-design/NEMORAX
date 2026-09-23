@@ -57,6 +57,11 @@ func _initialize() -> void:
 				continue
 			NemoraxTest.reset()
 			instance.call(method.name, root)
+			# Higiena: test, który zostawi spauzowane drzewo, psuł kolejne testy
+			# (np. muzyka pokoju "nie grała"). Zdejmujemy pauzę i mówimy, kto ją zostawił.
+			if paused:
+				print("[WARN] %s.%s zostawił spauzowane drzewo" % [file_name, method.name])
+				paused = false
 			if NemoraxTest.last_failed:
 				failed += 1
 				print("[FAIL] %s.%s" % [file_name, method.name])

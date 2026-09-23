@@ -198,7 +198,9 @@ func _ready() -> void:
 	var already_cleared: bool = _room_data.get("cleared", false)
 	match _room_data.get("type"):
 		GameFlow.RoomType.RANDOM:
-			if already_cleared:
+			if _room_data.get("rest", false):
+				_enter_rest_room()
+			elif already_cleared:
 				_spawn_doors_for_open_directions()
 				_maybe_spawn_chest()
 			else:
@@ -214,6 +216,25 @@ func _ready() -> void:
 				_play_prolog()
 			if GameFlow.run_intent == "" and get_tree().current_scene == self:
 				_offer_intent()
+
+## Pokój odpoczynku (Paczka 7): bez walki, drzwi od razu otwarte, jednorazowo
+## +30% życia. Bez XP i bez podbijania trudności — to wybór trasy "oddech".
+func _enter_rest_room() -> void:
+	_room_data["cleared"] = true
+	_spawn_doors_for_open_directions()
+	var spring := RestSpring.new()
+	spring.used = _room_data.get("rest_used", false)
+	spring.position = _play_rect.get_center()
+	add_child(spring)
+	if _room_data.get("rest_used", false):
+		return
+	_room_data["rest_used"] = true
+	var healed := minf(player.max_health - player.health, player.max_health * GameFlow.REST_HEAL_FRACTION)
+	player.health += healed
+	Juice.play_sfx_at(player.SND_HEAL_USE, player.global_position)
+	get_tree().create_timer(1.3).timeout.connect(func(): if is_instance_valid(ui): ui.show_taunt("Odpoczynek: +%d życia" % roundi(healed), 2.2))
+	GameFlow.capture_player_state(player)
+	GameFlow._save_progress()
 
 ## Intencja startowa (Paczka 6) — raz na próbę, po prologu.
 func _offer_intent() -> void:
@@ -236,6 +257,8 @@ func _room_display_name() -> String:
 		GameFlow.RoomType.ALTAR:
 			return "Ołtarz"
 		GameFlow.RoomType.RANDOM:
+			if _room_data.get("rest", false):
+				return "Komnata odpoczynku"
 			return "Komnata — zasadzka" if _random_group_count() > 1 else "Komnata"
 		_: # START
 			return ""
@@ -299,6 +322,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		RewardPrompt.open_runes_or_points(player, _skill_draft, stats_screen)
 	elif event.is_action_pressed("open_relic"):
 		_relic_draft.open_for(player)
+	elif event.is_action_pressed("toggle_map"):
+		ui.big_map = not ui.big_map
 
 func _on_relic_chosen(id: String) -> void:
 	ui.show_relic_card(id)
@@ -377,7 +402,12 @@ func _spawn_enemy_at(scene_path: String, point: Vector2, group_member: bool, rng
 	var offset := point - _play_rect.get_center()
 	if offset == Vector2.ZERO:
 		offset = Vector2(0.0, -0.01)
-	_spawn_enemy(scene_path, true, offset, group_member, rng.randf())
+	# Paczka 7: elita zaplanowana przy generowaniu mapy (widoczna na mapie i
+	# nad drzwiami); starsze zapisy bez pola — dawny rzut z generatora pokoju.
+	var roll := rng.randf()
+	if _room_data.has("elite"):
+		roll = 0.0 if _room_data.get("elite", false) and not group_member else 2.0
+	_spawn_enemy(scene_path, true, offset, group_member, roll)
 
 func _spawn_enemy(scene_path: String, is_random: bool, offset: Vector2 = Vector2.ZERO, group_member: bool = false, elite_roll: float = -1.0) -> void:
 	var scene: PackedScene = load(scene_path)
@@ -427,6 +457,16 @@ func _spawn_doors_for_open_directions() -> void:
 		var callback := _on_altar_door_entered if neighbor.get("type") == GameFlow.RoomType.ALTAR else _on_move_door_entered.bind(direction)
 		# Wyzwalacz stoi na linii ściany; portal jest częścią grafiki muru.
 		_spawn_door(pos, callback, wall_side)
+		# Paczka 7: co czeka za drzwiami (ryzyko/nagroda przed wejściem).
+		var kind := MapMarker.kind_for(neighbor)
+		if kind != "":
+			var badge := DoorBadge.new()
+			badge.kind = kind
+			# Obok otworu, nie w nim — gracz wchodzący tymi drzwiami staje 70 px od ściany.
+			var inward := (_play_rect.get_center() - pos).normalized()
+			var aside := Vector2(175.0, 0.0) if absf(inward.y) > 0.5 else Vector2(0.0, -130.0)
+			badge.position = pos + inward * 60.0 + aside
+			add_child(badge)
 
 func _spawn_door(pos: Vector2, on_entered: Callable, wall_side: String) -> void:
 	var door: Door = DoorScene.instantiate()

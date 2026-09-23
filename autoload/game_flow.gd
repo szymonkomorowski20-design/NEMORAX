@@ -279,7 +279,18 @@ func _assign_room_plans() -> void:
 			d["enemy_index"] = EncounterPlan.TRAP_ENEMIES[_rng.randi() % EncounterPlan.TRAP_ENEMIES.size()]
 			continue
 		# Rdzawa hala (indeks 7, ostatni) = wyłącznie pokój pułapek w pilotażu.
+		# Paczka 7: motyw inny niż u już przypisanych sąsiadów — bez serii
+		# identycznie wyglądających komnat pod rząd.
 		var theme := _rng.randi() % EncounterPlan.THEME_RUSTED
+		for attempt in 8:
+			var clash := false
+			for dir in DIRECTIONS:
+				var n: Dictionary = room_map.get(pos + dir, {})
+				if n.get("type") == RoomType.RANDOM and int(n.get("theme", -1)) == theme:
+					clash = true
+			if not clash:
+				break
+			theme = (theme + 1 + _rng.randi() % 3) % EncounterPlan.THEME_RUSTED
 		d["theme"] = theme
 		if theme == EncounterPlan.THEME_LIBRARY:
 			d["layout"] = "oslona" # akcent biblioteki: regały-osłony
@@ -288,6 +299,49 @@ func _assign_room_plans() -> void:
 		else:
 			var roll := _rng.randf()
 			d["layout"] = "open" if roll < 0.55 else ["dwa_filary", "kolumnada", "oslona"][_rng.randi() % 3]
+	_assign_route_markers(random_positions)
+
+## Paczka 7 (AUDYT E3/D): ryzyko i nagroda widoczne ZANIM gracz wejdzie.
+## - elita: decydowana przy generowaniu (szansa rośnie z odległością od
+##   startu, ten sam zakres 5-35% co dawny rzut przy wejściu), więc może być
+##   pokazana na mapie i nad drzwiami;
+## - 2 pokoje odpoczynku: bez walki, jednorazowo +30% życia; nigdy tuż przy
+##   starcie, nie pułapka, nie skrzynia.
+## Wersja generatora zapisywana w pliku postępu (Paczka 7). Starsze zapisy
+## wczytują się ze wartościami domyślnymi nowych pól (bez pułapki, elity z
+## góry, odpoczynku) — układ, który gracz już widział, się nie zmienia.
+const MAP_VERSION := 3
+const REST_ROOM_COUNT := 2
+const REST_HEAL_FRACTION := 0.3
+
+func room_distances() -> Dictionary:
+	var dist := {Vector2i.ZERO: 0}
+	var queue: Array[Vector2i] = [Vector2i.ZERO]
+	while not queue.is_empty():
+		var cur: Vector2i = queue.pop_front()
+		for dir in DIRECTIONS:
+			var nb: Vector2i = cur + dir
+			if room_map.has(nb) and not dist.has(nb):
+				dist[nb] = dist[cur] + 1
+				queue.append(nb)
+	return dist
+
+func _assign_route_markers(random_positions: Array) -> void:
+	var dist := room_distances()
+	var rest_candidates: Array = []
+	for pos in random_positions:
+		var d: Dictionary = room_map[pos]
+		d["rest"] = false
+		d["rest_used"] = false
+		var chance := minf(ELITE_MAX_CHANCE, ELITE_BASE_CHANCE + 0.015 * float(dist.get(pos, 0)) * 3.0)
+		d["elite"] = not d.get("trap", false) and _rng.randf() < chance
+		if int(dist.get(pos, 0)) >= 3 and not d.get("trap", false) and not d.get("has_chest", false):
+			rest_candidates.append(pos)
+	_shuffle_seeded(rest_candidates)
+	for i in mini(REST_ROOM_COUNT, rest_candidates.size()):
+		var r: Dictionary = room_map[rest_candidates[i]]
+		r["rest"] = true
+		r["elite"] = false
 
 ## Skrzynie (dokument sekcja 9, zaadaptowane na siatkę — patrz stała
 ## CHEST_COUNT): wybiera CHEST_COUNT z JUŻ postawionych pokoi RANDOM, raz, na
@@ -586,6 +640,9 @@ func _load_progress() -> bool:
 			"theme": int(entry.get("theme", maxi(0, int(entry.get("enemy_index", 0))) % EncounterPlan.THEME_COUNT)),
 			"layout": str(entry.get("layout", "open")),
 			"trap": bool(entry.get("trap", false)),
+			"elite": bool(entry.get("elite", false)),
+			"rest": bool(entry.get("rest", false)),
+			"rest_used": bool(entry.get("rest_used", false)),
 		}
 	if data.has("seed"):
 		run_seed = int(data["seed"])
@@ -616,6 +673,7 @@ func _save_progress() -> void:
 			"enemy_index": d["enemy_index"], "cleared": d["cleared"],
 			"has_chest": d.get("has_chest", false), "chest_opened": d.get("chest_opened", false),
 			"theme": d.get("theme", 0), "layout": d.get("layout", "open"), "trap": d.get("trap", false),
+			"elite": d.get("elite", false), "rest": d.get("rest", false), "rest_used": d.get("rest_used", false),
 		})
 	var visited_array := []
 	for pos in visited_rooms.keys():
@@ -632,6 +690,7 @@ func _save_progress() -> void:
 		"seed": run_seed,
 		"recent_encounters": recent_encounters,
 		"run_intent": run_intent,
+		"map_version": MAP_VERSION,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
