@@ -110,7 +110,8 @@ func _tick() -> void:
 	var aim_dir: Vector2 = (player.get_global_mouse_position() - player.global_position).normalized()
 	if aim_dir == Vector2.ZERO:
 		aim_dir = Vector2.LEFT
-	player.global_position = enemy.global_position - aim_dir * dist
+	var inner: Rect2 = room._play_rect.grow(-player.radius) # w pokoju jak prawdziwy gracz (Paczka 11)
+	player.global_position = (enemy.global_position - aim_dir * dist).clamp(inner.position, inner.end)
 	if Engine.get_physics_frames() % 2 == 0:
 		Input.action_press("attack")
 	else:

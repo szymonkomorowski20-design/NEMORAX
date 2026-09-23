@@ -156,7 +156,10 @@ func _tick() -> void:
 	var aim_dir: Vector2 = (player.get_global_mouse_position() - player.global_position).normalized()
 	if aim_dir == Vector2.ZERO:
 		aim_dir = Vector2.LEFT
-	player.global_position = boss.global_position - aim_dir * dist
+	# W arenie jak prawdziwy gracz (mur go zatrzymuje) — inaczej przy bossie w
+	# rogu bot stał w ścianie, a pociski gasną w murze (Paczka 11).
+	var inner: Rect2 = arena.ARENA_RECT.grow(-player.radius)
+	player.global_position = (boss.global_position - aim_dir * dist).clamp(inner.position, inner.end)
 	if frame % 2 == 0:
 		Input.action_press("attack")
 	else:

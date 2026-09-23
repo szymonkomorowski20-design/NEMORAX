@@ -63,6 +63,10 @@ func _physics_process(delta: float) -> void:
 			return
 		if step == "bounced":
 			sprite.rotation = direction.angle()
+	if Walls.point_in_wall(self, global_position):
+		Juice.play_sfx_at(SND_IMPACT, global_position)
+		queue_free()
+		return
 	_check_hit()
 
 func _check_hit() -> void:

@@ -9,6 +9,22 @@ extends RefCounted
 ## texture_repeat na Enabled, żeby przekroczone [0,1] UV zawijały się zamiast
 ## rozciągać brzegowy piksel.
 
+const WALL_GROUP := "room_wall"
+
+## Paczka 11: pociski (gracza i wrogów) gasną na ścianie zamiast przelatywać
+## nad nią poza pokój — jedno zapytanie punktowe na klatkę, tylko ciała ścian
+## (przeszkody terenu mają własną logikę w RoomTerrain.projectile_step).
+static func point_in_wall(node: Node2D, pos: Vector2) -> bool:
+	if not node.is_inside_tree():
+		return false
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = pos
+	query.collision_mask = 1
+	for hit in node.get_world_2d().direct_space_state.intersect_point(query, 8):
+		if hit["collider"] != null and hit["collider"].is_in_group(WALL_GROUP):
+			return true
+	return false
+
 static func build(parent: Node2D, rect: Rect2, thickness: float, wall_texture: Texture2D = null, wall_modulate: Color = Color.WHITE) -> void:
 	var segments := [
 		{"pos": Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y - thickness * 0.5),
@@ -23,6 +39,7 @@ static func build(parent: Node2D, rect: Rect2, thickness: float, wall_texture: T
 	for seg in segments:
 		var body := StaticBody2D.new()
 		body.collision_layer = 1
+		body.add_to_group(WALL_GROUP)
 		body.collision_mask = 0
 		body.position = seg["pos"]
 		var shape := CollisionShape2D.new()
