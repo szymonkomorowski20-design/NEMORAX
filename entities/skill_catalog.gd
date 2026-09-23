@@ -27,7 +27,7 @@ const SKILLS := {
 	"guard_quickstep": {"name": "Krótki oddech", "ranks": 3, "description": "Odnowa dasha −8/16/24%, min. 0,35 s."},
 	"guard_iron_skin": {"name": "Kamienna skóra", "ranks": 3, "description": "+15/30/45 maksymalnego życia."},
 	"guard_second_breath": {"name": "Drugi oddech", "ranks": 1, "description": "Raz na pokój śmiertelny cios zostawia 1 HP."},
-	"guard_counterbrand": {"name": "Znamię kontry", "ranks": 2, "description": "Idealny blok (tarcza podniesiona tuż przed ciosem) wyzwala kontratak 60/90% obrażeń."},
+	"guard_counterbrand": {"name": "Znamię kontry", "ranks": 2, "description": "Parowanie (tarcza podniesiona tuż przed ciosem) wyzwala kontratak 60/90% obrażeń."},
 	"guard_battle_rhythm": {"name": "Rytm walki", "ranks": 2, "description": "Po 3 trafieniach tempo ataku +12/20% na 4 s."},
 	"guard_weapon_weave": {"name": "Przeplot", "ranks": 2, "description": "Po trafieniu jedną bronią wzmocnij drugą."},
 }

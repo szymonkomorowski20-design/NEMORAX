@@ -42,15 +42,78 @@ func test_block_cost_scales_with_damage_within_bounds(root: Node) -> void:
 	NemoraxTest.assert_true(player.shield_block_cost(25.0) > player.shield_block_cost(10.0), "mocniejszy cios powinien kosztować więcej")
 	_cleanup(player, root)
 
-func test_perfect_block_costs_half_and_reports_perfect(root: Node) -> void:
+## Decyzja autora: blok bez wyczucia czasu blokuje, z wyczuciem — paruje.
+func test_timed_block_parries_for_free(root: Node) -> void:
 	var player := _fresh_player(root)
 	_raise_shield(player, 0.05)
 	player.stamina = 100.0
 	var feedback: Array = []
 	player.block_feedback.connect(func(kind): feedback.append(kind))
-	player.take_damage(20.0, _front(player))
-	NemoraxTest.assert_almost_eq(player.stamina, 100.0 - player.shield_block_cost(20.0) * player.perfect_block_cost_multiplier, 0.01, "idealny blok kosztuje połowę")
-	NemoraxTest.assert_eq(feedback, ["perfect"], "idealny blok powinien mieć własny sygnał")
+	var hurt := player.take_damage(20.0, _front(player))
+	NemoraxTest.assert_true(not hurt, "parowanie zatrzymuje cios")
+	NemoraxTest.assert_almost_eq(player.stamina, 100.0, 0.01, "parowanie nie kosztuje staminy")
+	NemoraxTest.assert_eq(feedback, ["parry"], "parowanie ma własny sygnał")
+	_cleanup(player, root)
+
+func test_parry_interrupts_and_pushes_attacker(root: Node) -> void:
+	var player := _fresh_player(root)
+	_raise_shield(player, 0.05)
+	var enemy = load("res://entities/incarnations/zalazek.tscn").instantiate()
+	root.add_child(enemy)
+	enemy.global_position = _front(player)
+	enemy._lunge_active = true
+	enemy._attack_timer = 0.1
+	player.take_damage(20.0, enemy.global_position, true, enemy)
+	NemoraxTest.assert_true(not enemy._lunge_active, "sparowany wypad zostaje przerwany")
+	NemoraxTest.assert_true(enemy._knockback_velocity.x > 0.0, "napastnik odlatuje od gracza")
+	NemoraxTest.assert_true(enemy._attack_timer >= 1.0, "i dłużej czeka z następną umiejętnością")
+	_cleanup(enemy, root)
+	_cleanup(player, root)
+
+func test_plain_block_does_not_interrupt_attacker(root: Node) -> void:
+	var player := _fresh_player(root)
+	_raise_shield(player) # dawno podniesiona = zwykły blok
+	var enemy = load("res://entities/incarnations/zalazek.tscn").instantiate()
+	root.add_child(enemy)
+	enemy._lunge_active = true
+	player.take_damage(20.0, _front(player), true, enemy)
+	NemoraxTest.assert_true(enemy._lunge_active, "zwykły blok tylko chroni, nie przerywa")
+	_cleanup(enemy, root)
+	_cleanup(player, root)
+
+func test_parried_projectile_flies_back_and_hurts_enemies(root: Node) -> void:
+	var player := _fresh_player(root)
+	_raise_shield(player, 0.05)
+	var projectile = load("res://entities/enemy_projectile.tscn").instantiate()
+	projectile.direction = Vector2.LEFT # leci z prawej na gracza
+	root.add_child(projectile)
+	projectile.global_position = player.global_position + Vector2(10.0, 0.0)
+	projectile._check_hit()
+	NemoraxTest.assert_true(is_instance_valid(projectile) and not projectile.is_queued_for_deletion(), "sparowany pocisk nie znika")
+	NemoraxTest.assert_eq(projectile.direction, Vector2.RIGHT, "leci z powrotem")
+	var enemy = load("res://entities/random_enemies/chaser.tscn").instantiate()
+	root.add_child(enemy)
+	enemy.global_position = projectile.global_position
+	var hp: float = enemy.health
+	projectile._check_reflected_hit()
+	NemoraxTest.assert_true(enemy.health < hp, "odbity pocisk rani wroga")
+	_cleanup(enemy, root)
+	_cleanup(player, root)
+
+func test_mashing_shield_does_not_give_parry_window(root: Node) -> void:
+	var player := _fresh_player(root)
+	player.stamina = player.max_stamina
+	Input.action_press("block")
+	player._handle_block_input()
+	Input.action_release("block")
+	player._handle_block_input()
+	player._shield_down_time = 0.05 # opuszczona przed chwilą
+	Input.action_press("block")
+	player._handle_block_input()
+	Input.action_release("block")
+	NemoraxTest.assert_true(player.is_shield_up(), "tarcza wstaje")
+	NemoraxTest.assert_true(not player.is_parry_window(), "ale klepanie PPM nie daje okna parowania")
+	player._shield_up = false
 	_cleanup(player, root)
 
 func test_guard_breaks_when_stamina_is_short(root: Node) -> void:

@@ -169,6 +169,23 @@ func _break_stance() -> void:
 		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -radius - 40.0), "Przełamanie!", Palette.PLAYER_BODY, true)
 	stance_broken.emit()
 
+## Sparowany przez tarczę gracza: przerwany wypad, odrzut, dłuższy oddech
+## przed kolejną umiejętnością, a u Nekravora mocny cios w postawę.
+const PARRY_KNOCKBACK := 420.0
+const PARRY_ATTACK_DELAY := 1.0
+const PARRY_STANCE_FRACTION := 0.35
+
+func on_parried(by: Node) -> void:
+	if is_dead:
+		return
+	_lunge_active = false
+	var away: Vector2 = global_position - (by as Node2D).global_position if by is Node2D else Vector2.ZERO
+	apply_knockback((away.normalized() if away.length() > 0.01 else Vector2.RIGHT) * PARRY_KNOCKBACK)
+	_attack_timer = maxf(_attack_timer, PARRY_ATTACK_DELAY)
+	_flash_frames = 2
+	if stance_enabled:
+		add_stance_damage(stance_threshold() * PARRY_STANCE_FRACTION)
+
 func _tick_stance(delta: float) -> void:
 	if not stance_enabled:
 		return
@@ -313,7 +330,7 @@ func _check_contact() -> void:
 		return
 	if player.is_invulnerable():
 		return
-	player.take_damage(contact_damage, global_position)
+	player.take_damage(contact_damage, global_position, true, self)
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * contact_knockback)
 	_play_sfx(SND_CONTACT_HIT)
@@ -356,7 +373,7 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 		return false
 	if player.is_invulnerable():
 		return false
-	return player.take_damage(damage, global_position)
+	return player.take_damage(damage, global_position, true, self)
 
 func _pull_player(strength: float) -> void:
 	if is_stance_broken():

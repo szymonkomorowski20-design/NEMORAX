@@ -377,7 +377,7 @@ func _check_body_contact() -> void:
 	if player.is_invulnerable():
 		return
 	var damage := (_lunge_damage_override if _lunge_damage_override >= 0.0 else lunge_damage) if _lunge_state == "active" else body_contact_damage
-	player.take_damage(damage, global_position)
+	player.take_damage(damage, global_position, true, self)
 	var dir := to_player.normalized() if to_player.length() > 0.01 else Vector2.RIGHT
 	player.apply_knockback(dir * knockback_strength)
 	_play_sfx(SND_BODY_CONTACT)
@@ -392,7 +392,7 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 		return false
 	if player.is_invulnerable():
 		return false
-	var hurt: bool = player.take_damage(damage, global_position)
+	var hurt: bool = player.take_damage(damage, global_position, true, self)
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * knockback_strength)
 	return hurt
@@ -846,6 +846,16 @@ func _start_transform_invulnerability() -> void:
 	_play_sfx(SND_TRANSFORM_ROAR)
 	await get_tree().create_timer(phase_transform_invuln).timeout
 	_invulnerable = false
+
+## Sparowany cios Nemoraksa: bez przerywania wzorca (boss nie jest
+## minibossem do ogłuszania), tylko odepchnięcie i chwila zwłoki.
+func on_parried(by: Node) -> void:
+	if is_dead or not (by is Node2D):
+		return
+	var away: Vector2 = global_position - (by as Node2D).global_position
+	apply_knockback((away.normalized() if away.length() > 0.01 else Vector2.RIGHT) * knockback_strength * 0.6)
+	delay_next_attack(0.4)
+	flash_white()
 
 func delay_next_attack(seconds: float) -> void:
 	_attack_timer = max(_attack_timer, seconds)

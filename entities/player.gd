@@ -289,6 +289,8 @@ var _weave_timer: float = 0.0
 var _shield_up: bool = false
 var _shield_time: float = 0.0 ## s od podniesienia tarczy (okno idealnego bloku)
 var _shield_dir: Vector2 = Vector2.DOWN
+var _shield_down_time: float = 1.0 ## s od opuszczenia tarczy (blokada klepania parowania)
+var _parry_ready: bool = true
 var _stamina_regen_delay_timer: float = 0.0
 
 # --- Blok (prawy przycisk myszy) — dodane na życzenie autora, poza dokumentem ---
@@ -301,8 +303,9 @@ var _stamina_regen_delay_timer: float = 0.0
 @export var shield_block_cost_per_damage: float = 0.9 ## koszt = clamp(base + x * surowe obrażenia, min, max)
 @export var shield_block_cost_min: float = 20.0
 @export var shield_block_cost_max: float = 45.0
-@export var perfect_block_window: float = 0.15 ## s od podniesienia tarczy
-@export var perfect_block_cost_multiplier: float = 0.5
+@export var perfect_block_window: float = 0.15 ## s od podniesienia tarczy = okno parowania
+@export var parry_cost_multiplier: float = 0.0 ## parowanie nie kosztuje staminy (decyzja autora)
+@export var shield_reraise_lockout: float = 0.3 ## s z opuszczoną tarczą, zanim ponowne podniesienie znów daje okno parowania
 @export var shield_block_invuln: float = 0.25 ## s po przyjętym ciosie — kontakt nie drenuje staminy co klatkę
 @export var stamina_regen_delay: float = 0.5 ## s od ostatniego wydatku staminy do startu regeneracji
 @export var block_visual_duration: float = 0.15 ## s błysku pozy po przyjętym ciosie
@@ -522,6 +525,8 @@ func _physics_process(delta: float) -> void:
 	_guard_break_flash = maxf(0.0, _guard_break_flash - delta)
 	if _shield_up:
 		_shield_time += delta
+	else:
+		_shield_down_time += delta
 	_handle_weapon_switch()
 	_handle_dash_input(delta)
 	if _heal_channel_timer <= 0.0:
@@ -805,6 +810,10 @@ func _handle_block_input() -> void:
 			return
 		_shield_up = true
 		_shield_time = 0.0
+		# Parowanie tylko po uczciwym podniesieniu — klepanie PPM co klatkę
+		# nie daje okna parowania na każdy cios.
+		_parry_ready = _shield_down_time >= shield_reraise_lockout
+		_shield_down_time = 0.0
 		_play_sfx(SND_BLOCK_RAISE)
 	var to_mouse := get_global_mouse_position() - global_position
 	if to_mouse.length() > 1.0:
@@ -822,10 +831,17 @@ func _in_shield_arc(source_position: Vector2) -> bool:
 		return true
 	return rad_to_deg(absf(_shield_dir.angle_to(to_source))) <= shield_arc_degrees * 0.5
 
+## Okno parowania: tarcza podniesiona przed chwilą (i nie wyklikana).
+func is_parry_window() -> bool:
+	return _shield_up and _parry_ready and _shield_time <= perfect_block_window
+
 ## true = cios zatrzymany tarczą (bez obrażeń HP). Przełamanie, zły kierunek
 ## i atak nieblokowalny zwracają false — obrażenia idą normalnie, ale gracz
 ## dostaje osobny sygnał, dlaczego blok nie zadziałał.
-func _try_block(amount: float, source_position: Vector2, blockable: bool) -> bool:
+## Decyzja autora (23.09): zwykły blok BLOKUJE, blok w dobrym momencie PARUJE —
+## nic nie kosztuje, odrzuca/przerywa napastnika (attacker.on_parried), a
+## pocisk odbija z powrotem.
+func _try_block(amount: float, source_position: Vector2, blockable: bool, attacker: Node = null) -> bool:
 	if not _shield_up:
 		return false
 	if not blockable:
@@ -834,8 +850,8 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool) -> boo
 	if source_position == Vector2.INF or not _in_shield_arc(source_position):
 		_announce_block("direction")
 		return false
-	var perfect := _shield_time <= perfect_block_window
-	var cost := shield_block_cost(amount) * (perfect_block_cost_multiplier if perfect else 1.0)
+	var perfect := is_parry_window()
+	var cost := shield_block_cost(amount) * (parry_cost_multiplier if perfect else 1.0)
 	if stamina < cost:
 		stamina = 0.0
 		_stamina_regen_delay_timer = stamina_regen_delay
@@ -850,20 +866,24 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool) -> boo
 	_block_visual_timer = block_visual_duration
 	_counter_timer = counter_window
 	_play_sfx(SND_BLOCK_PUSH_HIT)
-	_announce_block("perfect" if perfect else "blocked")
-	if perfect and _skill_procs != null:
-		_skill_procs.counterbrand()
+	sfx.pitch_scale = 1.35 if perfect else 1.0 # parowanie brzmi ostrzej niż zwykły blok
+	_announce_block("parry" if perfect else "blocked")
+	if perfect:
+		if is_instance_valid(attacker) and attacker.has_method("on_parried"):
+			attacker.on_parried(self)
+		if _skill_procs != null:
+			_skill_procs.counterbrand()
 	return true
 
 const BLOCK_FEEDBACK_TEXT := {
-	"blocked": "Blok", "perfect": "Idealny blok!", "broken": "Garda przełamana",
+	"blocked": "Blok", "parry": "Parowanie!", "broken": "Garda przełamana",
 	"direction": "Cios z tyłu", "unblockable": "Nie do zablokowania",
 }
 
 func _announce_block(kind: String) -> void:
 	block_feedback.emit(kind)
 	if get_parent() != null:
-		var color := Palette.PLAYER_BODY if kind in ["blocked", "perfect"] else RECEIVED_DAMAGE_COLOR
+		var color := Palette.PLAYER_BODY if kind in ["blocked", "parry"] else RECEIVED_DAMAGE_COLOR
 		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -95.0), BLOCK_FEEDBACK_TEXT[kind], color)
 
 ## Leczenie (E) — trafienia ładują stacki (patrz register_hit_on_enemy), E
@@ -1491,12 +1511,13 @@ const RECEIVED_DAMAGE_COLOR := Color("#D63B3B")
 ## source_position: skąd przyszedł cios (Vector2.INF = nieznane, tarcza go
 ## nie złapie). blockable=false dla stref na podłożu, pieczęci itp.
 ## Zwraca true, gdy gracz faktycznie stracił HP (np. lifesteal wroga).
-func take_damage(amount: float, source_position := Vector2.INF, blockable := true) -> bool:
+## attacker: kto zadał cios — sparowany dostaje on_parried(player).
+func take_damage(amount: float, source_position := Vector2.INF, blockable := true, attacker: Node = null) -> bool:
 	if state == State.DEAD:
 		return false
 	if state == State.DASHING or _invuln_timer > 0.0:
 		return false
-	if _try_block(amount, source_position, blockable):
+	if _try_block(amount, source_position, blockable, attacker):
 		return false
 	health -= amount
 	_interrupt_heal_channel()
@@ -1553,7 +1574,7 @@ func _draw() -> void:
 	var arc_radius := radius + 26.0
 	if _shield_up:
 		var angle := _shield_dir.angle()
-		var perfect := _shield_time <= perfect_block_window
+		var perfect := is_parry_window()
 		var color := SHIELD_ARC_COLOR
 		color.a = 0.95 if perfect or _block_visual_timer > 0.0 else 0.55
 		draw_arc(Vector2.ZERO, arc_radius, angle - half, angle + half, 24, color, 5.0 if perfect else 3.5, true)
@@ -1572,6 +1593,7 @@ func flash_white() -> void:
 	_flash_frames = 2
 
 func _play_sfx(stream: AudioStream) -> void:
+	sfx.pitch_scale = 1.0
 	sfx.stream = stream
 	sfx.play()
 

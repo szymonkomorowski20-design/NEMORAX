@@ -119,7 +119,7 @@ func _check_contact() -> void:
 		return
 	if player.is_invulnerable():
 		return
-	var bitten: bool = player.take_damage(contact_damage, global_position)
+	var bitten: bool = player.take_damage(contact_damage, global_position, true, self)
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * contact_knockback)
 	if bitten: # zablokowane ugryzienie nie karmi Głodu
