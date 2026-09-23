@@ -44,7 +44,7 @@ func _check_contact() -> void:
 	if player == null:
 		return
 	if global_position.distance_to(player.global_position) <= radius + player.radius:
-		player.take_damage(shadow_contact_damage)
+		player.take_damage(shadow_contact_damage, global_position)
 
 func _draw() -> void:
 	# Żółty kontur mówi "to zada obrażenia" (sekcja 2, punkt 2) — obie reguły

@@ -118,9 +118,9 @@ func _check_contact() -> void:
 	if global_position.distance_to(player.global_position) > radius + player.radius:
 		return
 	if player.is_invulnerable():
-		player.on_blocked_attack()
 		return
-	player.take_damage(contact_damage)
+	var bitten: bool = player.take_damage(contact_damage, global_position)
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * contact_knockback)
-	health = min(max_health, health + contact_damage * lifesteal_fraction)
+	if bitten: # zablokowane ugryzienie nie karmi Głodu
+		health = min(max_health, health + contact_damage * lifesteal_fraction)

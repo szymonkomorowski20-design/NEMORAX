@@ -24,11 +24,15 @@ var _font_size: int
 ## czcionka, żeby "osobna liczba obrażeń" faktycznie rzucała się w oczy jako
 ## COŚ WIĘCEJ niż zwykłe trafienie, nie tylko przez sam fakt drugiego pojawienia.
 static func spawn(parent: Node, world_pos: Vector2, damage: float, color: Color, is_bonus: bool = false) -> void:
+	spawn_text(parent, world_pos, str(int(round(damage))), color, is_bonus)
+
+## Ten sam unoszący się napis, ale z dowolnym tekstem (np. wynik bloku).
+static func spawn_text(parent: Node, world_pos: Vector2, text: String, color: Color, is_bonus: bool = false) -> void:
 	var number: DamageNumber = DamageNumber.new()
 	parent.add_child(number)
 	number.global_position = world_pos + Vector2(randf_range(-6.0, 6.0), 0.0)
 	number.z_index = 6 # nad postaciami/VFX ataku (5), pod HUD-em (osobny CanvasLayer)
-	number._text = str(int(round(damage)))
+	number._text = text
 	number._color = color
 	number._font_size = BONUS_FONT_SIZE if is_bonus else FONT_SIZE
 	var tween := number.create_tween()

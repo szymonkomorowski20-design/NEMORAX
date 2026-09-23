@@ -184,6 +184,7 @@ func _physics_process(delta: float) -> void:
 
 	if _flash_frames > 0:
 		_flash_frames -= 1
+	_tick_hit_recoil(delta)
 	if _skill_pose_timer > 0.0:
 		_skill_pose_timer -= delta
 	_update_sprite_state()
@@ -238,9 +239,8 @@ func _check_contact() -> void:
 	if global_position.distance_to(player.global_position) > radius + player.radius:
 		return
 	if player.is_invulnerable():
-		player.on_blocked_attack()
 		return
-	player.take_damage(contact_damage)
+	player.take_damage(contact_damage, global_position)
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * contact_knockback)
 	_play_sfx(SND_CONTACT_HIT)
@@ -280,10 +280,8 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 	if global_position.distance_to(player.global_position) > pulse_radius:
 		return false
 	if player.is_invulnerable():
-		player.on_blocked_attack()
 		return false
-	player.take_damage(damage)
-	return true
+	return player.take_damage(damage, global_position)
 
 func _pull_player(strength: float) -> void:
 	_set_skill_pose("pull")
@@ -348,10 +346,25 @@ func take_damage(amount: float) -> float:
 		_play_sfx(Palette.MATERIAL_HURT_SOUNDS[hit_material])
 	return dealt
 
+## Redukcja migotania zamienia białą pozę na krótki odskok (patrz boss.gd).
 func flash_white() -> void:
 	if Palette.reduce_flashing:
+		_hit_recoil_timer = HIT_RECOIL_TIME
 		return
 	_flash_frames = 2
+
+const HIT_RECOIL_TIME := 0.09
+const HIT_RECOIL_DISTANCE := 6.0
+var _hit_recoil_timer: float = 0.0
+
+func _tick_hit_recoil(delta: float) -> void:
+	if _hit_recoil_timer <= 0.0 and sprite.position == Vector2.ZERO:
+		return
+	_hit_recoil_timer = maxf(0.0, _hit_recoil_timer - delta)
+	var away := Vector2.ZERO
+	if player != null and is_instance_valid(player):
+		away = (global_position - player.global_position).normalized()
+	sprite.position = away * HIT_RECOIL_DISTANCE * (_hit_recoil_timer / HIT_RECOIL_TIME)
 
 func _set_skill_pose(pose_name: String) -> void:
 	_skill_pose_name = pose_name

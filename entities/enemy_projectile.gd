@@ -40,9 +40,9 @@ func _check_hit() -> void:
 	if global_position.distance_to(player.global_position) > radius + player.radius:
 		return
 	if player.is_invulnerable():
-		player.on_blocked_attack()
 		queue_free()
 		return
-	player.take_damage(damage)
+	# Źródło = skąd leci pocisk (nie jego środek, który już siedzi w graczu).
+	player.take_damage(damage, global_position - direction * 100.0)
 	Juice.play_sfx_at(SND_IMPACT, global_position)
 	queue_free()

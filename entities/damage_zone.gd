@@ -62,6 +62,5 @@ func _try_damage_player() -> void:
 	if global_position.distance_to(player.global_position) > zone_radius:
 		return
 	if player.is_invulnerable():
-		player.on_blocked_attack()
 		return
-	player.take_damage(tick_damage)
+	player.take_damage(tick_damage, global_position, false) # strefa na podłożu — tarcza nie pomaga

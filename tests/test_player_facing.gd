@@ -32,13 +32,23 @@ func test_hit_flash_faces_last_move_direction_source(root: Node) -> void:
 	NemoraxTest.assert_eq(player.sprite.flip_h, false, "side w lewo nie jest odbite")
 	_cleanup(player, root)
 
-func test_block_pose_faces_attack_direction_source(root: Node) -> void:
+func test_block_pose_faces_shield_direction_source(root: Node) -> void:
 	var player := _fresh_player(root)
 	player._block_visual_timer = 0.1
-	player._attack_direction = Vector2(0.0, 1.0) # w dół -> bucket "front"
+	player._shield_dir = Vector2(0.0, 1.0) # w dół -> bucket "front"
 	player._update_visuals()
 	NemoraxTest.assert_eq(player.sprite.texture, Player.TEX_BLOCK, "blok w dół powinien pokazać player_block.png")
 	NemoraxTest.assert_eq(player.sprite.flip_h, false, "front nigdy nie jest odbite")
+	_cleanup(player, root)
+
+## Trzymana tarcza (Paczka 3) trzyma pozę bloku przez cały czas, nie 0,15 s.
+func test_held_shield_keeps_block_pose_toward_shield(root: Node) -> void:
+	var player := _fresh_player(root)
+	player._shield_up = true
+	player._shield_dir = Vector2(0.0, -1.0) # w górę -> "back"
+	player._attack_direction = Vector2(0.0, 1.0) # celowo inny kierunek — nie ten ma decydować
+	player._update_visuals()
+	NemoraxTest.assert_eq(player.sprite.texture, Player.TEX_BLOCK_BACK, "tarcza w górę powinna pokazać player_block_back.png")
 	_cleanup(player, root)
 
 func test_heal_pose_faces_attack_direction_source(root: Node) -> void:

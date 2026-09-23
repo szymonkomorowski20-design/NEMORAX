@@ -346,6 +346,7 @@ func _physics_process(delta: float) -> void:
 
 	if _flash_frames > 0:
 		_flash_frames -= 1
+	_tick_hit_recoil(delta)
 	if _cast_pose_timer > 0.0:
 		_cast_pose_timer -= delta
 	if _rebirth_pose_timer > 0.0:
@@ -372,10 +373,9 @@ func _check_body_contact() -> void:
 	if to_player.length() > radius + player.radius:
 		return
 	if player.is_invulnerable():
-		player.on_blocked_attack()
 		return
 	var damage := (_lunge_damage_override if _lunge_damage_override >= 0.0 else lunge_damage) if _lunge_state == "active" else body_contact_damage
-	player.take_damage(damage)
+	player.take_damage(damage, global_position)
 	var dir := to_player.normalized() if to_player.length() > 0.01 else Vector2.RIGHT
 	player.apply_knockback(dir * knockback_strength)
 	_play_sfx(SND_BODY_CONTACT)
@@ -389,12 +389,11 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 	if global_position.distance_to(player.global_position) > pulse_radius:
 		return false
 	if player.is_invulnerable():
-		player.on_blocked_attack()
 		return false
-	player.take_damage(damage)
+	var hurt: bool = player.take_damage(damage, global_position)
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * knockback_strength)
-	return true
+	return hurt
 
 ## Wspólny wypad (Motion/Ruin/Sovereignty korzystają z tego samego mechanizmu,
 ## tylko z innymi parametrami) — target ustalany RAZ w chwili startu (nie
@@ -849,10 +848,27 @@ func _start_transform_invulnerability() -> void:
 func delay_next_attack(seconds: float) -> void:
 	_attack_timer = max(_attack_timer, seconds)
 
+## Biała poza trafienia. Redukcja migotania NIE usuwa reakcji (AUDYT,
+## Paczka 3): zamiast białego mignięcia sprite krótko odskakuje od gracza —
+## sygnał ruchem, nie jasnością.
 func flash_white() -> void:
 	if Palette.reduce_flashing:
+		_hit_recoil_timer = HIT_RECOIL_TIME
 		return
 	_flash_frames = 2
+
+const HIT_RECOIL_TIME := 0.09
+const HIT_RECOIL_DISTANCE := 6.0
+var _hit_recoil_timer: float = 0.0
+
+func _tick_hit_recoil(delta: float) -> void:
+	if _hit_recoil_timer <= 0.0 and sprite.position == Vector2.ZERO:
+		return
+	_hit_recoil_timer = maxf(0.0, _hit_recoil_timer - delta)
+	var away := Vector2.ZERO
+	if player != null and is_instance_valid(player):
+		away = (global_position - player.global_position).normalized()
+	sprite.position = away * HIT_RECOIL_DISTANCE * (_hit_recoil_timer / HIT_RECOIL_TIME)
 
 func start_final_phase() -> void:
 	is_dead = false

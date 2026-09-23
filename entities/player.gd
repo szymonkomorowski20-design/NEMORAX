@@ -16,6 +16,9 @@ signal died
 ## dźwięk, więc podświetlanie paska staminy byłoby czasem po prostu błędne.
 signal resource_denied(kind: String)
 signal skill_choice_ready
+## Wynik zetknięcia ciosu z tarczą: "blocked" / "perfect" / "broken" /
+## "direction" (cios z tyłu) / "unblockable" (strefa pod nogami).
+signal block_feedback(kind: String)
 
 enum State { NORMAL, DASHING, DEAD }
 
@@ -279,14 +282,31 @@ var _confirmed_primary_hits: Dictionary = {}
 var _skill_procs
 var _weave_ready_weapon: String = ""
 var _weave_timer: float = 0.0
-var _block_parry_timer: float = 0.0
+var _shield_up: bool = false
+var _shield_time: float = 0.0 ## s od podniesienia tarczy (okno idealnego bloku)
+var _shield_dir: Vector2 = Vector2.DOWN
+var _stamina_regen_delay_timer: float = 0.0
 
 # --- Blok (prawy przycisk myszy) — dodane na życzenie autora, poza dokumentem ---
-@export var block_stamina_cost_fraction: float = 0.75 ## ułamek MAX staminy zużywany na blok
-@export var block_range: float = 90.0 ## px, zasięg odepchnięcia wroga blokiem
-@export var block_knockback_strength: float = 500.0 ## px/s, siła odepchnięcia wroga blokiem
-@export var block_invuln_duration: float = 0.3 ## s nietykalności przy bloku
-@export var block_visual_duration: float = 0.15 ## s, jak długo pokazuje się poza bloku
+# Trzymana tarcza (AUDYT, sekcja C) zamiast dawnego impulsu za 75% staminy
+# z odepchnięciem 360°. Podniesienie nic nie kosztuje; płaci się za każdy
+# przyjęty cios. Za mało staminy = przełamanie gardy (pełne obrażenia).
+@export var shield_arc_degrees: float = 140.0 ## przedni łuk osłony; od tyłu brak obrony
+@export var shield_move_multiplier: float = 0.7 ## prędkość ruchu z podniesioną tarczą
+@export var shield_block_cost_base: float = 12.0
+@export var shield_block_cost_per_damage: float = 0.9 ## koszt = clamp(base + x * surowe obrażenia, min, max)
+@export var shield_block_cost_min: float = 20.0
+@export var shield_block_cost_max: float = 45.0
+@export var perfect_block_window: float = 0.15 ## s od podniesienia tarczy
+@export var perfect_block_cost_multiplier: float = 0.5
+@export var shield_block_invuln: float = 0.25 ## s po przyjętym ciosie — kontakt nie drenuje staminy co klatkę
+@export var stamina_regen_delay: float = 0.5 ## s od ostatniego wydatku staminy do startu regeneracji
+@export var block_visual_duration: float = 0.15 ## s błysku pozy po przyjętym ciosie
+@export var counter_window: float = 1.0 ## s po udanym bloku na wzmocniony pierwotny cios (E1)
+@export var counter_bonus: float = 0.25 ## +25% do JEDNEGO pierwotnego trafienia w oknie kontry
+const SHIELD_ARC_COLOR := Color("#C9D6E3")
+var _counter_timer: float = 0.0
+var _guard_break_flash: float = 0.0 ## s czerwonego łuku po przełamaniu gardy
 
 # --- Leczenie (E) — dodane na życzenie autora, poza dokumentem. System
 # "stacków": trafienia ładują pasek co heal_hits_per_stack aż do max_heal_stacks
@@ -492,7 +512,11 @@ func _physics_process(delta: float) -> void:
 	_tick_upgrade_timers(delta)
 	_dash_ring_cooldown = maxf(0.0, _dash_ring_cooldown - delta)
 	_weave_timer = maxf(0.0, _weave_timer - delta)
-	_block_parry_timer = maxf(0.0, _block_parry_timer - delta)
+	_stamina_regen_delay_timer = maxf(0.0, _stamina_regen_delay_timer - delta)
+	_counter_timer = maxf(0.0, _counter_timer - delta)
+	_guard_break_flash = maxf(0.0, _guard_break_flash - delta)
+	if _shield_up:
+		_shield_time += delta
 	_handle_weapon_switch()
 	_handle_dash_input(delta)
 	if _heal_channel_timer <= 0.0:
@@ -581,9 +605,11 @@ func _tick_out_of_combat_mana(delta: float) -> void:
 	if _out_of_combat:
 		mana = minf(max_mana, mana + mana_out_of_combat_regen * delta)
 
+## Trzymana tarcza i krótka przerwa po każdym wydatku (stamina_regen_delay)
+## wstrzymują regenerację — blok ma kosztować, a nie zwracać się sam.
 func _tick_stamina_regen(delta: float) -> void:
 	var is_spending_stamina := state == State.DASHING or (_attack_phase != "" and _swing_weapon == "sword")
-	if not is_spending_stamina:
+	if not is_spending_stamina and not _shield_up and _stamina_regen_delay_timer <= 0.0:
 		stamina = min(max_stamina, stamina + stamina_regen_rate * delta)
 
 func _is_dash_ready() -> bool:
@@ -623,6 +649,8 @@ func _handle_dash_input(delta: float) -> void:
 	_dash_direction = input_dir if input_dir.length() > 0.01 else _last_move_direction
 	state = State.DASHING
 	stamina -= dash_stamina_cost
+	_stamina_regen_delay_timer = stamina_regen_delay
+	_shield_up = false
 	_dash_timer = dash_duration
 	_dash_cooldown_timer = _effective_dash_cooldown()
 	_trail_spawn_timer = 0.0
@@ -667,6 +695,8 @@ func _process_normal_movement(delta: float) -> void:
 	var target_speed := minf(base_max_speed * 1.4, max_speed * _upgrade_speed_multiplier())
 	if _attack_phase != "":
 		target_speed *= attack_move_speed_fraction
+	if _shield_up:
+		target_speed *= shield_move_multiplier
 
 	var target_velocity := input_dir * target_speed
 
@@ -743,46 +773,91 @@ func _handle_attack_input(delta: float) -> void:
 	elif _buffered_attack_timer > 0.0:
 		_buffered_attack_timer -= delta
 
-	if _attack_phase != "" or _buffered_attack_timer <= 0.0:
+	# Przy podniesionej tarczy atak czeka w buforze — rusza po jej opuszczeniu.
+	if _attack_phase != "" or _buffered_attack_timer <= 0.0 or _shield_up:
 		return
 	if not _can_afford_attack():
 		return
 	_buffered_attack_timer = 0.0
 	_start_attack()
 
-## Blok (PPM) — dodane na życzenie autora: koszt 3/4 max staminy, odpycha
-## wszystko dookoła w zasięgu i daje krótką nietykalność (stąd "blok").
+## Trzymana tarcza (PPM). Nie podnosi się w trakcie dasha, zamachu ani
+## leczenia; atak wymaga jej opuszczenia (patrz _handle_attack_input), a dash
+## ją zdejmuje (stan DASHING). Bez staminy na najtańszy blok tarcza nie
+## wstaje — to czytelna odmowa zamiast gardy, która pęknie przy 1. ciosie.
 func _handle_block_input() -> void:
-	if state == State.DEAD:
+	var can_hold := state == State.NORMAL and _attack_phase == "" and _heal_channel_timer <= 0.0
+	if not Input.is_action_pressed("block") or not can_hold:
+		_shield_up = false
 		return
-	if not Input.is_action_just_pressed("block"):
-		return
-	var cost := max_stamina * block_stamina_cost_fraction
-	if stamina < cost:
-		_play_sfx(SND_ATTACK_DENIED)
-		resource_denied.emit("stamina")
-		return
-	stamina -= cost
-	_invuln_timer = max(_invuln_timer, block_invuln_duration)
-	_block_parry_timer = block_invuln_duration
-	_block_visual_timer = block_visual_duration
-	_play_sfx(SND_BLOCK_RAISE)
-	_perform_block_push()
+	if not _shield_up:
+		if stamina < shield_block_cost_min:
+			if Input.is_action_just_pressed("block"):
+				_play_sfx(SND_ATTACK_DENIED)
+				resource_denied.emit("stamina")
+			return
+		_shield_up = true
+		_shield_time = 0.0
+		_play_sfx(SND_BLOCK_RAISE)
+	var to_mouse := get_global_mouse_position() - global_position
+	if to_mouse.length() > 1.0:
+		_shield_dir = to_mouse.normalized()
 
-func _perform_block_push() -> void:
-	var pushed_something := false
-	var knockback_strength := block_knockback_strength * _knockback_dealt_multiplier()
-	for target in get_tree().get_nodes_in_group("hittable"):
-		var to_target: Vector2 = target.global_position - global_position
-		var target_radius: float = target.get("radius") if target.get("radius") != null else 0.0
-		if to_target.length() > block_range + target_radius:
-			continue
-		if target.has_method("apply_knockback"):
-			var dir := to_target.normalized() if to_target.length() > 0.01 else Vector2.RIGHT
-			target.apply_knockback(dir * knockback_strength)
-			pushed_something = true
-	if pushed_something:
-		_play_sfx(SND_BLOCK_PUSH_HIT)
+func is_shield_up() -> bool:
+	return _shield_up
+
+func shield_block_cost(raw_damage: float) -> float:
+	return clampf(shield_block_cost_base + shield_block_cost_per_damage * raw_damage, shield_block_cost_min, shield_block_cost_max)
+
+func _in_shield_arc(source_position: Vector2) -> bool:
+	var to_source := source_position - global_position
+	if to_source.length() < 0.01:
+		return true
+	return rad_to_deg(absf(_shield_dir.angle_to(to_source))) <= shield_arc_degrees * 0.5
+
+## true = cios zatrzymany tarczą (bez obrażeń HP). Przełamanie, zły kierunek
+## i atak nieblokowalny zwracają false — obrażenia idą normalnie, ale gracz
+## dostaje osobny sygnał, dlaczego blok nie zadziałał.
+func _try_block(amount: float, source_position: Vector2, blockable: bool) -> bool:
+	if not _shield_up:
+		return false
+	if not blockable:
+		_announce_block("unblockable")
+		return false
+	if source_position == Vector2.INF or not _in_shield_arc(source_position):
+		_announce_block("direction")
+		return false
+	var perfect := _shield_time <= perfect_block_window
+	var cost := shield_block_cost(amount) * (perfect_block_cost_multiplier if perfect else 1.0)
+	if stamina < cost:
+		stamina = 0.0
+		_stamina_regen_delay_timer = stamina_regen_delay
+		_shield_up = false
+		_guard_break_flash = 0.35
+		resource_denied.emit("stamina")
+		_announce_block("broken")
+		return false
+	stamina -= cost
+	_stamina_regen_delay_timer = stamina_regen_delay
+	_invuln_timer = maxf(_invuln_timer, shield_block_invuln)
+	_block_visual_timer = block_visual_duration
+	_counter_timer = counter_window
+	_play_sfx(SND_BLOCK_PUSH_HIT)
+	_announce_block("perfect" if perfect else "blocked")
+	if perfect and _skill_procs != null:
+		_skill_procs.counterbrand()
+	return true
+
+const BLOCK_FEEDBACK_TEXT := {
+	"blocked": "Blok", "perfect": "Idealny blok!", "broken": "Garda przełamana",
+	"direction": "Cios z tyłu", "unblockable": "Nie do zablokowania",
+}
+
+func _announce_block(kind: String) -> void:
+	block_feedback.emit(kind)
+	if get_parent() != null:
+		var color := Palette.PLAYER_BODY if kind in ["blocked", "perfect"] else RECEIVED_DAMAGE_COLOR
+		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -95.0), BLOCK_FEEDBACK_TEXT[kind], color)
 
 ## Leczenie (E) — trafienia ładują stacki (patrz register_hit_on_enemy), E
 ## zużywa JEDEN stack na naciśnięcie (nie cały bank naraz) i oddaje połowę MAX
@@ -1145,9 +1220,19 @@ func acquire_upgrade(id: String) -> bool:
 ## wliczone w `base_damage` (ustalane raz na cały zamach, patrz
 ## _compute_attack_start_damage()).
 func resolve_hit_damage(target: Node, base_damage: float) -> float:
+	var damage := base_damage
+	if _counter_timer > 0.0:
+		# Okno kontry po udanym bloku — zużywa je jedno pierwotne trafienie.
+		_counter_timer = 0.0
+		damage *= 1.0 + counter_bonus
+		if target is Node2D and get_parent() != null:
+			DamageNumber.spawn_text(get_parent(), (target as Node2D).global_position + Vector2(0.0, -60.0), "Kontra", SHIELD_ARC_COLOR, true)
 	if has_upgrade("hunters_mark"):
-		return _apply_hunters_mark(target, base_damage)
-	return base_damage
+		return _apply_hunters_mark(target, damage)
+	return damage
+
+func has_counter_ready() -> bool:
+	return _counter_timer > 0.0
 
 ## Pierwsze trafienie NIEOZNACZONEGO celu zakłada znak (bez własnego bonusu);
 ## kolejne trafienia w TEN SAM, wciąż oznaczony cel dostają +12%. Aktywny znak
@@ -1215,7 +1300,8 @@ func _fire_twin_cut(target: Node, first_damage: float, origin: Vector2, attack_i
 		return
 	var direction: Vector2 = (target.global_position - origin).normalized()
 	var scale_value := 100.0 / float(maxi(1, VFX_FOLLOWUP.get_width()))
-	AttackVfx.spawn(get_parent(), VFX_FOLLOWUP, target.global_position, 0.24, scale_value, direction.angle())
+	# A6: powrotne cięcie — łuk odbity względem pierwszego, własny dźwięk i liczba bonusowa.
+	AttackVfx.spawn(get_parent(), VFX_FOLLOWUP, target.global_position, 0.24, scale_value, direction.angle(), true)
 	apply_skill_bonus(target, first_damage * (0.55 if skill_rank("blade_twin_cut") == 1 else 0.70), attack_id, first_damage, "twin_cut")
 	play_skill_sfx(SND_SKILL_TWIN, target.global_position, -10.0, 1.10)
 	if skill_rank("blade_third_cut") > 0 and target.get("is_dead") != true:
@@ -1384,12 +1470,16 @@ func _spawn_trail_ghost() -> void:
 ## dla jednej stałej.
 const RECEIVED_DAMAGE_COLOR := Color("#D63B3B")
 
-func take_damage(amount: float) -> void:
+## source_position: skąd przyszedł cios (Vector2.INF = nieznane, tarcza go
+## nie złapie). blockable=false dla stref na podłożu, pieczęci itp.
+## Zwraca true, gdy gracz faktycznie stracił HP (np. lifesteal wroga).
+func take_damage(amount: float, source_position := Vector2.INF, blockable := true) -> bool:
 	if state == State.DEAD:
-		return
+		return false
 	if state == State.DASHING or _invuln_timer > 0.0:
-		on_blocked_attack()
-		return
+		return false
+	if _try_block(amount, source_position, blockable):
+		return false
 	health -= amount
 	_interrupt_heal_channel()
 	if _skill_procs != null:
@@ -1420,10 +1510,7 @@ func take_damage(amount: float) -> void:
 			died.emit()
 	else:
 		_play_sfx(SND_HURT[randi() % SND_HURT.size()])
-
-func on_blocked_attack() -> void:
-	if _block_parry_timer > 0.0 and _skill_procs != null:
-		_skill_procs.counterbrand()
+	return true
 
 ## Wywoływane przez Ząb Zera przy wejściu gracza w strefę.
 func lock_dash(seconds: float) -> void:
@@ -1439,6 +1526,27 @@ func is_dash_on_cooldown() -> bool:
 ## i tak zostanie zignorowane przez take_damage() (dash / miganie po obrażeniach).
 func is_invulnerable() -> bool:
 	return state == State.DASHING or _invuln_timer > 0.0
+
+## Łuk tarczy: pokazuje DOKŁADNIE osłaniany sektor (shield_arc_degrees), pod
+## sprite'em gracza (rodzic rysuje przed dziećmi), więc nie zasłania postaci.
+## Jaśniejszy w oknie idealnego bloku, czerwony chwilę po przełamaniu.
+func _draw() -> void:
+	var half := deg_to_rad(shield_arc_degrees * 0.5)
+	var arc_radius := radius + 26.0
+	if _shield_up:
+		var angle := _shield_dir.angle()
+		var perfect := _shield_time <= perfect_block_window
+		var color := SHIELD_ARC_COLOR
+		color.a = 0.95 if perfect or _block_visual_timer > 0.0 else 0.55
+		draw_arc(Vector2.ZERO, arc_radius, angle - half, angle + half, 24, color, 5.0 if perfect else 3.5, true)
+	elif _guard_break_flash > 0.0:
+		var angle := _shield_dir.angle()
+		var broken := RECEIVED_DAMAGE_COLOR
+		broken.a = clampf(_guard_break_flash / 0.35, 0.0, 1.0)
+		# Przerwany łuk = pęknięta garda (kształt, nie tylko kolor).
+		for i in 3:
+			var a0 := angle - half + (2.0 * half) * float(i) / 3.0
+			draw_arc(Vector2.ZERO, arc_radius, a0 + 0.08, a0 + (2.0 * half) / 3.0 - 0.08, 8, broken, 3.5, true)
 
 func flash_white() -> void:
 	if Palette.reduce_flashing:
@@ -1473,12 +1581,13 @@ func _apply_facing(variants: Dictionary, direction: Vector2, frame: int = 0) -> 
 ## źródłem kierunku (dokument, sekcja 2: mysz dla akcji bojowych, WASD dla
 ## chodu/dasha) — od Fazy 3-5 każdy słownik ma pełne 5 kątów.
 func _update_visuals() -> void:
+	queue_redraw() # łuk tarczy (_draw)
 	if state == State.DEAD:
 		_apply_facing(TEX_DEATH_VARIANTS, _last_move_direction)
 	elif _flash_frames > 0:
 		_apply_facing(TEX_HIT_VARIANTS, _last_move_direction)
-	elif _block_visual_timer > 0.0:
-		_apply_facing(TEX_BLOCK_VARIANTS, _attack_direction)
+	elif _shield_up or _block_visual_timer > 0.0:
+		_apply_facing(TEX_BLOCK_VARIANTS, _shield_dir)
 	elif _heal_visual_timer > 0.0:
 		_apply_facing(TEX_HEAL_VARIANTS, _attack_direction)
 	elif state == State.DASHING:
@@ -1493,7 +1602,9 @@ func _update_visuals() -> void:
 		_apply_facing(TEX_BASE_VARIANTS, _last_move_direction)
 
 	var blinking_hidden := _invuln_timer > 0.0 and int(_invuln_timer * 20.0) % 2 == 0
-	sprite.visible = not blinking_hidden
+	# Nietykalność po trafieniu pulsuje przezroczystością, ale postać nigdy
+	# nie znika całkiem — gracz zawsze widzi, gdzie stoi (AUDYT, Paczka 3).
+	sprite.modulate.a = 0.4 if blinking_hidden else 1.0
 
 	var showing_slash := _attack_phase != "" and _swing_weapon == "sword"
 	slash_arc.visible = showing_slash
