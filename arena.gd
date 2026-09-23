@@ -38,6 +38,7 @@ const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
 var _skill_draft: SkillDraft
+var _relic_draft: RelicDraft
 @onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
 var _reversal_timer: Timer
@@ -64,9 +65,11 @@ func _ready() -> void:
 	player.enter_breath_scope("arena")
 	_skill_draft = SkillDraft.new()
 	$StatsLayer.add_child(_skill_draft)
-	player.skill_choice_ready.connect(func(): _skill_draft.call_deferred("open", player))
-	if player.pending_skill_choices > 0:
-		_skill_draft.call_deferred("open", player)
+	# Decyzja autora (23.09): awans nie otwiera wyboru sam — przyciski w HUD.
+	_relic_draft = RelicDraft.new()
+	$StatsLayer.add_child(_relic_draft)
+	_relic_draft.relic_chosen.connect(func(id: String): ui.show_relic_card(id))
+	ui.reward_button_pressed.connect(_on_reward_button)
 	player.died.connect(_on_player_died)
 	# Priorytet 1, punkt 5: "wzmocnić gracza podczas bossa — minimalnie wyższy
 	# kontrast sylwetki względem podłogi... bez rozjaśniania całej areny".
@@ -106,6 +109,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		pause_menu.toggle()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_TAB:
 		stats_screen.open(player)
+	elif event.is_action_pressed("open_runes"):
+		RewardPrompt.open_runes_or_points(player, _skill_draft, stats_screen)
+	elif event.is_action_pressed("open_relic"):
+		_relic_draft.open_for(player)
 
 func _build_walls() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
@@ -397,3 +404,10 @@ func _save_progress() -> void:
 		push_warning("Arena: nie udało się zapisać postępu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
 		return
 	file.store_string(JSON.stringify(data))
+
+## Przycisk nagrody w HUD (decyzja autora 23.09) — to samo co klawisze R / Q.
+func _on_reward_button(kind: String) -> void:
+	if kind == "level":
+		RewardPrompt.open_runes_or_points(player, _skill_draft, stats_screen)
+	else:
+		_relic_draft.open_for(player)

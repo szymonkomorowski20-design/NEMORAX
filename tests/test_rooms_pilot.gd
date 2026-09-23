@@ -237,3 +237,18 @@ func test_enemies_are_pushed_out_of_obstacles(root: Node) -> void:
 	NemoraxTest.assert_true(EncounterPlan._rect_distance(obstacles[0], out) >= enemy.radius - 0.5, "wróg nie wchodzi w filar")
 	root.remove_child(enemy)
 	enemy.queue_free()
+
+## Regresja: seed 378 dawał mapę bez ołtarza (próby nie dało się ukończyć).
+func test_every_seed_gives_a_completable_map(_root: Node) -> void:
+	for s in 400:
+		GameFlow.reset_run(s)
+		var souls := 0
+		var altars := 0
+		for pos in GameFlow.room_map:
+			var t: int = GameFlow.room_map[pos]["type"]
+			if t == GameFlow.RoomType.SOUL:
+				souls += 1
+			elif t == GameFlow.RoomType.ALTAR:
+				altars += 1
+		NemoraxTest.assert_true(souls == 6 and altars == 1, "seed %d: dusze %d, ołtarz %d" % [s, souls, altars])
+	GameFlow.reset_run()

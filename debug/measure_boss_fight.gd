@@ -122,8 +122,8 @@ func _tick() -> void:
 	var cutscene = arena.cutscene
 	if cutscene.visible:
 		cutscene._skip_all_requested = true
-	if arena._skill_draft != null and arena._skill_draft.visible:
-		arena._skill_draft._choose(0) # awans pauzuje grę oknem wyboru runy
+	while player.pending_skill_choices > 0 and not player.ensure_skill_offer().is_empty(): # wybór odłożony (HUD) — bot bierze pierwszą ofertę
+		player.choose_skill(player.ensure_skill_offer()[0])
 	if paused:
 		return
 	active_time += STEP

@@ -131,6 +131,13 @@ var _rng := RandomNumberGenerator.new()
 ## Podpisy ostatnich walk W KOLEJNOŚCI ODWIEDZANIA — reguła "bez trzech
 ## podobnych walk pod rząd" (EncounterPlan.would_repeat_three).
 var recent_encounters: Array[String] = []
+## Intencja startowa próby (Paczka 6, pilotaż E3): "" = jeszcze nie wybrana,
+## "ostrze" / "rozdzka" / "kontra" albo "brak" (gracz pominął wybór).
+var run_intent: String = ""
+
+func set_run_intent(intent: String) -> void:
+	run_intent = intent
+	_save_progress()
 
 func _ready() -> void:
 	_setup_fade_overlay()
@@ -189,7 +196,27 @@ func _transition(apply: Callable) -> void:
 ## Rozrost losowego błądzenia od pokoju startowego (24 RANDOM), potem 6 SOUL +
 ## 1 ALTAR dołączone jako ślepe zaułki do już postawionych pokoi — dokładnie
 ## jedno połączenie każdy, żeby czuły się jak cel, a nie przystanek.
+## Mapa musi być kompletna (6 dusz + ołtarz) — rzadko (ok. 1 na 500 seedów)
+## zabrakło miejsca na ślepy zaułek dla ołtarza i próby nie dało się ukończyć.
+## Kolejne losowanie z tego samego ziarna, więc seed dalej odtwarza mapę.
 func _generate_map() -> void:
+	for attempt in 50:
+		_generate_map_once()
+		if _map_is_complete():
+			return
+	push_error("GameFlow: nie udało się wygenerować kompletnej mapy (seed %d)" % run_seed)
+
+func _map_is_complete() -> bool:
+	var souls := 0
+	var altars := 0
+	for pos in room_map:
+		if room_map[pos]["type"] == RoomType.SOUL:
+			souls += 1
+		elif room_map[pos]["type"] == RoomType.ALTAR:
+			altars += 1
+	return souls == CHAPTER_COUNT and altars == 1
+
+func _generate_map_once() -> void:
 	room_map.clear()
 	visited_rooms.clear()
 	current_room_pos = Vector2i.ZERO
@@ -390,6 +417,9 @@ func capture_player_state(player: Player) -> void:
 		"skill_ranks": player.skill_ranks.duplicate(),
 		"pending_skill_choices": player.pending_skill_choices,
 		"skill_offers": player.skill_offers.duplicate(),
+		"skill_offer_count": player.skill_offer_count,
+		"skill_rerolls": player.skill_rerolls,
+		"pending_relic_offers": player.pending_relic_offers.duplicate(),
 		"second_breath_used": player._second_breath_used,
 		"second_breath_scope": player._second_breath_scope,
 	}
@@ -415,6 +445,9 @@ func apply_player_state(player: Player) -> void:
 	player.pending_skill_choices = int(saved_player_state.get("pending_skill_choices", 0))
 	player.skill_offers.clear()
 	player.skill_offers.assign(saved_player_state.get("skill_offers", []))
+	player.skill_offer_count = int(saved_player_state.get("skill_offer_count", 0))
+	player.skill_rerolls = int(saved_player_state.get("skill_rerolls", 1))
+	player.pending_relic_offers.assign(saved_player_state.get("pending_relic_offers", []))
 	player._second_breath_used = bool(saved_player_state.get("second_breath_used", false))
 	player._second_breath_scope = str(saved_player_state.get("second_breath_scope", ""))
 	player._recompute_effective_stats()
@@ -517,6 +550,7 @@ func reset_run(seed_value: int = -1) -> void:
 	fragments_collected.clear()
 	saved_player_state.clear()
 	recent_encounters.clear()
+	run_intent = ""
 	reached_arena = false
 	_begin_seed(seed_value)
 	_generate_map()
@@ -557,6 +591,7 @@ func _load_progress() -> bool:
 		run_seed = int(data["seed"])
 		_rng.seed = run_seed
 	recent_encounters.assign(data.get("recent_encounters", []))
+	run_intent = str(data.get("run_intent", "brak"))
 	var pos_data: Dictionary = data.get("current_room_pos", {})
 	current_room_pos = Vector2i(int(pos_data.get("x", 0)), int(pos_data.get("y", 0)))
 	var dir_data: Dictionary = data.get("entry_direction", {})
@@ -596,6 +631,7 @@ func _save_progress() -> void:
 		"saved_player_state": saved_player_state,
 		"seed": run_seed,
 		"recent_encounters": recent_encounters,
+		"run_intent": run_intent,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:

@@ -140,6 +140,13 @@ const RELIC_DESCRIPTIONS := {
 	"last_resolve": "Przy niskim zdrowiu: więcej obrażeń i szybszy atak.",
 	"soul_bond": "Podniesienie duszy daje chwilowy, tematyczny bonus.",
 }
+## A14: jedna lokalizacja — polskie nazwy relikwii we wszystkich widokach.
+const RELIC_NAMES := {
+	"blood_edge": "Krwawe Ostrze", "void_step": "Krok Otchłani", "soul_echo": "Echo Duszy",
+	"iron_heart": "Żelazne Serce", "razor_wind": "Brzytwa Wiatru", "hunters_mark": "Znak Łowcy",
+	"second_impact": "Drugie Uderzenie", "momentum": "Rozpęd", "last_resolve": "Ostatnia Wola",
+	"soul_bond": "Więź Dusz",
+}
 const RELIC_CARD_BG := Color(0.06, 0.05, 0.09, 0.88)
 const RELIC_CARD_BORDER := Color("#E8C547") ## złoto — "złoto wyłącznie dla nagród"
 var _relic_card_id: String = ""
@@ -408,6 +415,7 @@ func _draw() -> void:
 	_draw_relic_card()
 	_draw_heal_stack_count()
 	_draw_xp_bar()
+	_draw_reward_buttons()
 	_draw_player_hp_text()
 	_draw_boss_name_and_phase()
 	_draw_boss_hp_text()
@@ -473,13 +481,53 @@ func _draw_boss_hp_text() -> void:
 func _draw_xp_bar() -> void:
 	if player == null or hide_all or _overlay_active:
 		return
-	var ratio: float = clamp(player.xp / player.xp_per_level, 0.0, 1.0) if player.level < player.max_level else 1.0
+	# Paczka 6 (A12): prawdziwy próg (2/3/4 XP, player.xp_ratio()), nie stałe
+	# xp_per_level — dawny pasek pokazywał zły postęp. Na maksymalnym
+	# poziomie pełny pasek i "MAX" zamiast pustki.
+	var at_max := player.level >= player.max_level
+	var ratio: float = 1.0 if at_max else clampf(player.xp_ratio(), 0.0, 1.0)
 	draw_rect(Rect2(_xp_bar_pos, xp_bar_size), XP_BAR_BG, true)
 	draw_rect(Rect2(_xp_bar_pos, Vector2(xp_bar_size.x * ratio, xp_bar_size.y)), XP_BAR_FILL, true)
 	var font := ThemeDB.fallback_font
-	var label := "Lv %d" % player.level
+	var label := "Poz. %d · MAX" % player.level if at_max else "Poz. %d" % player.level
 	draw_string(font, _xp_bar_pos + Vector2(xp_bar_size.x + 8.0, xp_bar_size.y + 2.0), label,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+
+## Decyzja autora (23.09): po awansie i po skrzyni wybór NIE otwiera się sam.
+## Dwa przyciski nad relikwiarzem przypominają o nim do skutku (pulsujące
+## złoto = nagroda), klikane albo z klawisza R / Q.
+signal reward_button_pressed(kind: String) ## "level" albo "relic"
+const REWARD_BUTTON_SIZE := Vector2(300.0, 28.0)
+var _reward_button_rects: Dictionary = {}
+
+func _draw_reward_buttons() -> void:
+	_reward_button_rects.clear()
+	if player == null or hide_all or _overlay_active:
+		return
+	var buttons: Array = []
+	var level_text := RewardPrompt.level_label(player)
+	if level_text != "":
+		buttons.append(["level", "[%s] %s" % [Keybinds.display_for("open_runes"), level_text]])
+	if not player.pending_relic_offers.is_empty():
+		buttons.append(["relic", "[%s] Relikwia do wyboru" % Keybinds.display_for("open_relic")])
+	var font := ThemeDB.fallback_font
+	var pulse := 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() / 400.0))
+	var y := _xp_bar_pos.y - RELIQUARY_PADDING - 6.0
+	for b in buttons:
+		y -= REWARD_BUTTON_SIZE.y + 4.0
+		var rect := Rect2(Vector2(_xp_bar_pos.x - RELIQUARY_PADDING, y), REWARD_BUTTON_SIZE)
+		_reward_button_rects[b[0]] = rect
+		draw_rect(rect, Color(0.08, 0.06, 0.03, 0.88), true)
+		draw_rect(rect, Color(RELIC_CARD_BORDER, pulse), false, 2.0)
+		draw_string(font, rect.position + Vector2(10.0, 19.0), b[1], HORIZONTAL_ALIGNMENT_LEFT, REWARD_BUTTON_SIZE.x - 16.0, 15, Color("#F1E4B8"))
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		for kind in _reward_button_rects:
+			if (_reward_button_rects[kind] as Rect2).has_point(get_local_mouse_position()):
+				reward_button_pressed.emit(kind)
+				get_viewport().set_input_as_handled()
+				return
 
 ## Minimapa w stylu "The Binding of Isaac" (na życzenie autora) — siatka 2D z
 ## game_flow.gd zamiast dawnej liniowej sekwencji. Bieżący pokój zawsze
@@ -580,7 +628,7 @@ func _draw_relic_card() -> void:
 	var texture: Texture2D = RELIC_ICONS.get(_relic_card_id)
 	if texture == null:
 		return
-	var title: String = String(Player.UPGRADE_LABELS.get(_relic_card_id, _relic_card_id)).to_upper()
+	var title: String = String(RELIC_NAMES.get(_relic_card_id, _relic_card_id)).to_upper()
 	var description: String = RELIC_DESCRIPTIONS.get(_relic_card_id, "")
 	var font := ThemeDB.fallback_font
 	var title_font_size := 20

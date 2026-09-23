@@ -98,7 +98,7 @@ const SND_ROOM_CLEAR := preload("res://assets/audio/sfx/p0/AMB_ROOM_CLEAR.wav")
 @onready var pause_menu: PauseMenu = $PauseLayer/PauseMenu
 @onready var stats_screen: StatsScreen = $StatsLayer/StatsScreen
 var _skill_draft: SkillDraft
-var _relic_draft: Control
+var _relic_draft: RelicDraft
 @onready var music: AudioStreamPlayer = $Music
 @onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
@@ -172,9 +172,10 @@ func _ready() -> void:
 	$StatsLayer.add_child(_skill_draft)
 	_relic_draft = RelicDraftScript.new()
 	$StatsLayer.add_child(_relic_draft)
-	player.skill_choice_ready.connect(func(): _skill_draft.call_deferred("open", player))
-	if player.pending_skill_choices > 0:
-		_skill_draft.call_deferred("open", player)
+	# Decyzja autora (23.09): awans i skrzynia NIE otwierają wyboru same —
+	# HUD pokazuje przyciski (R: runa/punkty, Q: relikwia) do skutku.
+	_relic_draft.relic_chosen.connect(_on_relic_chosen)
+	ui.reward_button_pressed.connect(_on_reward_button)
 
 	ui.player = player
 	ui.show_minimap = true
@@ -211,6 +212,17 @@ func _ready() -> void:
 			_spawn_doors_for_open_directions()
 			if not GameFlow.has_seen_prolog():
 				_play_prolog()
+			if GameFlow.run_intent == "" and get_tree().current_scene == self:
+				_offer_intent()
+
+## Intencja startowa (Paczka 6) — raz na próbę, po prologu.
+func _offer_intent() -> void:
+	await get_tree().process_frame
+	while is_instance_valid(cutscene) and cutscene.visible:
+		await get_tree().process_frame
+	var select := IntentSelect.new()
+	$StatsLayer.add_child(select)
+	select.open()
 
 ## Krok 8: tytuł banera wejścia do pokoju. SOUL pokazuje imię wcielenia
 ## (GameFlow.INCARNATION_NAMES, ta sama lista co INCARNATION_DEATH_LINES niżej
@@ -283,6 +295,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		pause_menu.toggle()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_TAB:
 		stats_screen.open(player)
+	elif event.is_action_pressed("open_runes"):
+		RewardPrompt.open_runes_or_points(player, _skill_draft, stats_screen)
+	elif event.is_action_pressed("open_relic"):
+		_relic_draft.open_for(player)
+
+func _on_relic_chosen(id: String) -> void:
+	ui.show_relic_card(id)
+	GameFlow.capture_player_state(player)
+	GameFlow._save_progress()
 
 func _random_group_count() -> int:
 	if _room_data.get("type") != GameFlow.RoomType.RANDOM:
@@ -484,14 +505,17 @@ func _maybe_spawn_chest() -> void:
 	chest.opened.connect(_on_chest_opened)
 	chest.selection_requested.connect(_on_chest_selection_requested.bind(chest))
 	add_child(chest)
-	var saved_room: Array = GameFlow.saved_player_state.get("pending_chest_room", [])
-	if saved_room == [GameFlow.current_room_pos.x, GameFlow.current_room_pos.y]:
-		var offers: Array[String] = []
-		offers.assign(GameFlow.saved_player_state.get("pending_chest_offers", []))
-		chest.call_deferred("resume_offer", offers)
+	# Niedokończona oferta nie wisi już na skrzyni — skrzynia oddaje ją
+	# graczowi (Player.pending_relic_offers) i zapis trzyma ją w stanie gracza.
 
+## Skrzynia oddaje ofertę graczowi i zostaje otwarta — wybór relikwii
+## gracz robi, kiedy chce (Q / przycisk w HUD), także w innym pokoju.
 func _on_chest_selection_requested(offers: Array[String], chest: Chest) -> void:
-	_relic_draft.call_deferred("open", chest, offers)
+	player.pending_relic_offers.assign(offers)
+	chest.hand_over()
+	GameFlow.mark_chest_opened()
+	GameFlow.capture_player_state(player)
+	GameFlow._save_progress()
 
 ## Krok 4/8: "karta relikwii w dolnej/środkowej części ekranu — ikona, nazwa,
 ## jedno zdanie efektu" — zastępuje dawny zwykły tekstowy toast.
@@ -542,3 +566,10 @@ func _restart_run_from_scratch() -> void:
 func _exit_to_menu_from_death() -> void:
 	GameFlow.reset_run()
 	get_tree().change_scene_to_file("res://menu.tscn")
+
+## Przycisk nagrody w HUD (decyzja autora 23.09) — to samo co klawisze R / Q.
+func _on_reward_button(kind: String) -> void:
+	if kind == "level":
+		RewardPrompt.open_runes_or_points(player, _skill_draft, stats_screen)
+	else:
+		_relic_draft.open_for(player)

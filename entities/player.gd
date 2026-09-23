@@ -997,12 +997,46 @@ func xp_required_for_next_level() -> float:
 func skill_rank(id: String) -> int:
 	return int(skill_ranks.get(id, 0))
 
+## Paczka 6/7: oferta z ziarna próby (te same decyzje = te same karty),
+## z gwarancją karty dla bieżącej broni i lekkim ukierunkowaniem intencji.
+var skill_offer_count: int = 0 ## ile ofert już wylosowano w tej próbie (zapisywane)
+var skill_rerolls: int = 1 ## jeden przerzut oferty na próbę (pilotaż E3)
+
+func _offer_rng(salt: int = 0) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash([GameFlow.run_seed, "skill_offer", skill_offer_count, salt])
+	return r
+
 func ensure_skill_offer() -> Array[String]:
 	if pending_skill_choices <= 0:
 		return []
 	if skill_offers.is_empty():
-		skill_offers = SkillCatalog.roll_offer(skill_ranks, level)
+		skill_offers = SkillCatalog.roll_offer(skill_ranks, level, _offer_rng(), current_weapon, GameFlow.run_intent,
+			skill_offer_count < SkillCatalog.INTENT_GUIDED_OFFERS)
+		skill_offer_count += 1
 	return skill_offers
+
+## Odłożony wybór relikwii (decyzja autora 23.09): otwarta skrzynia oddaje
+## ofertę graczowi; wybiera ją, kiedy chce (HUD pokazuje przycisk do skutku).
+var pending_relic_offers: Array[String] = []
+
+func has_pending_rewards() -> bool:
+	return pending_skill_choices > 0 or unspent_stat_points > 0 or not pending_relic_offers.is_empty()
+
+func choose_relic(id: String) -> bool:
+	if id not in pending_relic_offers or not acquire_upgrade(id):
+		return false
+	pending_relic_offers.clear()
+	return true
+
+## Jedna korekta na próbę: nowa trójka, w miarę możliwości bez obecnych kart.
+func reroll_skill_offer() -> bool:
+	if skill_rerolls <= 0 or pending_skill_choices <= 0:
+		return false
+	var previous := skill_offers.duplicate()
+	skill_rerolls -= 1
+	skill_offers = SkillCatalog.roll_offer(skill_ranks, level, _offer_rng(1), current_weapon, "", false, previous)
+	return true
 
 func choose_skill(id: String) -> bool:
 	if pending_skill_choices <= 0 or id not in ensure_skill_offer():
@@ -1015,6 +1049,28 @@ func choose_skill(id: String) -> bool:
 	if id == "guard_iron_skin":
 		health = minf(max_health, health + max_health - old_max)
 	return true
+
+## Paczka 6 (A12): co da JEDEN punkt w statystyce — liczone tą samą funkcją
+## (_recompute_effective_stats) co prawdziwy awans, więc ekran nie kłamie.
+func stat_point_preview(stat_key: String) -> String:
+	var before := _stat_snapshot()
+	stat_points[stat_key] += 1
+	_recompute_effective_stats()
+	var after := _stat_snapshot()
+	stat_points[stat_key] -= 1
+	_recompute_effective_stats()
+	match stat_key:
+		"health": return "Maks. życie %.0f → %.0f" % [before["hp"], after["hp"]]
+		"stamina": return "Maks. stamina %.0f → %.0f" % [before["st"], after["st"]]
+		"mana": return "Maks. mana %.0f → %.0f  (strzał kosztuje %.0f)" % [before["mp"], after["mp"], _wand_mana_cost()]
+		"damage": return "Miecz %.1f → %.1f  ·  Różdżka %.1f → %.1f" % [before["sw"], after["sw"], before["wd"], after["wd"]]
+		"speed": return "Ruch %.0f → %.0f px/s" % [before["mv"], after["mv"]]
+		"stamina_regen": return "Regeneracja staminy %.1f → %.1f /s" % [before["rg"], after["rg"]]
+	return ""
+
+func _stat_snapshot() -> Dictionary:
+	return {"hp": max_health, "st": max_stamina, "mp": max_mana, "sw": attack_damage, "wd": wand_damage,
+		"mv": minf(base_max_speed * 1.4, max_speed * _upgrade_speed_multiplier()), "rg": stamina_regen_rate}
 
 ## Wywoływane z ui/stats_screen.gd po naciśnięciu Enter na wybranej statystyce.
 ## Zwraca false (i nic nie robi), jeśli nie ma punktów do wydania.

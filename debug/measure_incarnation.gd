@@ -88,8 +88,8 @@ func _tick() -> void:
 	if not is_instance_valid(enemy) or enemy.is_dead:
 		running = false
 		return
-	if room._skill_draft != null and room._skill_draft.visible:
-		room._skill_draft._choose(0)
+	while player.pending_skill_choices > 0 and not player.ensure_skill_offer().is_empty():
+		player.choose_skill(player.ensure_skill_offer()[0])
 	if paused:
 		return
 	active_time += STEP

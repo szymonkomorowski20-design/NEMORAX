@@ -118,6 +118,18 @@ func choose(id: String) -> bool:
 	get_tree().create_timer(OPEN_LINGER_SECONDS).timeout.connect(queue_free)
 	return true
 
+## Oferta przekazana graczowi (wybór odłożony, decyzja autora 23.09):
+## skrzynia się otwiera i znika, relikwię gracz wybierze później.
+func hand_over() -> void:
+	_choosing = false
+	_opened = true
+	sprite.texture = TEX_OPEN
+	sprite.scale = Vector2(BASE_SPRITE_SCALE, BASE_SPRITE_SCALE)
+	queue_redraw()
+	Juice.play_sfx_at(SND_OPEN[randi() % SND_OPEN.size()], global_position)
+	if is_inside_tree():
+		get_tree().create_timer(OPEN_LINGER_SECONDS).timeout.connect(queue_free)
+
 func _draw() -> void:
 	if _opened:
 		return
