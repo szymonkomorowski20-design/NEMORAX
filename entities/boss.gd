@@ -329,6 +329,9 @@ var vision: VisionOverlay = null
 var _dark_alpha: float = 1.0
 var _contact_shadow: Node2D = null
 const DARK_MIN_ALPHA := 0.0
+const RUNE_RING_SEGMENTS := 12
+const RUNE_RING_SPIN := 0.25 ## rad/s — powolny obrót kręgu runicznego (A9)
+var _rune_ring_angle: float = 0.0
 
 func _apply_darkness() -> void:
 	var target := 1.0
@@ -350,6 +353,7 @@ func _physics_process(delta: float) -> void:
 		queue_redraw()
 		return
 
+	_rune_ring_angle = fmod(_rune_ring_angle + RUNE_RING_SPIN * delta, TAU)
 	_record_player_position()
 	_time_since_hit += delta
 	_check_body_contact()
@@ -1021,6 +1025,20 @@ func _draw() -> void:
 	for i in range(3, 0, -1):
 		var glow_alpha := (0.16 if telegraphing else 0.09) * float(i)
 		draw_arc(Vector2.ZERO, base_radius + float(i) * 3.0, 0.0, TAU, 40, Color(ring_color, glow_alpha * ring_alpha_scale), 6.0)
-	var core_width := 5.0 if telegraphing else 2.5
-	var core_alpha := 0.85 if telegraphing else 0.5
-	draw_arc(Vector2.ZERO, base_radius, 0.0, TAU, 40, Color(ring_color, core_alpha * ring_alpha_scale), core_width)
+	if telegraphing:
+		# Zagrożenie: pełna, gruba linia — czytelność ponad klimat.
+		draw_arc(Vector2.ZERO, base_radius, 0.0, TAU, 40, Color(ring_color, 0.85), 5.0)
+		return
+	# A9 (Paczka 10): poza telegrafem krąg jest RUNICZNY, nie idealnym kolorowym
+	# okręgiem — łuki z przerwami i krótkie nacięcia run, powoli obracające się.
+	# Promień (hitbox) bez zmian.
+	var core := Color(ring_color, 0.5 * ring_alpha_scale)
+	var turn := _rune_ring_angle
+	for s in RUNE_RING_SEGMENTS:
+		var a0 := turn + TAU * float(s) / RUNE_RING_SEGMENTS
+		var a1 := a0 + TAU / RUNE_RING_SEGMENTS * 0.72
+		draw_arc(Vector2.ZERO, base_radius, a0, a1, 8, core, 2.5)
+		var mid := (a0 + a1) * 0.5
+		var dir := Vector2.from_angle(mid)
+		var tick := 5.0 if s % 3 == 0 else 3.0
+		draw_line(dir * (base_radius - tick), dir * (base_radius + tick), core, 1.5)

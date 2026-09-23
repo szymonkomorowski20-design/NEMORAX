@@ -35,12 +35,12 @@ const INCARNATION_ADVICE := [
 	"Orryx: w czasie zniknięcia ruszaj się, nie czekaj w miejscu.",
 ]
 const PHASE_ADVICE := [
-	"Motion: czytaj tor wypadu i schodź z niego w bok, nie do tyłu.",
-	"Force: bez dźwięku patrz na pozy bossa — pieczęcie świecą przed wybuchem.",
-	"Instinct: dash ma dłuższy cooldown — oszczędzaj go na zmyłki.",
-	"Dominion: przyciąganie ciągnie do bossa — idź pod prąd i zbijaj dodatki.",
-	"Ruin: długie serie — cofnij się po pierwszym ciosie, zanim przyjdzie łańcuch.",
-	"Sovereignty: w mroku boss znika poza kręgiem — nasłuchuj telegrafu i trzymaj dystans.",
+	"Ruch: czytaj tor wypadu i schodź z niego w bok, nie do tyłu.",
+	"Siła: bez dźwięku patrz na pozy bossa — pieczęcie świecą przed wybuchem.",
+	"Instynkt: dash ma dłuższy cooldown — oszczędzaj go na zmyłki.",
+	"Dominium: przyciąganie ciągnie do bossa — idź pod prąd i zbijaj dodatki.",
+	"Ruina: długie serie — cofnij się po pierwszym ciosie, zanim przyjdzie łańcuch.",
+	"Władza: w mroku boss znika poza kręgiem — nasłuchuj telegrafu i trzymaj dystans.",
 ]
 
 ## Opis sprawcy ostatniego ciosu (Player.take_damage zapisuje go w last_hit_source).
@@ -62,7 +62,7 @@ static func advice(result: String, cause: String, phase_index: int = -1) -> Stri
 	if result == "victory":
 		if PactCatalog.choice() != "":
 			var other := PactCatalog.ZWIAZ if PactCatalog.is_cleansed() else PactCatalog.OCZYSC
-			return "Następnym razem wybierz drugi Pakt Mordratha (%s) — faza Force zagra inaczej." % PactCatalog.OPTIONS[other]["name"]
+			return "Następnym razem wybierz drugi Pakt Mordratha (%s) — faza Siła zagra inaczej." % PactCatalog.OPTIONS[other]["name"]
 		if GameFlow.loop_level == 0:
 			return "Odblokowana Pętla Otchłani I — włącz ją przy wyborze intencji (L)."
 		return "Spróbuj innej intencji startowej i innej broni jako głównej."

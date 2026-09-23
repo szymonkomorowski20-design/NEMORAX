@@ -87,6 +87,9 @@ const MINIMAP_VISIT_MARK_COLOR := Color(0.69, 0.83, 0.82, 0.90) ## czytelna krop
 const MINIMAP_GOAL_COLOR := Color("#E8C547") ## złoto — WYŁĄCZNIE Ołtarz, jedyny "cel/boss" na mapie
 
 const BOSS_NAME := "Nemorax"
+const CENTER_FONT_BANNER := preload("res://assets/fonts/Cinzel-SemiBold.woff")
+const CENTER_FONT_LINE := preload("res://assets/fonts/EBGaramond-Medium.woff")
+const CENTER_TEXT_COLOR := Color("#EDE3CF") ## pergamin — spójny z kartami, nie czysta biel
 
 @export var player_bar_size: Vector2 = Vector2(200.0, 20.0)
 @export var resource_bar_size: Vector2 = Vector2(200.0, 8.0)
@@ -465,14 +468,19 @@ func _draw_player_hp_text() -> void:
 func _draw_boss_name_and_phase() -> void:
 	if boss == null or not (boss is Boss) or hide_all or _overlay_active:
 		return
-	var font := ThemeDB.fallback_font
+	var font: Font = CENTER_FONT_BANNER
 	var phase_name := ""
 	if boss.phase_index >= 0 and boss.phase_index < Palette.PHASE_NAMES.size():
 		phase_name = Palette.PHASE_NAMES[boss.phase_index]
+	# A14: nazwa fazy nie wisi dwa razy na górze — gdy baner fazy jest na
+	# ekranie, pasek bossa pokazuje samo imię.
+	if phase_name != "" and _center_message == phase_name:
+		phase_name = ""
 	var label := "%s — %s" % [BOSS_NAME, phase_name] if phase_name != "" else BOSS_NAME
 	var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18)
 	var pos := _boss_bar_pos + Vector2(ARENA_WIDTH * 0.5 - text_size.x * 0.5, boss_bar_height + 22.0)
-	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
+	draw_string_outline(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Color(0.03, 0.02, 0.05, 0.8))
+	draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, CENTER_TEXT_COLOR)
 
 ## Audyt UI, punkt "ile HP ma boss" — pod nazwą/fazą, żeby razem czytały się
 ## jako jedna jednostka zamiast trzech niepowiązanych napisów.
@@ -664,11 +672,19 @@ func _draw_center_message() -> void:
 	# przez całą sekwencję finałową i epilog zwycięstwa, pod dialogiem cutscenki.
 	if _center_message == "" or hide_all or _overlay_active:
 		return
-	var font := ThemeDB.fallback_font
-	var font_size := _center_message_font_size
-	var text_size := font.get_string_size(_center_message, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-	var pos := Vector2((size.x - text_size.x) * 0.5, size.y * 0.16)
-	draw_string(font, pos, _center_message, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Palette.HIT_FLASH)
+	# A15 (Paczka 10): czcionki gry zamiast systemowej, pergamin zamiast czystej
+	# bieli, ciemny obrys (czytelne nad walką, nie "naklejone"). Baner fazy —
+	# Cinzel, kwestie/tytuły komnat — Garamond, mniejsze. Wieloliniowe OK.
+	var is_banner := _center_message_font_size >= form_name_font_size
+	var font: Font = CENTER_FONT_BANNER if is_banner else CENTER_FONT_LINE
+	var font_size := _center_message_font_size if is_banner else _center_message_font_size - 2
+	var lines := _center_message.split("\n")
+	var alpha := clampf(_center_message_timer / 0.35, 0.0, 1.0) # łagodne zejście
+	for i in lines.size():
+		var text_size := font.get_string_size(lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+		var pos := Vector2((size.x - text_size.x) * 0.5, size.y * 0.16 + i * font_size * 1.3)
+		draw_string_outline(font, pos, lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Color(0.03, 0.02, 0.05, 0.85 * alpha))
+		draw_string(font, pos, lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(CENTER_TEXT_COLOR, alpha))
 
 ## Krok 4/8: "karta relikwii w dolnej/środkowej części ekranu — ikona, nazwa,
 ## jedno konkretne zdanie efektu", zastępuje dawny czysty tekst "Zdobyto

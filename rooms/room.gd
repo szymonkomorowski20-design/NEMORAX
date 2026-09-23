@@ -161,6 +161,7 @@ func _ready() -> void:
 	# bezpośrednim testem (loop_mode wychodził 0 mimo poprawnego .import).
 	track.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	music.stream = track
+	music.add_to_group(Juice.MUSIC_GROUP) # Paczka 10: ściszanie pod telegrafami
 	music.play()
 
 	var center := _play_rect.get_center()

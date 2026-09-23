@@ -179,10 +179,23 @@ func apply_hit(target: Node, damage: float, hitstop_duration: float = boss_hit_h
 ## zakończeniu — do obiektów, które znikają (queue_free()) w tej samej klatce,
 ## w której powinien zabrzmieć ich dźwięk (pocisk, pieczęć, dusza itd.), więc
 ## własny AudioStreamPlayer2D obiektu zniknąłby razem z dźwiękiem.
+## Paczka 10 (A16): liczne źródła tego samego dźwięku (fala pocisków, kilku
+## wrogów ginących naraz) nie sumują się w hałas — najwyżej MAX_SAME_SFX
+## kopii naraz, każda kolejna ciszej o SAME_SFX_STEP_DB.
+const MAX_SAME_SFX := 3
+const SAME_SFX_STEP_DB := -3.0
+var _active_sfx: Dictionary = {}
+
 func play_sfx_at(stream: AudioStream, world_position: Vector2, bus: String = "SFX") -> void:
+	var playing := int(_active_sfx.get(stream, 0))
+	if playing >= MAX_SAME_SFX:
+		return
+	_active_sfx[stream] = playing + 1
 	var player := AudioStreamPlayer2D.new()
 	player.stream = stream
 	player.bus = bus
+	player.volume_db = SAME_SFX_STEP_DB * playing
+	player.tree_exiting.connect(_release_sfx.bind(stream))
 	player.global_position = world_position
 	# current_scene może być null (np. testy bez realnej sceny, albo w trakcie
 	# przejścia między scenami) — root jako zapasowy rodzic zamiast crasha.
@@ -190,6 +203,13 @@ func play_sfx_at(stream: AudioStream, world_position: Vector2, bus: String = "SF
 	parent.add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
+
+func _release_sfx(stream: AudioStream) -> void:
+	var left := int(_active_sfx.get(stream, 1)) - 1
+	if left <= 0:
+		_active_sfx.erase(stream)
+	else:
+		_active_sfx[stream] = left
 
 ## Jak play_sfx_at(), ale bez pozycji w świecie i na busie "UI" zamiast "SFX"
 ## — do menu/pauzy/opcji/ekranu klawiszy/ekranu statystyk, gdzie nie ma
@@ -209,6 +229,29 @@ func play_ui_sfx(stream: AudioStream) -> void:
 ## pojedynczym ruchu kursora.
 func play_ui_sfx_variant(streams: Array) -> void:
 	play_ui_sfx(streams[randi() % streams.size()])
+
+## Paczka 10 (A16): muzyka ustępuje zapowiedzi ataku — krótkie ściszenie
+## odtwarzaczy muzyki (grupa MUSIC_GROUP), by telegraf był słyszalny. Na
+## poziomie WĘZŁA, nie busa: głośność busa to ustawienie gracza (options_screen
+## ją zapisuje), więc nie wolno jej tu ruszać.
+const MUSIC_GROUP := "music"
+const MUSIC_DUCK_DB := -8.0
+var _duck_tween: Tween = null
+var music_duck_db: float = 0.0:
+	set(value):
+		music_duck_db = value
+		for m in get_tree().get_nodes_in_group(MUSIC_GROUP):
+			m.volume_db = value
+
+func duck_music(hold: float = 0.6) -> void:
+	if get_tree().get_nodes_in_group(MUSIC_GROUP).is_empty():
+		return
+	if _duck_tween != null and _duck_tween.is_valid():
+		_duck_tween.kill()
+	_duck_tween = create_tween()
+	_duck_tween.tween_property(self, "music_duck_db", MUSIC_DUCK_DB, 0.08)
+	_duck_tween.tween_interval(hold)
+	_duck_tween.tween_property(self, "music_duck_db", 0.0, 0.5)
 
 func _process(delta: float) -> void:
 	if debug_visible:

@@ -37,7 +37,7 @@ func test_phase_hp_scales_by_documented_multipliers(root: Node) -> void:
 	_cleanup(boss, root)
 
 func test_phase_names_match_document(_root: Node) -> void:
-	NemoraxTest.assert_eq(Palette.PHASE_NAMES, ["Motion", "Force", "Instinct", "Dominion", "Ruin", "Sovereignty"], "nazwy faz powinny być z dokumentu sekcja 13")
+	NemoraxTest.assert_eq(Palette.PHASE_NAMES, ["Ruch", "Siła", "Instynkt", "Dominium", "Ruina", "Władza"], "polskie nazwy faz (A14), znaczenie z dokumentu sekcja 13")
 
 func test_low_health_speeds_up_attack_tempo(root: Node) -> void:
 	var boss := _fresh_boss(root)

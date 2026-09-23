@@ -143,6 +143,7 @@ const SND_WAND_CHARGE := preload("res://assets/audio/sfx/gracz/P10_wand_charge.w
 const SND_WAND_FIRE := preload("res://assets/audio/sfx/gracz/P11_wand_fire.wav")
 const SND_BLOCK_RAISE := preload("res://assets/audio/sfx/gracz/P13_block_raise.wav")
 const SND_BLOCK_PUSH_HIT := preload("res://assets/audio/sfx/gracz/P14_block_push_hit.wav")
+const GUARD_BREAK_PITCH := 0.55
 const SND_HEAL_USE := preload("res://assets/audio/sfx/gracz/P16_heal_use.wav")
 const SND_HEAL_CHARGE_TICK := preload("res://assets/audio/sfx/gracz/P18_heal_charge_tick.wav")
 const SND_HEAL_READY := preload("res://assets/audio/sfx/gracz/P19_heal_ready.wav")
@@ -867,6 +868,10 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool, attack
 		_stamina_regen_delay_timer = stamina_regen_delay
 		_shield_up = false
 		_guard_break_flash = 0.35
+		# Paczka 10: przełamanie gardy ma własny, niski dźwięk (zastępczo P14 z
+		# obniżoną wysokością — docelowy plik na liście brakujących assetów).
+		# Osobny odtwarzacz — dźwięk bólu tuż po nim nie może go uciąć.
+		play_skill_sfx(SND_BLOCK_PUSH_HIT, global_position, -2.0, GUARD_BREAK_PITCH)
 		resource_denied.emit("stamina")
 		_announce_block("broken")
 		return false
@@ -904,6 +909,8 @@ const BLOCK_FEEDBACK_TEXT := {
 
 func _announce_block(kind: String) -> void:
 	block_feedback.emit(kind)
+	if kind in ["broken", "direction", "unblockable"]:
+		Juice.duck_music(0.3) # A16: nieudany blok przebija muzykę
 	if get_parent() != null:
 		var color := Palette.PLAYER_BODY if kind in ["blocked", "parry"] else RECEIVED_DAMAGE_COLOR
 		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -95.0), BLOCK_FEEDBACK_TEXT[kind], color)

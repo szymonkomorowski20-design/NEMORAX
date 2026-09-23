@@ -16,12 +16,12 @@ const OPTIONS := {
 	OCZYSC: {
 		"name": "Oczyść ciszę",
 		"now": "+20 maks. staminy — więcej bloków i dashy.",
-		"finale": "Faza Force NIE wycisza dźwięku: usłyszysz zapowiedzi Nemoraksa.",
+		"finale": "Faza Siła NIE wycisza dźwięku: usłyszysz zapowiedzi Nemoraksa.",
 	},
 	ZWIAZ: {
 		"name": "Zwiąż ciszę",
 		"now": "Parowanie wywołuje falę ciszy: wrogowie w 160 px przerywają atak na 1,2 s.",
-		"finale": "Faza Force dostaje nowy atak: pierścień pieczęci z jedną luką — wyjdź przez lukę.",
+		"finale": "Faza Siła dostaje nowy atak: pierścień pieczęci z jedną luką — wyjdź przez lukę.",
 	},
 }
 

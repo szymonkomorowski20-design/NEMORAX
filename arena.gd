@@ -364,10 +364,9 @@ func _on_player_died() -> void:
 	ui.show_run_summary(entry)
 	_game_over_kind = "death"
 
-const PHASE_NAMES_PL := ["Motion", "Force", "Instinct", "Dominion", "Ruin", "Sovereignty"]
 
 func _stage_label() -> String:
-	var phase := "mała forma" if boss.is_final_phase else "faza %s" % PHASE_NAMES_PL[clampi(boss.phase_index, 0, 5)]
+	var phase := "mała forma" if boss.is_final_phase else "faza %s" % Palette.PHASE_NAMES[clampi(boss.phase_index, 0, 5)]
 	var hp := roundi(100.0 * boss.health / maxf(boss.max_health, 1.0))
 	return "Nemorax — %s (%d%% HP)   ·   Próba: %d" % [phase, hp, _attempts()]
 

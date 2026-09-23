@@ -359,6 +359,7 @@ func _check_contact() -> void:
 func _start_telegraph() -> void:
 	_telegraph_active = true
 	_play_sfx(SND_TELEGRAPH)
+	Juice.duck_music(_effective_telegraph_duration())
 	await get_tree().create_timer(_effective_telegraph_duration()).timeout
 	_telegraph_active = false
 	if not is_dead and not _actions_blocked():

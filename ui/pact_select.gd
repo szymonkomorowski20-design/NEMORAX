@@ -89,7 +89,7 @@ func _draw() -> void:
 		draw_string(FONT_TITLE, card.position + Vector2(22, 46), str(data["name"]), HORIZONTAL_ALIGNMENT_LEFT, CARD_SIZE.x - 44.0, 26, accent)
 		draw_string(FONT_BODY, card.position + Vector2(22, 92), "Teraz, w tej próbie:", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#93879c"))
 		draw_multiline_string(FONT_BODY, card.position + Vector2(22, 120), str(data["now"]), HORIZONTAL_ALIGNMENT_LEFT, CARD_SIZE.x - 44.0, 21, -1, Color("#f1eaf6"))
-		draw_string(FONT_BODY, card.position + Vector2(22, 208), "W finale (faza Force):", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#93879c"))
+		draw_string(FONT_BODY, card.position + Vector2(22, 208), "W finale (faza Siła):", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#93879c"))
 		draw_multiline_string(FONT_BODY, card.position + Vector2(22, 236), str(data["finale"]), HORIZONTAL_ALIGNMENT_LEFT, CARD_SIZE.x - 44.0, 21, -1, accent)
 		draw_string(FONT_BODY, card.position + Vector2(22, CARD_SIZE.y - 18.0), "%d — wybierz" % [i + 1], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#93879c"))
 	var hint := "Strzałki / Enter · 1–2 · kliknięcie" + ("   ·   Esc — później" if can_postpone else "   ·   wybór wymagany przed rytuałem")

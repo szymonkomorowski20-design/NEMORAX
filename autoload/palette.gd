@@ -76,13 +76,16 @@ const PHASE_COLORS := [
 	Color("#E8C547"), # Sovereignty — złoto, kulminacja
 ]
 
+## A14 (Paczka 10): jedna lokalizacja — polskie nazwy faz na ekranie.
+## Kolejność i znaczenie jak w dokumencie (Motion/Force/Instinct/Dominion/
+## Ruin/Sovereignty); nazwy do potwierdzenia przez autora.
 const PHASE_NAMES := [
-	"Motion",
-	"Force",
-	"Instinct",
-	"Dominion",
-	"Ruin",
-	"Sovereignty",
+	"Ruch",
+	"Siła",
+	"Instynkt",
+	"Dominium",
+	"Ruina",
+	"Władza",
 ]
 
 func _ready() -> void:
