@@ -72,3 +72,12 @@ func test_seal_flashes_after_explosion_once(root: Node) -> void:
 	NemoraxTest.assert_almost_eq(player.health, hp2, 0.01, "rozbłysk nie rani drugi raz")
 	_cleanup(seal, root)
 	_cleanup(player, root)
+
+## A4: arena ma obraz sali jak pokoje, a wewnętrzna krawędź muru leży dokładnie
+## na dotychczasowej granicy ruchu — kolizje i geometria walki bez zmian.
+func test_arena_visual_wraps_unchanged_play_rect(_root: Node) -> void:
+	var arena = load("res://arena.gd").new()
+	var outer: Rect2 = arena._finale_visual_rect()
+	NemoraxTest.assert_eq(IntegratedRoomVisual.play_rect(outer), arena.ARENA_RECT, "wnętrze muru = ARENA_RECT (kolizje bez zmian)")
+	NemoraxTest.assert_true(ResourceLoader.exists(IntegratedRoomVisual.ART_ROOT + arena.FINALE_THEME + "/room_preview.png"), "grafika sali finału istnieje")
+	arena.free()

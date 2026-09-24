@@ -121,6 +121,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("open_relic"):
 		_relic_draft.open_for(player)
 
+const FINALE_THEME := "blood_ritual_hall" ## ciemny kamień sali rytuału — ten sam świat co pokoje
+const CORRUPTION_DEPTH := 120.0 ## px spaczenia od krawędzi posadzki ku środkowi
+const CORRUPTION_COLOR := Color(0.42, 0.12, 0.62, 0.30)
+
+func _finale_visual_rect() -> Rect2:
+	var inset: Dictionary = IntegratedRoomVisual.WALL_INNER_INSET
+	return Rect2(ARENA_RECT.position - Vector2(inset["left"], inset["top"]),
+		ARENA_RECT.size + Vector2(inset["left"] + inset["right"], inset["top"] + inset["bottom"]))
+
+## Fioletowe spaczenie Nemoraksa: gradient od krawędzi posadzki do środka.
+func _draw_corruption(canvas: Node2D) -> void:
+	# Kolejne ramki o malejącej alfie: najmocniej przy murze, nic w środku.
+	var steps := 12
+	var band := CORRUPTION_DEPTH / steps
+	for i in steps:
+		var inner := ARENA_RECT.grow(-band * i - band * 0.5)
+		var a := CORRUPTION_COLOR.a * pow(1.0 - float(i) / steps, 2.0)
+		canvas.draw_rect(inner, Color(CORRUPTION_COLOR, a), false, band)
+
 func _build_walls() -> void:
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
 	# Priorytet 1 (TERAZ_DLA_CLAUDE_ARENA_UI_I_FEELING.md): FLOOR_TEXTURE to
@@ -129,8 +148,24 @@ func _build_walls() -> void:
 	# entities/arena_stone_shader.gd przemalowuje to na ciemny obsydian z JEDNYM
 	# przygaszonym fioletowym akcentem i winietą wyciszającą pęknięcia bliżej
 	# środka areny — tylko tutaj, zwykłe pokoje/ołtarz zostają bez zmian.
-	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE, ArenaStoneShader.build_floor_material(ARENA_RECT))
-	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE, WALL_MODULATE)
+	# Drugi audyt (A4): arena była osobnym, gładkim fioletowym polem. Teraz ten
+	# sam system co pokoje — zintegrowana sala z murem i zapieczętowanymi
+	# bramami — a spaczenie Nemoraksa to lokalna warstwa przy krawędziach
+	# posadzki (środek spokojny do walki). Obraz jest rozciągnięty o grubość muru
+	# tak, by wewnętrzna krawędź muru leżała DOKŁADNIE na ARENA_RECT — kolizje
+	# i cała geometria walki bez zmian.
+	var visual := IntegratedRoomVisual.new()
+	add_child(visual)
+	if visual.configure(_finale_visual_rect(), FINALE_THEME):
+		Walls.build(self, ARENA_RECT, WALL_THICKNESS) # tylko kolizje; wygląd w IntegratedRoomVisual
+		var corruption := Node2D.new()
+		corruption.z_index = -9 # nad posadzką (-10), pod murem (-5)
+		corruption.draw.connect(_draw_corruption.bind(corruption))
+		add_child(corruption)
+	else:
+		visual.queue_free()
+		Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE, ArenaStoneShader.build_floor_material(ARENA_RECT))
+		Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE, WALL_MODULATE)
 	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
 	atmosphere.configure(ARENA_RECT)
 	add_child(atmosphere)
