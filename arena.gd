@@ -25,6 +25,22 @@ const VOID_BACKGROUND := preload("res://assets/sprites/pokoje/tekstury/void_back
 const FLOOR_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_floor.png")
 const WALL_TEXTURE := preload("res://assets/sprites/pokoje/tekstury/altar_wall.png")
 const RoomAtmosphereScene := preload("res://rooms/room_atmosphere.gd")
+const PHASE_MUSIC: Array[AudioStream] = [
+	preload("res://assets/audio/music/MUS_nemorax_phase_1.mp3"),
+	preload("res://assets/audio/music/MUS_nemorax_phase_2.mp3"),
+	preload("res://assets/audio/music/MUS_nemorax_phase_3.mp3"),
+	preload("res://assets/audio/music/MUS_nemorax_phase_4.mp3"),
+	preload("res://assets/audio/music/MUS_nemorax_phase_5.mp3"),
+	preload("res://assets/audio/music/MUS_nemorax_phase_6.mp3"),
+]
+const MUSIC_SMALL_FORM := preload("res://assets/audio/music/MUS_nemorax_small_form.mp3")
+const MUSIC_VICTORY := preload("res://assets/audio/music/MUS_victory_epilog.mp3")
+const MUSIC_DEFEAT := preload("res://assets/audio/music/MUS_defeat.mp3")
+const SND_TWIST := preload("res://assets/audio/music/STINGER_twist.mp3")
+const SND_DARKNESS_START := preload("res://assets/audio/sfx/nemorax/N20_darkness_start.mp3")
+const SND_DARKNESS_LOOP := preload("res://assets/audio/sfx/nemorax/N20_darkness_loop.mp3")
+const SND_DARKNESS_END := preload("res://assets/audio/sfx/nemorax/N20_darkness_end.mp3")
+const SND_BOSS_BREATH := preload("res://assets/audio/sfx/nemorax/N21_boss_breath_loop.mp3")
 ## Ta sama zasada co rooms/room.gd i rooms/altar.gd (KIERUNEK_WIZUALNY_REFERENCJE.md).
 const WALL_MODULATE := Color(0.45, 0.45, 0.52, 1.0)
 const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
@@ -51,6 +67,8 @@ var _relic_draft: RelicDraft
 var _reversal_timer: Timer
 
 var boss: Boss
+var _darkness_audio: AudioStreamPlayer
+var _breath_audio: AudioStreamPlayer2D
 
 var deaths: int = 0
 var wins: int = 0
@@ -64,6 +82,7 @@ func _ready() -> void:
 	# Wyciszenie z fazy Cisza jest globalnym stanem silnika, więc świeży start
 	# (restart po śmierci) musi je jawnie zdjąć — inaczej zostałoby z poprzedniej próby.
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), false)
+	Juice.play_music(PHASE_MUSIC[0])
 
 	_load_progress()
 	_build_walls()
@@ -95,6 +114,13 @@ func _ready() -> void:
 	boss.global_position = ARENA_RECT.get_center() - Vector2(0, 150)
 	boss.phase_changed.connect(_on_boss_phase_changed)
 	boss.died.connect(_on_boss_died)
+	_breath_audio = AudioStreamPlayer2D.new()
+	_breath_audio.stream = SND_BOSS_BREATH
+	_breath_audio.bus = "SFX"
+	_breath_audio.volume_db = -14.0
+	var breath_stream: AudioStreamMP3 = SND_BOSS_BREATH
+	breath_stream.loop = true
+	boss.add_child(_breath_audio)
 
 	ui.player = player
 	ui.boss = boss
@@ -182,20 +208,25 @@ const PHASE_TRANSITION_LINES := {
 }
 
 func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) -> void:
+	Juice.play_music(PHASE_MUSIC[clampi(phase_index, 0, PHASE_MUSIC.size() - 1)])
+	if phase_index != 5:
+		_stop_darkness_audio()
 	player.gain_xp() # spójne z pokojami — traktujemy każdą pokonaną fazę jak "pokonanego przeciwnika"
 	if rule_name != "":
 		ui.show_form_name(rule_name)
 	if PHASE_TRANSITION_LINES.has(phase_index):
 		_show_phase_line_after_name(PHASE_TRANSITION_LINES[phase_index])
 	match phase_index:
-		1: # Force (dawniej Cisza) — dźwięk wyciszony do końca walki. Nazwa/grafika
+		1: # Force (dawniej Cisza) — muzyka milknie na czas tej fazy. Nazwa/grafika
 			# fazy się zmieniły (CLAUDE_CODE_GAME_CONTENT_BIBLE.md sekcja 13), ta
 			# reguła "łamania zasad" (poza dokumentem) zostaje na tym samym indeksie.
 			# Pakt "Oczyść ciszę" (Paczka 8): zapowiedziana, prostsza wersja fazy.
 			if PactCatalog.is_cleansed():
 				_show_phase_line_after_name("Oczyszczona cisza nie ma nad tobą władzy.")
 			else:
-				AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), true)
+				# Cisza dotyczy muzyki, nie informacji bojowej: SFX/telegrafy
+				# muszą pozostać słyszalne, aby faza była uczciwa.
+				AudioServer.set_bus_mute(AudioServer.get_bus_index("Music"), true)
 		2: # Instinct (dawniej Zwłoka) — dash_cooldown x2
 			player.dash_cooldown *= 2.0
 		3: # Dominion (dawniej Ciężar) — stałe przyciąganie w stronę bossa
@@ -204,6 +235,28 @@ func _on_boss_phase_changed(phase_index: int, _color: Color, rule_name: String) 
 		5: # Sovereignty (dawniej Zaćmienie) — ciemność poza kręgiem wokół gracza
 			vision_overlay.activate(player, ARENA_RECT)
 			boss.vision = vision_overlay # boss chowa się w mroku poza kręgiem
+			Juice.play_sfx_at(SND_DARKNESS_START, boss.global_position)
+			_darkness_audio = AudioStreamPlayer.new()
+			_darkness_audio.stream = SND_DARKNESS_LOOP
+			var darkness_stream: AudioStreamMP3 = SND_DARKNESS_LOOP
+			darkness_stream.loop = true
+			_darkness_audio.bus = "SFX"
+			_darkness_audio.volume_db = -12.0
+			_darkness_audio.process_mode = Node.PROCESS_MODE_ALWAYS
+			add_child(_darkness_audio)
+			_darkness_audio.play()
+			_breath_audio.play()
+
+func _stop_darkness_audio() -> void:
+	if _darkness_audio != null:
+		_darkness_audio.stop()
+		_darkness_audio.queue_free()
+		_darkness_audio = null
+		Juice.play_cutscene_sfx(SND_DARKNESS_END)
+
+func _exit_tree() -> void:
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Music"), false)
+	Juice.stop_music()
 
 ## show_form_name i show_taunt piszą do tego samego pola w ui.gd
 ## (_center_message) — pokazanie kwestii RAZEM z banerem nazwy fazy zjadłoby
@@ -222,6 +275,11 @@ func _on_boss_died(is_final: bool) -> void:
 ## scena całej gry (PLAN_CUTSCENEK.md 2.3, gdzie żyje cały twist): ciało "znika",
 ## chwila ciszy, wraca mała forma z pytaniem finałowym, zanim zdąży zaatakować.
 func _play_big_form_death() -> void:
+	_stop_darkness_audio()
+	if _breath_audio != null:
+		_breath_audio.stop()
+	Juice.stop_music()
+	Juice.play_cutscene_sfx(SND_TWIST)
 	ui.hide_for_cutscene()
 
 	# Jedna klatka bez pauzy pozwala boss._physics_process() przetworzyć
@@ -272,6 +330,7 @@ func _play_big_form_death() -> void:
 	# Mała forma się wyłania — mechanika bez zmian (start_final_phase itd.),
 	# tylko teraz w środku sceny zamiast przed nią.
 	boss.start_final_phase()
+	Juice.play_music(MUSIC_SMALL_FORM)
 	boss.global_position = ARENA_RECT.get_center()
 
 	var beat3 := DialogueBeat.new()
@@ -344,6 +403,10 @@ func _clear_boss_hazards() -> void:
 
 func _finish_victory() -> void:
 	_battle_over = true
+	_stop_darkness_audio()
+	if _breath_audio != null:
+		_breath_audio.stop()
+	Juice.play_music(MUSIC_VICTORY, false)
 	_clear_boss_hazards()
 	var is_first_win := wins == 0
 	wins += 1
@@ -396,6 +459,10 @@ func _on_player_died() -> void:
 	if _battle_over:
 		return
 	_battle_over = true
+	_stop_darkness_audio()
+	if _breath_audio != null:
+		_breath_audio.stop()
+	Juice.play_music(MUSIC_DEFEAT, false)
 	deaths += 1
 	_save_progress()
 	# Krok 9: "najpierw widoczny moment porażki: 0,15s hit-stop, ciało/

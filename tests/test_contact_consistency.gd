@@ -28,11 +28,11 @@ func _texts(holder: Node2D) -> Array:
 			out.append(c._text)
 	return out
 
-func _pitches_2d(holder: Node2D) -> Array:
+func _sounds_2d(holder: Node2D) -> Array:
 	var out: Array = []
 	for c in holder.get_children():
 		if c is AudioStreamPlayer2D:
-			out.append(snappedf(c.pitch_scale, 0.01))
+			out.append(c.stream.resource_path if c.stream != null else "")
 	return out
 
 func _prepare(player: Player, shield: bool, parry: bool, stamina: float) -> void:
@@ -45,15 +45,15 @@ func _prepare(player: Player, shield: bool, parry: bool, stamina: float) -> void
 	player._parry_ready = parry
 
 ## [nazwa, tarcza, parowanie, stamina, kierunek źródła, blokowalny,
-##  wynik w logu, napis, wysokość osobnego dźwięku (-1 = brak), HP spada?, stamina po]
+##  wynik w logu, napis, osobny plik dźwięku ("" = brak), HP spada?, stamina po]
 const CASES := [
-	["przód-blok", true, false, 100.0, Vector2(80, 0), true, "blok", "Blok", -1.0, false, "koszt"],
-	["parowanie", true, true, 100.0, Vector2(80, 0), true, "parowanie", "Parowanie!", -1.0, false, "bez zmian"],
-	["bok", true, false, 100.0, Vector2(0, 80), true, "poza tarczą — bok", "Z boku — poza tarczą", 1.9, true, "bez zmian"],
-	["tył", true, false, 100.0, Vector2(-80, 0), true, "poza tarczą — tył", "Z tyłu — poza tarczą", 1.9, true, "bez zmian"],
-	["nieblokowalny", true, false, 100.0, Vector2(80, 0), false, "nieblokowalny", "Nie do zablokowania", -1.0, true, "bez zmian"],
-	["przełamanie", true, false, 10.0, Vector2(80, 0), true, "przełamanie gardy", "Garda przełamana", 0.55, true, "zero"],
-	["bez tarczy", false, false, 100.0, Vector2(80, 0), true, "trafienie", "", -1.0, true, "bez zmian"],
+	["przód-blok", true, false, 100.0, Vector2(80, 0), true, "blok", "Blok", "", false, "koszt"],
+	["parowanie", true, true, 100.0, Vector2(80, 0), true, "parowanie", "Parowanie!", "", false, "bez zmian"],
+	["bok", true, false, 100.0, Vector2(0, 80), true, "poza tarczą — bok", "Z boku — poza tarczą", "res://assets/audio/sfx/gracz/P16_block_slip.mp3", true, "bez zmian"],
+	["tył", true, false, 100.0, Vector2(-80, 0), true, "poza tarczą — tył", "Z tyłu — poza tarczą", "res://assets/audio/sfx/gracz/P16_block_slip.mp3", true, "bez zmian"],
+	["nieblokowalny", true, false, 100.0, Vector2(80, 0), false, "nieblokowalny", "Nie do zablokowania", "", true, "bez zmian"],
+	["przełamanie", true, false, 10.0, Vector2(80, 0), true, "przełamanie gardy", "Garda przełamana", "res://assets/audio/sfx/gracz/P15_guard_break.mp3", true, "zero"],
+	["bez tarczy", false, false, 100.0, Vector2(80, 0), true, "trafienie", "", "", true, "bez zmian"],
 ]
 
 func test_ten_contacts_per_class_all_channels_agree(root: Node) -> void:
@@ -71,7 +71,7 @@ func test_ten_contacts_per_class_all_channels_agree(root: Node) -> void:
 			player.take_damage(DAMAGE, player.global_position + c[4], c[5], null, "test")
 			var e: Dictionary = Juice.player_hits[-1] if not Juice.player_hits.is_empty() else {}
 			var texts := _texts(holder)
-			var pitches := _pitches_2d(holder)
+			var sounds := _sounds_2d(holder)
 			if e.get("outcome", "") != c[6]:
 				mismatches.append("%s #%d: log %s zamiast %s" % [c[0], i, e.get("outcome", "?"), c[6]])
 			if c[7] != "" and not texts.has(c[7]):
@@ -80,8 +80,8 @@ func test_ten_contacts_per_class_all_channels_agree(root: Node) -> void:
 				mismatches.append("%s #%d: HP %s" % [c[0], i, "nie spadło" if c[9] else "spadło"])
 			if bool(c[9]) and not texts.has(str(int(DAMAGE))):
 				mismatches.append("%s #%d: brak liczby obrażeń" % [c[0], i])
-			if float(c[8]) > 0.0 and not pitches.has(snappedf(float(c[8]), 0.01)):
-				mismatches.append("%s #%d: brak dźwięku o wysokości %.2f (są %s)" % [c[0], i, c[8], pitches])
+			if str(c[8]) != "" and not sounds.has(c[8]):
+				mismatches.append("%s #%d: brak dźwięku %s (są %s)" % [c[0], i, c[8], sounds])
 			match c[10]:
 				"koszt":
 					if absf((st - player.stamina) - player.shield_block_cost(DAMAGE)) > 0.01:

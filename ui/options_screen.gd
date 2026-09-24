@@ -108,6 +108,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		Juice.play_ui_sfx_variant(Juice.SND_UI_CONFIRM)
 		_activate_selected()
 	elif event.is_action_pressed("ui_cancel"):
+		# Zatrzymaj Escape, zanim panel powiadomi menu i odsłoni je ponownie.
+		get_viewport().set_input_as_handled()
 		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		visible = false
 		_save_settings()

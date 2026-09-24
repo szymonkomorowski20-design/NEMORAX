@@ -35,6 +35,7 @@ const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 const SOCKET_TEXTURE := preload("res://assets/sprites/pokoje/obiekty/altar_socket.png")
 const SND_ALTAR_OPEN := preload("res://assets/audio/sfx/p0/UI_ALTAR_OPEN.wav")
 const SND_ALTAR_POINT := preload("res://assets/audio/sfx/p0/UI_ALTAR_POINT.wav")
+const MUSIC_ALTAR := preload("res://assets/audio/music/MUS_altar_ritual.mp3")
 const SOCKET_SPRITE_SCALE := 0.054
 const SOCKET_FILLED_BRIGHTNESS := 1.6 ## mnożnik modulate przy aktywacji — "ten sam obrazek z dodanym blaskiem" (brak dedykowanej grafiki "zapełnione")
 
@@ -63,6 +64,7 @@ var state: AltarState = AltarState.LOCKED
 var _sockets: Array[Sprite2D] = []
 
 func _ready() -> void:
+	Juice.play_music(MUSIC_ALTAR)
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
 	Walls.build_floor(self, ARENA_RECT, FLOOR_TEXTURE)
 	Walls.build(self, ARENA_RECT, WALL_THICKNESS, WALL_TEXTURE, WALL_MODULATE)
@@ -141,6 +143,8 @@ func _physics_process(_delta: float) -> void:
 ## PauseMenu, ten węzeł MUSI dostać PROCESS_MODE_ALWAYS, żeby przeżyć własną pauzę.
 func _begin_activation() -> void:
 	state = AltarState.ACTIVATING
+	Juice.stop_music()
+	Juice.play_music(MUSIC_ALTAR) # początek narastania zgodny z początkiem rytuału
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Gracz dochodzi do pedestału w ~0,5 s, a "Wszystkie fragmenty…" wisi 4 s —
 	# pauza zamrażała ten komunikat i cały HUD pod dialogiem rytuału.

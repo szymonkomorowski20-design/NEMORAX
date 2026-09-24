@@ -31,11 +31,11 @@ func test_guard_break_plays_its_own_sound(root: Node) -> void:
 	var found := false
 	for i in range(before, root.get_child_count()):
 		var n := root.get_child(i)
-		if n is AudioStreamPlayer2D and is_equal_approx(n.pitch_scale, Player.GUARD_BREAK_PITCH):
+		if n is AudioStreamPlayer2D and n.stream == Player.SND_GUARD_BREAK:
 			found = true
 			_cleanup(n, root)
 			break
-	NemoraxTest.assert_true(found, "przełamanie gardy ma osobny, niski dźwięk (nie ucina go dźwięk bólu)")
+	NemoraxTest.assert_true(found, "przełamanie gardy odtwarza osobny plik P15 (nie ucina go dźwięk bólu)")
 	_cleanup(player, root)
 
 func test_music_ducks_and_recovers(root: Node) -> void:

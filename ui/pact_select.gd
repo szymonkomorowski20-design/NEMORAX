@@ -57,11 +57,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func _gui_input(event: InputEvent) -> void:
-	if visible and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if not visible:
+		return
+	if event is InputEventMouseMotion:
+		for i in ORDER.size():
+			if _card_rect(i).has_point(event.position):
+				if selected != i:
+					selected = i
+					queue_redraw()
+				return
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		for i in 2:
 			if _card_rect(i).has_point(event.position):
-				_pick(ORDER[i])
 				accept_event()
+				_pick(ORDER[i])
 				return
 
 func _card_rect(i: int) -> Rect2:

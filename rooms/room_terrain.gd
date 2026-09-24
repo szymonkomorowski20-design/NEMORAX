@@ -8,8 +8,8 @@ class_name RoomTerrain
 ## Wszystko rysuje się POD postaciami (z_index -3), więc teren nigdy nie
 ## zasłania gracza ani telegrafów.
 
-const SND_PRESS_TELEGRAPH := preload("res://assets/audio/sfx/p0/ENEMY_TELEGRAPH_2.wav")
-const SND_PRESS_SLAM := preload("res://assets/audio/sfx/nemorax/N04_seal_explosion.wav")
+const SND_PRESS_TELEGRAPH := preload("res://assets/audio/sfx/swiat/W10_trap_press_warn.mp3")
+const SND_PRESS_SLAM := preload("res://assets/audio/sfx/swiat/W11_trap_press_slam.mp3")
 const SND_SHELF_FALL := preload("res://assets/audio/sfx/nemorax/N14_body_contact.wav")
 const SND_BOUNCE := preload("res://assets/audio/sfx/p0/ENEMY_HIT_2.wav")
 
@@ -201,15 +201,17 @@ func _draw_water() -> void:
 	# Mokry kamień: nieregularny ciemny pas po obu stronach brzegu.
 	for side in [-1.0, 1.0]:
 		var y_edge := r.position.y if side < 0.0 else r.end.y
-		var pts := PackedVector2Array()
 		var x := r.position.x
-		while x <= r.end.x + 0.1:
-			var wobble := 5.0 + 4.0 * sin(x * 0.043 + side * 1.7) + 3.0 * sin(x * 0.11)
-			pts.append(Vector2(x, y_edge + side * wobble))
-			x += 24.0
-		pts.append(Vector2(r.end.x, y_edge))
-		pts.append(Vector2(r.position.x, y_edge))
-		draw_colored_polygon(pts, WET_STONE)
+		while x < r.end.x:
+			var next_x := minf(x + 24.0, r.end.x)
+			var w0 := maxf(1.0, 5.0 + 4.0 * sin(x * 0.043 + side * 1.7) + 3.0 * sin(x * 0.11))
+			var w1 := maxf(1.0, 5.0 + 4.0 * sin(next_x * 0.043 + side * 1.7) + 3.0 * sin(next_x * 0.11))
+			# Wąskie, wypukłe czworokąty nie przecinają własnej krawędzi.
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(x, y_edge), Vector2(next_x, y_edge),
+				Vector2(next_x, y_edge + side * w1), Vector2(x, y_edge + side * w0)
+			]), WET_STONE)
+			x = next_x
 	# Tafla: pasy z gradientem na brzegach zamiast twardego prostokąta.
 	# Drugi audyt (C2): przejście jest WYŚRODKOWANE na granicy spowolnienia —
 	# na samej krawędzi slow_lane woda jest już w połowie widoczna, więc

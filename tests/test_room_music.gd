@@ -23,15 +23,17 @@ func _diag(room: Node, root: Node) -> String:
 	return " [pauza=%s, prolog_widziany=%s, typ=%s, stream=%s]" % [root.get_tree().paused, GameFlow.has_seen_prolog(), room._room_data.get("type"), room.music.stream != null]
 
 func test_room_assigns_a_looping_pool_track(root: Node) -> void:
+	GameFlow.reset_run()
 	GameFlow.mark_prolog_seen()
 	var room := _fresh_room(root)
 	NemoraxTest.assert_true(room.music.stream != null, "room.gd powinien przypisać jakiś utwór w _ready()")
 	NemoraxTest.assert_true(room.music.stream in room.ROOM_MUSIC_TRACKS, "przypisany utwór musi pochodzić z puli ROOM_MUSIC_TRACKS")
-	NemoraxTest.assert_eq(room.music.stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "utwory pokoju muszą się zapętlać (loop_mode=1 w imporcie)")
+	NemoraxTest.assert_true((room.music.stream as AudioStreamMP3).loop, "utwory pokoju muszą się zapętlać")
 	NemoraxTest.assert_true(room.ui.show_minimap, "room.gd powinien włączyć minimapę w UI (arena.gd jej nie włącza)")
 	_cleanup(room, root)
 
 func test_room_music_actually_starts(root: Node) -> void:
+	GameFlow.reset_run()
 	GameFlow.mark_prolog_seen()
 	root.get_tree().paused = false
 	var room := _fresh_room(root)
@@ -59,7 +61,7 @@ func test_music_pool_has_enough_tracks_to_feel_random(_root: Node) -> void:
 	# starczy goła instancja skryptu, żeby sprawdzić samą pulę.
 	var room: Node = load("res://rooms/room.gd").new()
 	var tracks: Array = room.ROOM_MUSIC_TRACKS
-	NemoraxTest.assert_true(tracks.size() >= 8, "pula utworów pokoju powinna mieć sensowną różnorodność (>=8), jest %d" % tracks.size())
+	NemoraxTest.assert_true(tracks.size() >= 4, "pula nowych utworów eksploracji powinna mieć 4 pozycje, jest %d" % tracks.size())
 	var unique := {}
 	for t in tracks:
 		unique[t.resource_path] = true

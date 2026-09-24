@@ -143,6 +143,9 @@ const SND_WAND_CHARGE := preload("res://assets/audio/sfx/gracz/P10_wand_charge.w
 const SND_WAND_FIRE := preload("res://assets/audio/sfx/gracz/P11_wand_fire.wav")
 const SND_BLOCK_RAISE := preload("res://assets/audio/sfx/gracz/P13_block_raise.wav")
 const SND_BLOCK_PUSH_HIT := preload("res://assets/audio/sfx/gracz/P14_block_push_hit.wav")
+const SND_GUARD_BREAK := preload("res://assets/audio/sfx/gracz/P15_guard_break.mp3")
+const SND_BLOCK_SLIP := preload("res://assets/audio/sfx/gracz/P16_block_slip.mp3")
+const SND_PARRY := preload("res://assets/audio/sfx/gracz/P17_parry.mp3")
 const GUARD_BREAK_PITCH := 0.55
 
 ## Audyt nagrania 24.09 (P0.1): czytelność sylwetki. Stały, subtelny obrys
@@ -876,7 +879,7 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool, attack
 		if source_position != Vector2.INF and absf(_shield_dir.angle_to(source_position - global_position)) < deg_to_rad(115.0):
 			_last_block_text = "direction_side"
 			_last_block_side = true
-		play_skill_sfx(SND_BLOCK_PUSH_HIT, global_position, -6.0, SLIP_PITCH)
+		play_skill_sfx(SND_BLOCK_SLIP, global_position, -6.0)
 		_announce_block("direction")
 		return false
 	var perfect := is_parry_window()
@@ -886,10 +889,9 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool, attack
 		_stamina_regen_delay_timer = stamina_regen_delay
 		_shield_up = false
 		_guard_break_flash = 0.35
-		# Paczka 10: przełamanie gardy ma własny, niski dźwięk (zastępczo P14 z
-		# obniżoną wysokością — docelowy plik na liście brakujących assetów).
+		# Przełamanie gardy ma własny dźwięk P15, nie wariant zwykłego bloku.
 		# Osobny odtwarzacz — dźwięk bólu tuż po nim nie może go uciąć.
-		play_skill_sfx(SND_BLOCK_PUSH_HIT, global_position, -2.0, GUARD_BREAK_PITCH)
+		play_skill_sfx(SND_GUARD_BREAK, global_position, -2.0)
 		resource_denied.emit("stamina")
 		_announce_block("broken")
 		return false
@@ -898,8 +900,8 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool, attack
 	_invuln_timer = maxf(_invuln_timer, shield_block_invuln)
 	_block_visual_timer = block_visual_duration
 	_counter_timer = counter_window
-	_play_sfx(SND_BLOCK_PUSH_HIT)
-	sfx.pitch_scale = 1.35 if perfect else 1.0 # parowanie brzmi ostrzej niż zwykły blok
+	_play_sfx(SND_PARRY if perfect else SND_BLOCK_PUSH_HIT)
+	sfx.pitch_scale = 1.0
 	if perfect and get_parent() != null:
 		# Parowanie ma własny kształt: krótki, ciasny pierścień wokół gracza.
 		AttackVfx.spawn(get_parent(), VFX_DASH_RING, global_position, 0.22, 150.0 / float(maxi(1, VFX_DASH_RING.get_width())))

@@ -261,7 +261,17 @@ func play_ui_sfx(stream: AudioStream) -> void:
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
 	player.bus = "UI"
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().root.add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+
+func play_cutscene_sfx(stream: AudioStream) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.bus = "SFX"
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
 
@@ -278,11 +288,36 @@ func play_ui_sfx_variant(streams: Array) -> void:
 const MUSIC_GROUP := "music"
 const MUSIC_DUCK_DB := -8.0
 var _duck_tween: Tween = null
+var _scene_music: AudioStreamPlayer = null
 var music_duck_db: float = 0.0:
 	set(value):
 		music_duck_db = value
 		for m in get_tree().get_nodes_in_group(MUSIC_GROUP):
-			m.volume_db = value
+			m.volume_db = value + float(m.get_meta("base_volume_db", 0.0))
+
+## Muzyka scen bez własnego odtwarzacza (menu, ołtarz, finał). Jeden trwały
+## odtwarzacz zapobiega nakładaniu się utworów po zmianie sceny.
+func play_music(stream: AudioStream, loop: bool = true) -> void:
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Music"), false)
+	if _scene_music == null:
+		_scene_music = AudioStreamPlayer.new()
+		_scene_music.bus = "Music"
+		_scene_music.process_mode = Node.PROCESS_MODE_ALWAYS
+		_scene_music.add_to_group(MUSIC_GROUP)
+		add_child(_scene_music)
+	if _scene_music.stream == stream and _scene_music.playing:
+		return
+	_scene_music.stop()
+	if stream is AudioStreamMP3:
+		(stream as AudioStreamMP3).loop = loop
+	_scene_music.stream = stream
+	_scene_music.volume_db = music_duck_db
+	_scene_music.play()
+
+func stop_music() -> void:
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Music"), false)
+	if _scene_music != null:
+		_scene_music.stop()
 
 func duck_music(hold: float = 0.6) -> void:
 	if get_tree().get_nodes_in_group(MUSIC_GROUP).is_empty():

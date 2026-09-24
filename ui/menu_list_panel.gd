@@ -49,7 +49,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		queue_redraw()
 	elif selectable and event.is_action_pressed("ui_accept") and not rows.is_empty():
 		Juice.play_ui_sfx_variant(Juice.SND_UI_CONFIRM)
+		# Odbiorca sygnału może natychmiast odłączyć panel lub zmienić scenę.
+		get_viewport().set_input_as_handled()
 		chosen.emit(selected)
+		return
 	get_viewport().set_input_as_handled()
 
 func _draw() -> void:

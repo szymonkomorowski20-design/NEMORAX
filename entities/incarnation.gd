@@ -37,7 +37,8 @@ signal died(fragment_name: String)
 ## bo bazowa klasa Incarnation jest współdzielona z tymi, które go nie mają.
 const TEX_ELITE_AURA := preload("res://assets/sprites/random_enemies/elite/elite_aura.png")
 
-const SND_TELEGRAPH := preload("res://assets/audio/sfx/wcielenia/I01_telegraph.wav")
+const SND_TELEGRAPH := preload("res://assets/audio/sfx/wcielenia/I01_telegraph.mp3")
+const SND_ARRIVAL_WINDUP := preload("res://assets/audio/sfx/wcielenia/I10_arrival_windup.mp3")
 const SND_DAMAGE_PULSE := preload("res://assets/audio/sfx/wcielenia/I02_damage_pulse.wav")
 const SND_LUNGE_START := preload("res://assets/audio/sfx/wcielenia/I04_lunge_start.wav")
 const SND_CONTACT_HIT := preload("res://assets/audio/sfx/wcielenia/I05_contact_hit.wav")
@@ -126,7 +127,7 @@ signal stance_broken
 @export var stance_threshold_growth: float = 1.3 ## każde kolejne przełamanie wymaga więcej
 @export var stance_decay_delay: float = 3.0 ## s bez trafienia, po których postawa wraca
 @export var stance_decay_rate: float = 0.2 ## ułamek progu na sekundę
-const SND_STANCE_BREAK := preload("res://assets/audio/sfx/wcielenia/I05_contact_hit.wav")
+const SND_STANCE_BREAK := preload("res://assets/audio/sfx/wcielenia/I11_stance_break.mp3")
 var stance: float = 0.0
 var stance_breaks: int = 0
 var _stance_threshold_mult: float = 1.0
@@ -430,6 +431,7 @@ func _lunge_after_arrival(speed: float, duration: float) -> void:
 	_windup_dir = dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT
 	_windup_reach = speed * duration + radius
 	_windup_timer = arrival_windup
+	_play_sfx(SND_ARRIVAL_WINDUP)
 	queue_redraw()
 	await get_tree().create_timer(arrival_windup).timeout
 	_windup_timer = 0.0

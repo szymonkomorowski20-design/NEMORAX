@@ -14,6 +14,7 @@ enum State { INTRO, IDLE, OPTIONS_OPEN, TRANSITIONING, EXITING, PANEL_OPEN }
 
 const TEX_BACKGROUND := preload("res://assets/sprites/menu/menu_background.png")
 const TEX_LOGO := preload("res://assets/sprites/menu/nemorax_logo.png")
+const MUSIC_MENU := preload("res://assets/audio/music/MUS_theme_main.mp3")
 const LOGO_SIZE := Vector2(480.0, 320.0) ## zachowuje proporcje źródłowego pliku 1536x1024
 const FONT_ITEM := preload("res://assets/fonts/Cinzel-SemiBold.woff")
 const FONT_HINT := preload("res://assets/fonts/EBGaramond-Regular.woff")
@@ -46,6 +47,7 @@ var _selected_index: int = 0
 var _item_labels: Array[Label] = []
 var _item_base_x: Array[float] = []
 var _item_tweens: Array[Tween] = []
+var _items_fade_tween: Tween
 ## Krok 12 (menu, EXITING): "pojedyncze potwierdzenie wyjścia; żadnego
 ## przypadkowego zamknięcia gry przez Esc". Dawniej Escape/"Wyjście" w IDLE
 ## zamykały grę NATYCHMIAST, bez pytania — jedno omyłkowe Escape (np. próba
@@ -55,6 +57,8 @@ const HINT_TEXT_DEFAULT := "↑↓ wybór   Enter zatwierdź"
 const HINT_TEXT_CONFIRM_EXIT := "Na pewno wyjść?   Enter — tak    Escape — nie"
 
 func _ready() -> void:
+	options_screen.closed.connect(_on_options_closed)
+	Juice.play_music(MUSIC_MENU)
 	# Wyjście z Komnaty Echa dowolną drogą (np. pauza → menu) przywraca próbę.
 	if GameFlow.training:
 		GameFlow.end_training()
@@ -145,21 +149,12 @@ func _start_ambient_motion() -> void:
 	logo_breathe.tween_property(logo, "modulate", Color(1.05, 1.05, 1.05, 1.0), 4.0).set_ease(Tween.EASE_IN_OUT)
 	logo_breathe.tween_property(logo, "modulate", Color(1.0, 1.0, 1.0, 1.0), 4.0).set_ease(Tween.EASE_IN_OUT)
 
-func _process(_delta: float) -> void:
-	if _state == State.OPTIONS_OPEN and not options_screen.visible:
-		_state = State.IDLE # gracz wyszedł z opcji przez Esc — options_screen.gd sam to obsługuje
-		var fade := create_tween()
-		fade.tween_property(items_container, "modulate:a", 1.0, ITEMS_FADE_TIME).set_ease(Tween.EASE_OUT)
-		queue_redraw() # diament/podkreślenie wracają razem z pozycjami menu
-
 func _unhandled_input(event: InputEvent) -> void:
 	if keybind_screen.visible:
 		return
 	if _state == State.PANEL_OPEN:
 		return # MenuListPanel obsługuje własne wejście
 	if _state == State.OPTIONS_OPEN:
-		if not options_screen.visible:
-			_state = State.IDLE
 		return
 	if _state != State.IDLE:
 		return # INTRO/TRANSITIONING/EXITING ignorują wejście (dokument: brak podwójnych aktywacji)
@@ -318,17 +313,30 @@ func _open_echo() -> void:
 func _start_training(chapter: int) -> void:
 	_panel.visible = false
 	GameFlow.begin_training(chapter)
-	get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
+	# Panel wybiera w trakcie obsługi wejścia. Zmień scenę dopiero po zdarzeniu.
+	get_tree().call_deferred("change_scene_to_file", GameFlow.ROOM_SCENE)
 
 ## Krok 12 (OPTIONS_OPEN, dokument): "główne pozycje miękko znikają, panel
 ## opcji wchodzi z dołu lub z prawej" — dawniej to był twardy cut (options_screen
 ## po prostu stawał się visible=true w tej samej klatce, bez żadnego przejścia).
 func _open_options() -> void:
 	_state = State.OPTIONS_OPEN
-	var fade := create_tween()
-	fade.tween_property(items_container, "modulate:a", 0.0, ITEMS_FADE_TIME).set_ease(Tween.EASE_IN)
+	if _items_fade_tween != null and _items_fade_tween.is_valid():
+		_items_fade_tween.kill()
+	_items_fade_tween = create_tween()
+	_items_fade_tween.tween_property(items_container, "modulate:a", 0.0, ITEMS_FADE_TIME).set_ease(Tween.EASE_IN)
 	queue_redraw() # chowa diament/podkreślenie natychmiast, nie czeka na koniec tweena pozycji
 	options_screen.open()
+
+func _on_options_closed() -> void:
+	if _state != State.OPTIONS_OPEN:
+		return
+	if _items_fade_tween != null and _items_fade_tween.is_valid():
+		_items_fade_tween.kill()
+	_state = State.IDLE
+	_items_fade_tween = create_tween()
+	_items_fade_tween.tween_property(items_container, "modulate:a", 1.0, ITEMS_FADE_TIME).set_ease(Tween.EASE_OUT)
+	queue_redraw()
 
 ## Stan kliknięcia (dokument, sekcja 4): lekkie zmniejszenie, potem przejście;
 ## wejście blokowane na czas przejścia, żeby podwójny klik/Enter nie wystrzelił

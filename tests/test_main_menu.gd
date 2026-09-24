@@ -77,11 +77,16 @@ func test_opening_options_switches_state_and_shows_options_screen(root: Node) ->
 
 func test_returning_from_options_restores_idle_state(root: Node) -> void:
 	var menu := _fresh_menu(root)
-	menu._state = menu.State.OPTIONS_OPEN
-	menu.options_screen.visible = true
-
-	menu.options_screen.visible = false # symuluje Escape wewnątrz OptionsScreen
-	menu._process(0.016)
-
-	NemoraxTest.assert_eq(menu._state, menu.State.IDLE, "zamknięcie OptionsScreen powinno wrócić menu do IDLE")
+	menu._open_options()
+	# Escape podczas trwającego zanikania pozycji — dawniej kończyło się
+	# niewidocznym menu, bo stary tween dopiero później ustawiał alpha=0.
+	var cancel := InputEventAction.new()
+	cancel.action = "ui_cancel"
+	cancel.pressed = true
+	menu.options_screen._unhandled_input(cancel)
+	NemoraxTest.assert_eq(menu._state, menu.State.IDLE, "Escape w Opcjach powinien wrócić do IDLE")
+	NemoraxTest.assert_true(not menu.options_screen.visible, "panel opcji powinien się zamknąć")
+	NemoraxTest.assert_true(menu._items_fade_tween.is_valid(), "powrót powinien animować pozycje menu")
+	menu._items_fade_tween.custom_step(1.0)
+	NemoraxTest.assert_almost_eq(menu.items_container.modulate.a, 1.0, 0.001, "po powrocie pozycje menu mają być widoczne")
 	_cleanup(menu, root)

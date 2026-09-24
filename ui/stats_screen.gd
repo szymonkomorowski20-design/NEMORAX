@@ -1,8 +1,7 @@
 extends Control
 class_name StatsScreen
 ## Ekran statystyk postaci i wydawania punktów levela (Tab) — na życzenie
-## autora. Klawiaturowy, spójny z resztą UI gry (keybind_screen.gd,
-## pause_menu.gd) — strzałki wybierają statystykę, Enter wydaje punkt,
+## autora. Strzałki lub najechanie myszą wybierają statystykę, Enter wydaje punkt,
 ## Tab/Escape zamyka. Pauzuje grę samodzielnie na czas otwarcia — dzięki temu
 ## room.gd/arena.gd nie musi pilnować wzajemnego wykluczania z pause_menu: skoro
 ## drzewo jest spauzowane, ich WŁASNY _unhandled_input (domyślny process_mode)
@@ -45,7 +44,12 @@ func _close() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or player == null:
 		return
-	if event.is_action_pressed("ui_down"):
+	if event is InputEventMouseMotion:
+		var row := _stat_row_at(event.position)
+		if row >= 0 and row != _selected_index:
+			_selected_index = row
+			queue_redraw()
+	elif event.is_action_pressed("ui_down"):
 		_selected_index = (_selected_index + 1) % Player.STAT_KEYS.size()
 		Juice.play_ui_sfx_variant(Juice.SND_UI_NAVIGATE)
 	elif event.is_action_pressed("ui_up"):
@@ -88,6 +92,13 @@ const EFFECT_GAP := 10.0
 var _effects_scroll: int = 0
 var _effects_visible: int = 0
 var _effects_total: int = 0
+
+func _stat_row_at(pos: Vector2) -> int:
+	var first_y := LEFT_PANEL.position.y + 32.0
+	for i in Player.STAT_KEYS.size():
+		if Rect2(LEFT_PANEL.position.x + 8.0, first_y + i * 34.0 - 24.0, LEFT_PANEL.size.x - 16.0, 32.0).has_point(pos):
+			return i
+	return -1
 
 func _effect_entries() -> Array:
 	# Jedno źródło: te same katalogi, które zasilają karty i HUD.
@@ -188,4 +199,4 @@ func _draw() -> void:
 		draw_string(FONT_BODY, Vector2(rp.position.x + 16.0, rp.end.y - 6.0), nav, HORIZONTAL_ALIGNMENT_LEFT, rp.size.x - 32.0, 15, HINT_COLOR)
 
 	# Stopka w stałym pasie — nic nad nią nie wchodzi.
-	_centered(FONT_BODY, "Strzałki: wybór — Enter: wydaj punkt — PgUp/PgDn: efekty — Tab/Escape: zamknij", FOOTER_Y, 18, HINT_COLOR)
+	_centered(FONT_BODY, "Strzałki/mysz: wybór — Enter: wydaj punkt — PgUp/PgDn: efekty — Tab/Escape: zamknij", FOOTER_Y, 18, HINT_COLOR)

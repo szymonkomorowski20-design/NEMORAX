@@ -7,6 +7,8 @@ class_name DamageZone
 ## pod coś, do czego nie została zaprojektowana.
 
 const TEX_ZONE := preload("res://assets/sprites/enemy_vfx/zoner_skill.png") # dedykowana grafika strefy Zonera (KIERUNEK_WIZUALNY_REFERENCJE.md)
+const SND_ZONE_TICK := preload("res://assets/audio/sfx/swiat/W12_zone_tick.mp3")
+const SND_ZONE_FADE := preload("res://assets/audio/sfx/swiat/W13_zone_fade.mp3")
 const ZONE_CONTENT_SIZE := 900.0 ## szacunkowy zasięg widocznej treści w kanwie 1024px
 ## Faza 2D (PLAN_PROFESSIONAL_GAME_FEEL_DLA_CLAUDE.md): "telegraf musi być
 ## odrobinę większy niż realna strefa obrażeń, nigdy mniejszy" — podczas
@@ -71,6 +73,7 @@ func _physics_process(delta: float) -> void:
 		_try_damage_player()
 	if _active_timer <= 0.0:
 		_fade_timer = FADE_TIME # wygasanie: widać, że już nie rani
+		Juice.play_sfx_at(SND_ZONE_FADE, global_position)
 
 func _try_damage_player() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
@@ -81,6 +84,7 @@ func _try_damage_player() -> void:
 	if player.is_invulnerable():
 		return
 	player.take_damage(tick_damage, global_position, false, self) # strefa na podłożu — tarcza nie pomaga
+	Juice.play_sfx_at(SND_ZONE_TICK, global_position)
 
 func _draw() -> void:
 	var danger := Palette.DANGER

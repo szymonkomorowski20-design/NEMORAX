@@ -77,17 +77,19 @@ const RANDOM_ROOM_WALL_TEXTURES: Array[Texture2D] = [
 # (nie stały przydział pokój->utwór) — scena się przeładowuje przy każdym
 # przejściu, więc losowanie w _ready() samo daje inny utwór za każdym razem.
 const ROOM_MUSIC_TRACKS: Array[AudioStream] = [
-	preload("res://assets/audio/music/MUS_room_synth_1.wav"),
-	preload("res://assets/audio/music/MUS_room_synth_2.wav"),
-	preload("res://assets/audio/music/MUS_room_synth_3.wav"),
-	preload("res://assets/audio/music/MUS_room_synth_4.wav"),
-	preload("res://assets/audio/music/MUS_room_chase_1.wav"),
-	preload("res://assets/audio/music/MUS_room_chase_2.wav"),
-	preload("res://assets/audio/music/MUS_room_melody_1.wav"),
-	preload("res://assets/audio/music/MUS_room_melody_2.wav"),
-	preload("res://assets/audio/music/MUS_room_melody_3.wav"),
-	preload("res://assets/audio/music/MUS_room_melody_4.wav"),
+	preload("res://assets/audio/music/MUS_explore_1.mp3"),
+	preload("res://assets/audio/music/MUS_explore_2.mp3"),
+	preload("res://assets/audio/music/MUS_explore_3.mp3"),
+	preload("res://assets/audio/music/MUS_explore_4.mp3"),
 ]
+const COMBAT_MUSIC_TRACKS: Array[AudioStream] = [
+	preload("res://assets/audio/music/MUS_combat_1.mp3"),
+	preload("res://assets/audio/music/MUS_combat_3.mp3"),
+] # MUS_combat_2 jest bitowo identyczny z _1; zachowany jako plik, nie losowany.
+const MUSIC_ELITE := preload("res://assets/audio/music/MUS_elite.mp3")
+const MUSIC_INCARNATION := preload("res://assets/audio/music/MUS_incarnation.mp3")
+const MUSIC_PROLOG := preload("res://assets/audio/music/MUS_prolog.mp3")
+const MUSIC_DEFEAT := preload("res://assets/audio/music/MUS_defeat.mp3")
 const SND_ROOM_CLEAR := preload("res://assets/audio/sfx/p0/AMB_ROOM_CLEAR.wav")
 
 @export var player_start_offset: Vector2 = Vector2(0.0, 0.0) ## względem środka areny, TYLKO w pokoju startowym (entry_direction == ZERO)
@@ -100,6 +102,7 @@ const SND_ROOM_CLEAR := preload("res://assets/audio/sfx/p0/AMB_ROOM_CLEAR.wav")
 var _skill_draft: SkillDraft
 var _relic_draft: RelicDraft
 @onready var music: AudioStreamPlayer = $Music
+var _explore_track: AudioStream
 @onready var cutscene: CutscenePlayer = $CutsceneLayer/CutscenePlayer
 
 var incarnation: Incarnation
@@ -121,6 +124,7 @@ const SOUL_BASE_HEALTH := 550.0 ## wcielenie z duszą przed skalowaniem postępe
 const VOID_MODULATE := Color(0.22, 0.22, 0.28, 1.0)
 
 func _ready() -> void:
+	Juice.stop_music()
 	_room_data = GameFlow.current_room_data()
 	Walls.build_void_background(self, get_viewport_rect().size, VOID_BACKGROUND, VOID_MODULATE)
 
@@ -155,19 +159,13 @@ func _ready() -> void:
 	if _room_data.get("type") == GameFlow.RoomType.RANDOM:
 		_build_terrain(wall_tex)
 
-	var track: AudioStreamWAV = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
-	# Ustawiane w kodzie, nie tylko w .import — headless `--import` (używane w
-	# tej sesji do generowania .import przy nowych plikach) niezawodnie nie
-	# zapisuje edit/loop_mode do faktycznego cache'owanego zasobu, sprawdzone
-	# bezpośrednim testem (loop_mode wychodził 0 mimo poprawnego .import).
-	track.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	music.stream = track
+	_explore_track = ROOM_MUSIC_TRACKS[randi() % ROOM_MUSIC_TRACKS.size()]
 	music.add_to_group(Juice.MUSIC_GROUP) # Paczka 10: ściszanie pod telegrafami
 	# Audyt nagrania P2.16: prolog i inne cutscenki pauzują drzewo — muzyka
 	# pokoju grała wtedy „wstrzymana” (cisza pod dialogiem, a test muzyki
 	# padał zależnie od tego, czy prolog był już widziany). Gra zawsze.
 	music.process_mode = Node.PROCESS_MODE_ALWAYS
-	music.play()
+	_play_room_music(_explore_track)
 
 	var center := _play_rect.get_center()
 	player.global_position = _player_spawn_position(center)
@@ -223,6 +221,23 @@ func _ready() -> void:
 				_play_prolog()
 			if GameFlow.run_intent == "" and get_tree().current_scene == self:
 				_offer_intent()
+	if not _active_enemies.is_empty():
+		if _room_data.get("type") == GameFlow.RoomType.SOUL:
+			_play_room_music(MUSIC_INCARNATION)
+		elif _room_data.get("elite", false):
+			_play_room_music(MUSIC_ELITE)
+		else:
+			_play_room_music(COMBAT_MUSIC_TRACKS[randi() % COMBAT_MUSIC_TRACKS.size()])
+
+func _play_room_music(track: AudioStream, loop: bool = true) -> void:
+	if track is AudioStreamMP3:
+		(track as AudioStreamMP3).loop = loop
+	if music.stream == track and music.playing:
+		return
+	music.stop()
+	music.stream = track
+	music.volume_db = Juice.music_duck_db
+	music.play()
 
 ## Pokój odpoczynku (Paczka 7): bez walki, drzwi od razu otwarte, jednorazowo
 ## +30% życia. Bez XP i bez podbijania trudności — to wybór trasy "oddech".
@@ -292,6 +307,7 @@ func _process(_delta: float) -> void:
 ## setupu pokoju nie musi na to czekać, cutscenka i tak przykrywa cały ekran.
 func _play_prolog() -> void:
 	GameFlow.mark_prolog_seen()
+	_play_room_music(MUSIC_PROLOG)
 	var beats: Array[DialogueBeat] = []
 	for line in [
 		"Nie pamiętasz, jak tu trafiłeś.",
@@ -307,6 +323,8 @@ func _play_prolog() -> void:
 	ui.hide_for_cutscene()
 	await cutscene.play(beats)
 	ui.hide_all = false
+	if is_inside_tree():
+		_play_room_music(_explore_track)
 
 func _add_room_atmosphere() -> void:
 	var atmosphere := RoomAtmosphereScene.new() as RoomAtmosphere
@@ -498,6 +516,7 @@ func _on_incarnation_died(fragment_name: String, dead_enemy: Incarnation = null)
 			incarnation = _active_enemies[0]
 			ui.boss = incarnation
 		return
+	_play_room_music(_explore_track)
 	if GameFlow.training:
 		# Komnata Echa: bez XP, fragmentu, duszy i postępu.
 		Juice.play_sfx_at(SND_ROOM_CLEAR, dead_enemy.global_position)
@@ -593,6 +612,7 @@ func _on_altar_door_entered() -> void:
 	GameFlow.enter_altar()
 
 func _on_player_died() -> void:
+	_play_room_music(MUSIC_DEFEAT, false)
 	# Krok 9: "najpierw widoczny moment porażki: 0,15s hit-stop" — ten sam
 	# krótki freeze co w arena.gd, zanim panel w ogóle się pojawi.
 	Juice.hitstop(0.15)

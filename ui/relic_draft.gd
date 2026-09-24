@@ -69,11 +69,18 @@ func _unhandled_input(event: InputEvent) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if not visible or not is_instance_valid(player):
 		return
+	if event is InputEventMouseMotion:
+		for i in range(player.pending_relic_offers.size()):
+			if _card_rect(i).has_point(event.position):
+				if selected != i:
+					selected = i
+					queue_redraw()
+				return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		for i in range(player.pending_relic_offers.size()):
 			if _card_rect(i).has_point(event.position):
-				_choose(i)
 				accept_event()
+				_choose(i)
 				return
 
 ## Szerokość karty: 340 px, węższa przy 4 ofertach (Pętla Otchłani I).
