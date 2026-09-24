@@ -1078,6 +1078,10 @@ var pending_relic_offers: Array[String] = []
 func has_pending_rewards() -> bool:
 	return pending_skill_choices > 0 or unspent_stat_points > 0 or not pending_relic_offers.is_empty()
 
+## W pokoju żyje wróg (skan co 0,5 s, ten sam co dla many poza walką).
+func is_out_of_combat() -> bool:
+	return _out_of_combat
+
 func choose_relic(id: String) -> bool:
 	if id not in pending_relic_offers or not acquire_upgrade(id):
 		return false

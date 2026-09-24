@@ -6,7 +6,14 @@ extends Node2D
 
 const ARENA_RECT := Rect2(90, 60, 1100, 600) # wyśrodkowana 1100x600 w oknie 1280x720
 const WALL_THICKNESS := 20.0
-var SAVE_PATH := "user://progress.json" ## var (nie const) tylko po to, żeby test mógł podmienić ścieżkę na tymczasową
+## Pusty = GameFlow.PERSISTENT_SAVE_PATH (ten sam plik progress.json). Dzięki
+## temu skrypt, który izoluje zapis GameFlow, izoluje też arenę — dawna stała
+## "user://progress.json" pozwoliła botowi pomiarowemu dopisać zwycięstwa do
+## prawdziwego zapisu gracza (24.09, przywrócone z kopii).
+var SAVE_PATH := ""
+
+func _save_path() -> String:
+	return SAVE_PATH if SAVE_PATH != "" else GameFlow.PERSISTENT_SAVE_PATH
 
 const BossScene := preload("res://entities/boss.tscn")
 
@@ -410,11 +417,11 @@ func _format_time(seconds: float) -> String:
 func _load_progress() -> void:
 	deaths = 0
 	wins = 0
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(_save_path()):
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(_save_path(), FileAccess.READ)
 	if file == null:
-		push_warning("Arena: nie udało się otworzyć zapisu do odczytu (%s), błąd %d" % [SAVE_PATH, FileAccess.get_open_error()])
+		push_warning("Arena: nie udało się otworzyć zapisu do odczytu (%s), błąd %d" % [_save_path(), FileAccess.get_open_error()])
 		return
 	var data = JSON.parse_string(file.get_as_text())
 	if typeof(data) == TYPE_DICTIONARY:
@@ -429,7 +436,7 @@ func _save_progress() -> void:
 	var patch := {"deaths": deaths, "wins": wins}
 	if wins > 0:
 		patch["loop_unlocked"] = true
-	GameFlow.merge_json_dict(SAVE_PATH, patch)
+	GameFlow.merge_json_dict(_save_path(), patch)
 
 ## Przycisk nagrody w HUD (decyzja autora 23.09) — to samo co klawisze R / Q.
 func _on_reward_button(kind: String) -> void:

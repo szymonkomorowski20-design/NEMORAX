@@ -103,3 +103,13 @@ func test_projectiles_stop_at_room_walls(root: Node) -> void:
 	NemoraxTest.assert_true(not is_instance_valid(shot) or shot.is_queued_for_deletion(), "pocisk gaśnie na ścianie")
 	root.remove_child(holder)
 	holder.queue_free()
+
+## Arena bez jawnej ścieżki pisze tam, gdzie GameFlow — izolacja zapisu w
+## skryptach i testach obejmuje ją automatycznie (24.09: bot pomiarowy dopisał
+## zwycięstwa do prawdziwego progress.json, bo arena miała własną stałą ścieżkę).
+func test_arena_save_path_follows_game_flow(_root: Node) -> void:
+	var arena = load("res://arena.gd").new()
+	NemoraxTest.assert_eq(arena._save_path(), GameFlow.PERSISTENT_SAVE_PATH, "domyślnie ścieżka GameFlow")
+	arena.SAVE_PATH = "user://inna.json"
+	NemoraxTest.assert_eq(arena._save_path(), "user://inna.json", "jawna ścieżka ma pierwszeństwo")
+	arena.free()

@@ -276,6 +276,7 @@ func _process(delta: float) -> void:
 		_center_message_timer -= delta
 		if _center_message_timer <= 0.0:
 			_center_message = ""
+	_tick_reward_reminder(delta)
 	if _relic_card_timer > 0.0:
 		_relic_card_timer -= delta
 		if _relic_card_timer <= 0.0:
@@ -428,6 +429,7 @@ func _draw() -> void:
 	_draw_heal_stack_count()
 	_draw_xp_bar()
 	_draw_reward_buttons()
+	_draw_reward_reminder()
 	_draw_player_hp_text()
 	_draw_boss_name_and_phase()
 	_draw_boss_hp_text()
@@ -517,9 +519,72 @@ signal reward_button_pressed(kind: String) ## "level" albo "relic"
 const REWARD_BUTTON_SIZE := Vector2(300.0, 28.0)
 var _reward_button_rects: Dictionary = {}
 
+## P1.10 (audyt nagrania 24.09): w walce przyciski nagród kurczą się do
+## przygaszonej plakietki (nie konkurują z telegrafem ani paskiem HP), a po
+## walce — jedno wyraźne, krótkie przypomnienie. Nic nie otwiera się samo.
+## Próby deterministyczne: niewydane punkty i runy wydłużają finał ~3×.
+const REWARD_REMINDER_TIME := 2.5
+var _reward_reminder_timer: float = 0.0
+var _was_in_combat: bool = false
+const REWARD_REMINDER_REPEAT := 45.0 ## s — to samo przypomnienie najwyżej tak często
+var _last_reminded: String = ""
+var _last_reminded_at: float = -1000.0
+
+func _tick_reward_reminder(delta: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var in_combat := not player.is_out_of_combat()
+	if _was_in_combat and not in_combat and player.has_pending_rewards():
+		var summary := _reward_summary()
+		var now := Time.get_ticks_msec() / 1000.0
+		if summary != _last_reminded or now - _last_reminded_at > REWARD_REMINDER_REPEAT:
+			_reward_reminder_timer = REWARD_REMINDER_TIME
+			_last_reminded = summary
+			_last_reminded_at = now
+	_was_in_combat = in_combat
+	_reward_reminder_timer = maxf(0.0, _reward_reminder_timer - delta)
+
+func _reward_summary() -> String:
+	var parts: Array[String] = []
+	if player.pending_skill_choices > 0:
+		parts.append("runa ×%d [%s]" % [player.pending_skill_choices, Keybinds.display_for("open_runes")])
+	if player.unspent_stat_points > 0:
+		parts.append("punkty ×%d [%s]" % [player.unspent_stat_points, Keybinds.display_for("open_runes")])
+	if not player.pending_relic_offers.is_empty():
+		parts.append("relikwia [%s]" % Keybinds.display_for("open_relic"))
+	return "  ·  ".join(parts)
+
+func _draw_reward_reminder() -> void:
+	if _reward_reminder_timer <= 0.0 or player == null or hide_all or _overlay_active or not player.has_pending_rewards():
+		return
+	var a := clampf(_reward_reminder_timer / 0.4, 0.0, 1.0) * clampf((REWARD_REMINDER_TIME - _reward_reminder_timer) / 0.25, 0.0, 1.0)
+	var title := "Pokój czysty — nagrody czekają"
+	var body := _reward_summary()
+	var w := maxf(CENTER_FONT_LINE.get_string_size(body, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x, CENTER_FONT_BANNER.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x) + 60.0
+	var rect := Rect2(Vector2((size.x - w) * 0.5, size.y * 0.70), Vector2(w, 74.0))
+	draw_rect(rect, Color(0.08, 0.06, 0.03, 0.9 * a), true)
+	draw_rect(rect, Color(RELIC_CARD_BORDER, a), false, 2.0)
+	var tw := CENTER_FONT_BANNER.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
+	draw_string(CENTER_FONT_BANNER, rect.position + Vector2((w - tw) * 0.5, 30.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("#E8C547", a))
+	var bw := CENTER_FONT_LINE.get_string_size(body, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+	draw_string(CENTER_FONT_LINE, rect.position + Vector2((w - bw) * 0.5, 60.0), body, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(CENTER_TEXT_COLOR, a))
+
 func _draw_reward_buttons() -> void:
 	_reward_button_rects.clear()
 	if player == null or hide_all or _overlay_active:
+		return
+	if not player.is_out_of_combat():
+		# W walce: jedna przygaszona plakietka — nadal klikalna i widoczna.
+		var compact := _reward_summary()
+		if compact == "" and GameFlow.pending_pact >= 0:
+			compact = "pakt [%s]" % Keybinds.display_for("open_pact")
+		if compact != "":
+			var cw := ThemeDB.fallback_font.get_string_size(compact, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 20.0
+			var crect := Rect2(Vector2(_xp_bar_pos.x - RELIQUARY_PADDING, _xp_bar_pos.y - RELIQUARY_PADDING - 30.0), Vector2(cw, 22.0))
+			_reward_button_rects["level" if player.has_pending_rewards() and player.pending_relic_offers.is_empty() else ("relic" if not player.pending_relic_offers.is_empty() else "pact")] = crect
+			draw_rect(crect, Color(0.08, 0.06, 0.03, 0.6), true)
+			draw_rect(crect, Color(RELIC_CARD_BORDER, 0.45), false, 1.0)
+			draw_string(ThemeDB.fallback_font, crect.position + Vector2(10.0, 16.0), compact, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#F1E4B8", 0.75))
 		return
 	var buttons: Array = []
 	var level_text := RewardPrompt.level_label(player)
