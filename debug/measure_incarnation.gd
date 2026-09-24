@@ -21,6 +21,7 @@ var last_skill := -1
 var results: Array = []
 var running := false
 var no_stance := false ## 4. argument "nostance" — porównanie prototypu postawy (Paczka 4.3)
+var break_log: Array = [] ## P0.4: [czas, umiejętności do tej chwili] przy każdym przełamaniu postawy
 
 func _initialize() -> void:
 	await process_frame
@@ -55,6 +56,8 @@ func _fight(chapter: int) -> void:
 	enemy = room.incarnation
 	if no_stance:
 		enemy.stance_enabled = false
+	break_log = []
+	enemy.stance_broken.connect(func(): break_log.append([active_time, skills_seen]))
 	_apply_build()
 	active_time = 0.0
 	skills_seen = 0
@@ -64,7 +67,7 @@ func _fight(chapter: int) -> void:
 	while running:
 		await physics_frame
 		_tick()
-	results.append({"chapter": chapter, "name": game_flow.INCARNATION_NAMES[chapter], "time": active_time, "hp": hp, "skills": skills_seen, "breaks": enemy.stance_breaks})
+	results.append({"chapter": chapter, "name": game_flow.INCARNATION_NAMES[chapter], "time": active_time, "hp": hp, "skills": skills_seen, "breaks": enemy.stance_breaks, "break_log": break_log.duplicate()})
 	root.remove_child(room)
 	room.queue_free()
 	await process_frame
@@ -121,4 +124,10 @@ func _report() -> void:
 	print("=== WCIELENIA, build %s, wyczyszczone pokoje %d ===" % [build_name, rooms_cleared])
 	for r in results:
 		print("  %d %-22s HP %4.0f   czas %6.1f s   umiejętności: %d   przełamania postawy: %d" % [r["chapter"], r["name"], r["hp"], r["time"], r["skills"], r["breaks"]])
+		var prev_skills := 0
+		for b in r["break_log"]:
+			print("      przełamanie t=%5.1f s  (umiejętności wcielenia od poprzedniego: %d)" % [b[0], b[1] - prev_skills])
+			prev_skills = b[1]
+		if not r["break_log"].is_empty():
+			print("      po ostatnim przełamaniu do końca walki: %d umiejętności" % [r["skills"] - prev_skills])
 	quit()

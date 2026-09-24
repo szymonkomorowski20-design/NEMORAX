@@ -23,6 +23,7 @@ const SHADOW_COLOR := Color(0.88, 0.85, 0.80, 0.9) ## "cień" poprzedniego HP �
 const BAR_HEIGHT := 6.0
 const STANCE_COLOR := Color(0.93, 0.86, 0.62, 0.95) ## postawa — jasny, ciepły, inny niż HP
 const STANCE_IMMUNE_COLOR := Color(0.93, 0.86, 0.62, 0.3)
+const STANCE_WARNING := 0.75 ## od tego ułamka progu postawa ostrzega o bliskim przełamaniu
 const WIDTH_PER_RADIUS := 1.3 ## szerokość paska = radius encji * ten mnożnik — większy wróg, szerszy pasek
 const FADE_AFTER_NO_DAMAGE := 2.0 ## s, środek okna 1,5-2,5s z dokumentu
 const FADE_OUT_DURATION := 0.3 ## s, płynne zniknięcie zamiast nagłego pop-u
@@ -109,4 +110,11 @@ func _draw() -> void:
 				var x0 := -half + bar_width * float(i) / 8.0
 				draw_rect(Rect2(Vector2(x0, y), Vector2(bar_width / 8.0 - 3.0, 2.0)), STANCE_IMMUNE_COLOR, true)
 		else:
-			draw_rect(Rect2(Vector2(-half, y), Vector2(bar_width * _target.stance_ratio(), 2.0)), STANCE_COLOR, true)
+			# P0.4 (audyt nagrania): ostrzeżenie — od STANCE_WARNING postawa jest
+			# grubsza i pulsuje: „jeszcze trochę i odsłonisz go”.
+			var r: float = _target.stance_ratio()
+			var warn := r >= STANCE_WARNING
+			var c := STANCE_COLOR
+			if warn:
+				c.a = 0.6 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.012))
+			draw_rect(Rect2(Vector2(-half, y), Vector2(bar_width * r, 4.0 if warn else 2.0)), c, true)

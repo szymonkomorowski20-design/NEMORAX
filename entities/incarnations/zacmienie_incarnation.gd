@@ -105,7 +105,7 @@ func _skill_vanish_strike() -> void:
 	visible = true
 	_intangible = false
 	_set_skill_pose("reappear")
-	_lunge_toward_player(strike_speed, strike_duration)
+	_lunge_after_arrival(strike_speed, strike_duration) # P0.2: zapowiedź po powrocie z cienia
 
 func _skill_flicker_pulse() -> void:
 	_set_skill_pose("vanish")

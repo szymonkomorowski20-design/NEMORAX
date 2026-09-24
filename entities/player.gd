@@ -144,6 +144,18 @@ const SND_WAND_FIRE := preload("res://assets/audio/sfx/gracz/P11_wand_fire.wav")
 const SND_BLOCK_RAISE := preload("res://assets/audio/sfx/gracz/P13_block_raise.wav")
 const SND_BLOCK_PUSH_HIT := preload("res://assets/audio/sfx/gracz/P14_block_push_hit.wav")
 const GUARD_BREAK_PITCH := 0.55
+
+## Audyt nagrania 24.09 (P0.1): czytelność sylwetki. Stały, subtelny obrys
+## (ciemna postać na ciemnej podłodze) i mocniejszy obrys + rozjaśnienie przy
+## nakładaniu na dużego wroga — zamiast dawnego pełnego turkusowego dysku,
+## który zasłaniał samego gracza.
+const OUTLINE_SHADER := preload("res://entities/player_outline.gdshader")
+const OUTLINE_BASE := 0.35
+const OUTLINE_OVERLAP := 0.9
+const LIFT_OVERLAP := 0.35
+const OVERLAP_BLEND_SPEED := 6.0 ## 1/s — wejście/wyjście z nakładania bez migotania
+var _outline_material := ShaderMaterial.new()
+var _overlap_blend: float = 0.0
 const SND_HEAL_USE := preload("res://assets/audio/sfx/gracz/P16_heal_use.wav")
 const SND_HEAL_CHARGE_TICK := preload("res://assets/audio/sfx/gracz/P18_heal_charge_tick.wav")
 const SND_HEAL_READY := preload("res://assets/audio/sfx/gracz/P19_heal_ready.wav")
@@ -496,6 +508,8 @@ func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 1
 	sprite.scale = Vector2(sprite_scale, sprite_scale)
+	_outline_material.shader = OUTLINE_SHADER
+	sprite.material = _outline_material
 	var contact_shadow := ContactShadow.new()
 	contact_shadow.position = Vector2(0.0, 32.0)
 	contact_shadow.configure(68.0, 17.0, 0.44) # wyraźniejszy, dostrojony do powiększonego sprite_scale=0.10
@@ -826,7 +840,7 @@ func _handle_block_input() -> void:
 		_parry_ready = _shield_down_time >= shield_reraise_lockout
 		_shield_down_time = 0.0
 		_play_sfx(SND_BLOCK_RAISE)
-	var to_mouse := get_global_mouse_position() - global_position
+	var to_mouse := (debug_aim_point if debug_aim_point != Vector2.INF else get_global_mouse_position()) - global_position
 	if to_mouse.length() > 1.0:
 		_shield_dir = to_mouse.normalized()
 
@@ -859,6 +873,10 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool, attack
 		_announce_block("unblockable")
 		return false
 	if source_position == Vector2.INF or not _in_shield_arc(source_position):
+		if source_position != Vector2.INF and absf(_shield_dir.angle_to(source_position - global_position)) < deg_to_rad(115.0):
+			_last_block_text = "direction_side"
+			_last_block_side = true
+		play_skill_sfx(SND_BLOCK_PUSH_HIT, global_position, -6.0, SLIP_PITCH)
 		_announce_block("direction")
 		return false
 	var perfect := is_parry_window()
@@ -882,6 +900,9 @@ func _try_block(amount: float, source_position: Vector2, blockable: bool, attack
 	_counter_timer = counter_window
 	_play_sfx(SND_BLOCK_PUSH_HIT)
 	sfx.pitch_scale = 1.35 if perfect else 1.0 # parowanie brzmi ostrzej niż zwykły blok
+	if perfect and get_parent() != null:
+		# Parowanie ma własny kształt: krótki, ciasny pierścień wokół gracza.
+		AttackVfx.spawn(get_parent(), VFX_DASH_RING, global_position, 0.22, 150.0 / float(maxi(1, VFX_DASH_RING.get_width())))
 	_announce_block("parry" if perfect else "blocked")
 	if perfect:
 		if is_instance_valid(attacker) and attacker.has_method("on_parried"):
@@ -904,16 +925,26 @@ func _silence_wave() -> void:
 
 const BLOCK_FEEDBACK_TEXT := {
 	"blocked": "Blok", "parry": "Parowanie!", "broken": "Garda przełamana",
-	"direction": "Cios z tyłu", "unblockable": "Nie do zablokowania",
+	"direction": "Z tyłu — poza tarczą", "direction_side": "Z boku — poza tarczą", "unblockable": "Nie do zablokowania",
 }
+## P0.3 (audyt nagrania): ześlizgnięcie z krawędzi tarczy brzmi inaczej niż
+## blok (zastępczo P14 wysoko i ciszej — docelowy plik na liście assetów).
+const SLIP_PITCH := 1.9
+## Punkt celowania tarczy dla botów i scen testowych (mysz w headless nie
+## działa). Vector2.INF = zwykłe celowanie myszą.
+var debug_aim_point: Vector2 = Vector2.INF
+var _last_block_text: String = ""
+var _last_block_side: bool = false
 
 func _announce_block(kind: String) -> void:
+	_last_block_kind = kind
 	block_feedback.emit(kind)
 	if kind in ["broken", "direction", "unblockable"]:
 		Juice.duck_music(0.3) # A16: nieudany blok przebija muzykę
 	if get_parent() != null:
 		var color := Palette.PLAYER_BODY if kind in ["blocked", "parry"] else RECEIVED_DAMAGE_COLOR
-		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -95.0), BLOCK_FEEDBACK_TEXT[kind], color)
+		DamageNumber.spawn_text(get_parent(), global_position + Vector2(0.0, -95.0), BLOCK_FEEDBACK_TEXT[_last_block_text if _last_block_text != "" else kind], color)
+	_last_block_text = ""
 
 ## Leczenie (E) — trafienia ładują stacki (patrz register_hit_on_enemy), E
 ## zużywa JEDEN stack na naciśnięcie (nie cały bank naraz) i oddaje połowę MAX
@@ -1599,13 +1630,63 @@ const RECEIVED_DAMAGE_COLOR := Color("#D63B3B")
 ## nie złapie). blockable=false dla stref na podłożu, pieczęci itp.
 ## Zwraca true, gdy gracz faktycznie stracił HP (np. lifesteal wroga).
 ## attacker: kto zadał cios — sparowany dostaje on_parried(player).
-func take_damage(amount: float, source_position := Vector2.INF, blockable := true, attacker: Node = null) -> bool:
+## P0.2 (audyt nagrania): jak zakończył się cios, który doszedł do gracza.
+const HIT_OUTCOME_BY_BLOCK := {
+	"broken": "przełamanie gardy", "direction": "poza tarczą — tył", "direction_side": "poza tarczą — bok", "unblockable": "nieblokowalny",
+}
+var _last_block_kind: String = ""
+
+## Rodzaj ataku: jawny od wołającego (kontakt/puls/szarża) albo z typu źródła.
+static func attack_kind_of(attacker: Node) -> String:
+	if attacker is EnemyProjectile:
+		return "pocisk"
+	if attacker is RoomTerrain:
+		return "pułapka"
+	if attacker != null and is_instance_valid(attacker):
+		var key := attacker.scene_file_path.get_file().get_basename()
+		if key in ["damage_zone", "seal", "shadow"]:
+			return {"damage_zone": "strefa", "seal": "pieczęć", "shadow": "cień"}[key]
+	return "atak"
+
+func _hit_log_entry(amount: float, blockable: bool, attacker: Node, kind: String) -> Dictionary:
+	var skill := ""
+	if attacker != null and is_instance_valid(attacker) and kind != "kontakt":
+		var skills = attacker.get("_skills")
+		var index = attacker.get("_last_skill_index")
+		if skills is Array and index is int and index >= 0 and index < skills.size():
+			skill = str((skills[index] as Callable).get_method()).trim_prefix("_")
+		var pattern = attacker.get("_last_pattern_name")
+		if pattern is String and pattern != "":
+			skill = pattern
+	return {
+		"source": RunSummary.describe_attacker(attacker, blockable),
+		"kind": kind if kind != "" else attack_kind_of(attacker),
+		"skill": skill, "damage": amount, "blockable": blockable,
+		"hp_before": health, "hp_after": health,
+		"stamina_before": stamina, "stamina_after": stamina,
+		"shield": _shield_up, "dashing": state == State.DASHING, "iframe": _invuln_timer,
+		"pos": global_position, "outcome": "",
+	}
+
+func take_damage(amount: float, source_position := Vector2.INF, blockable := true, attacker: Node = null, kind: String = "") -> bool:
 	if state == State.DEAD:
 		return false
+	var hit := _hit_log_entry(amount, blockable, attacker, kind)
 	if state == State.DASHING or _invuln_timer > 0.0:
+		hit["outcome"] = "dash" if state == State.DASHING else "nietykalność"
+		Juice.log_player_hit(hit)
 		return false
+	_last_block_kind = ""
+	_last_block_side = false
 	if _try_block(amount, source_position, blockable, attacker):
+		hit["outcome"] = "parowanie" if _last_block_kind == "parry" else "blok"
+		hit["stamina_after"] = stamina
+		Juice.log_player_hit(hit)
 		return false
+	hit["outcome"] = HIT_OUTCOME_BY_BLOCK.get("direction_side" if _last_block_side else _last_block_kind, "trafienie")
+	hit["stamina_after"] = stamina
+	hit["hp_after"] = maxf(0.0, health - amount)
+	Juice.log_player_hit(hit)
 	health -= amount
 	last_hit_source = RunSummary.describe_attacker(attacker, blockable)
 	_interrupt_heal_channel()
@@ -1659,6 +1740,15 @@ func is_invulnerable() -> bool:
 ## Jaśniejszy w oknie idealnego bloku, czerwony chwilę po przełamaniu.
 ## A7: gdy gracz nachodzi na dużego wroga (boss, wcielenie), za sylwetką
 ## pojawia się delikatna poświata — ciemny płaszcz nie zlewa się z ciałem bossa.
+const FEET_RING_OFFSET := Vector2(0.0, 32.0) ## tam, gdzie cień kontaktowy
+const FEET_RING_RADIUS := 34.0
+
+func _update_outline() -> void:
+	var target := 1.0 if state != State.DEAD and _overlaps_large_enemy() else 0.0
+	_overlap_blend = move_toward(_overlap_blend, target, OVERLAP_BLEND_SPEED * get_physics_process_delta_time())
+	_outline_material.set_shader_parameter("outline_strength", lerpf(OUTLINE_BASE, OUTLINE_OVERLAP, _overlap_blend) if state != State.DEAD else 0.0)
+	_outline_material.set_shader_parameter("lift", LIFT_OVERLAP * _overlap_blend)
+
 func _overlaps_large_enemy() -> bool:
 	for e in get_tree().get_nodes_in_group("hittable"):
 		if e is Node2D and e.get("is_dead") != true:
@@ -1668,10 +1758,12 @@ func _overlaps_large_enemy() -> bool:
 	return false
 
 func _draw() -> void:
-	if _overlaps_large_enemy():
-		for i in 3:
-			draw_circle(Vector2(0, -4), 46.0 - i * 10.0, Color(Palette.PLAYER_BODY, 0.14 + 0.08 * i))
-		draw_arc(Vector2(0, -4), 46.0, 0.0, TAU, 32, Color(Palette.PLAYER_BODY, 0.7), 2.0, true)
+	if _overlap_blend > 0.01:
+		# Cienki pierścień u stóp (elipsa na posadzce) — pokazuje, gdzie gracz
+		# NAPRAWDĘ stoi, gdy sylwetka nachodzi na ciało dużego wroga.
+		draw_set_transform(FEET_RING_OFFSET, 0.0, Vector2(1.0, 0.36))
+		draw_arc(Vector2.ZERO, FEET_RING_RADIUS, 0.0, TAU, 40, Color(Palette.PLAYER_BODY, 0.75 * _overlap_blend), 2.5, true)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var half := deg_to_rad(shield_arc_degrees * 0.5)
 	var arc_radius := radius + 26.0
 	if _shield_up:
@@ -1724,6 +1816,7 @@ func _apply_facing(variants: Dictionary, direction: Vector2, frame: int = 0) -> 
 ## chodu/dasha) — od Fazy 3-5 każdy słownik ma pełne 5 kątów.
 func _update_visuals() -> void:
 	queue_redraw() # łuk tarczy (_draw)
+	_update_outline()
 	if state == State.DEAD:
 		_apply_facing(TEX_DEATH_VARIANTS, _last_move_direction)
 	elif _flash_frames > 0:

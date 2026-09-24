@@ -403,7 +403,7 @@ func _check_body_contact() -> void:
 	if player.is_invulnerable():
 		return
 	var damage := (_lunge_damage_override if _lunge_damage_override >= 0.0 else lunge_damage) if _lunge_state == "active" else body_contact_damage
-	player.take_damage(damage, global_position, true, self)
+	player.take_damage(damage, global_position, true, self, "szarża" if _lunge_state == "active" else "kontakt")
 	var dir := to_player.normalized() if to_player.length() > 0.01 else Vector2.RIGHT
 	player.apply_knockback(dir * knockback_strength)
 	_play_sfx(SND_BODY_CONTACT)
@@ -418,7 +418,7 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 		return false
 	if player.is_invulnerable():
 		return false
-	var hurt: bool = player.take_damage(damage, global_position, true, self)
+	var hurt: bool = player.take_damage(damage, global_position, true, self, "puls")
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * knockback_strength)
 	return hurt

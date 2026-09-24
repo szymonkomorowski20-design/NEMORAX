@@ -84,24 +84,24 @@ func _ready() -> void:
 
 func _skill_teleport_strike() -> void:
 	_teleport_near_player()
-	_lunge_toward_player(lunge_speed, lunge_duration)
+	await _lunge_after_arrival(lunge_speed, lunge_duration)
 
 func _skill_unstable_burst() -> void:
 	_damage_pulse(randf_range(unstable_min_radius, unstable_max_radius), unstable_damage)
 
 func _skill_double_blink() -> void:
 	_teleport_near_player()
-	_lunge_toward_player(lunge_speed, lunge_duration)
+	await _lunge_after_arrival(lunge_speed, lunge_duration)
 	await get_tree().create_timer(lunge_duration + double_blink_gap).timeout
 	if not is_dead:
 		_teleport_near_player()
-		_lunge_toward_player(lunge_speed, lunge_duration)
+		await _lunge_after_arrival(lunge_speed, lunge_duration)
 
 ## "Grupa wzorców" (dokument sekcja 11: minibossy wybierają całe sekwencje
 ## ruchów, nie pojedyncze ataki) — łączy dwie już istniejące umiejętności w
 ## jedną, selekcjonowalną całość zamiast osobnego systemu łańcuchowania.
 func _pattern_teleport_and_burst() -> void:
-	_skill_teleport_strike()
+	await _skill_teleport_strike()
 	await get_tree().create_timer(0.3).timeout
 	if not is_dead:
 		_skill_unstable_burst()

@@ -266,9 +266,12 @@ func _physics_process(delta: float) -> void:
 
 	_tick_stance(delta)
 	_silence_timer = maxf(0.0, _silence_timer - delta)
+	if stance_enabled or _windup_timer > 0.0:
+		queue_redraw() # krąg odsłonięcia i linia zapowiedzi znikają w klatce, w której się kończą
 	if is_stance_broken():
 		# Odsłonięcie: bez ruchu, ataków i obrażeń od dotyku — okno na kontrę.
 		_tick_hit_recoil(delta)
+		queue_redraw() # krąg odsłonięcia (_draw)
 		_update_sprite_state()
 		return
 
@@ -282,6 +285,9 @@ func _physics_process(delta: float) -> void:
 		_knockback_velocity = _knockback_velocity.move_toward(Vector2.ZERO, knockback_friction * delta)
 	elif _lunge_active:
 		_process_lunge(delta)
+	elif _windup_timer > 0.0:
+		_windup_timer = maxf(0.0, _windup_timer - delta) # stoi w miejscu: linia zapowiedzi się nie przesuwa
+		queue_redraw()
 	else:
 		_drift_towards_player(delta)
 		_walk_cycle_phase += delta * walk_cycle_speed
@@ -351,7 +357,7 @@ func _check_contact() -> void:
 		return
 	if player.is_invulnerable():
 		return
-	player.take_damage(contact_damage, global_position, true, self)
+	player.take_damage(contact_damage, global_position, true, self, "wypad" if _lunge_active else "kontakt")
 	var dir: Vector2 = player.global_position - global_position
 	player.apply_knockback((dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT) * contact_knockback)
 	_play_sfx(SND_CONTACT_HIT)
@@ -395,7 +401,7 @@ func _damage_pulse(pulse_radius: float, damage: float) -> bool:
 		return false
 	if player.is_invulnerable():
 		return false
-	return player.take_damage(damage, global_position, true, self)
+	return player.take_damage(damage, global_position, true, self, "puls")
 
 func _pull_player(strength: float) -> void:
 	if _actions_blocked():
@@ -407,14 +413,61 @@ func _pull_player(strength: float) -> void:
 
 ## Poza "lunge" trzyma się cały czas trwania wypadu przez _lunge_active w
 ## _update_sprite_state(), nie przez _skill_pose_timer jak pulse/pull.
-func _lunge_toward_player(speed: float, duration: float) -> void:
+## Audyt nagrania 24.09 (P0.2): po teleporcie / powrocie z cienia wypad NIE
+## rusza w tej samej klatce. Krótka zapowiedź w miejscu pojawienia się — poza
+## "telegraph" i linia kierunku — a kierunek jest ZABLOKOWANY na jej początku,
+## więc krok w bok wystarcza. Log trafień pokazał, że Vhar’Nokh zabierał
+## większość HP właśnie wypadami bez żadnej zapowiedzi po teleporcie.
+@export var arrival_windup: float = 0.35 ## s
+var _windup_timer: float = 0.0
+var _windup_dir: Vector2 = Vector2.ZERO
+var _windup_reach: float = 0.0
+
+func _lunge_after_arrival(speed: float, duration: float) -> void:
+	if _actions_blocked():
+		return
+	var dir: Vector2 = player.global_position - global_position
+	_windup_dir = dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT
+	_windup_reach = speed * duration + radius
+	_windup_timer = arrival_windup
+	queue_redraw()
+	await get_tree().create_timer(arrival_windup).timeout
+	_windup_timer = 0.0
+	queue_redraw()
+	if is_dead or _actions_blocked():
+		return
+	_lunge_toward_player(speed, duration, _windup_dir)
+
+func _draw() -> void:
+	if is_dead:
+		return
+	if is_stance_broken():
+		# P0.4: odsłonięcie widać przez CAŁY czas trwania — przerywany turkusowy
+		# krąg (kolor gracza = okazja), inny niż czerwone liczby utraty HP.
+		var left := _stance_break_timer / maxf(stance_break_duration, 0.01)
+		var ring := Color(Palette.PLAYER_BODY, 0.45 + 0.4 * left)
+		for i in 10:
+			var a0 := TAU * float(i) / 10.0 + (1.0 - left) * 0.8
+			draw_arc(Vector2.ZERO, radius + 12.0, a0, a0 + TAU / 10.0 * 0.6, 6, ring, 3.0, true)
+	if _windup_timer <= 0.0:
+		return
+	# Linia wypadu: od krawędzi ciała do końca zasięgu, grot na końcu.
+	var progress := 1.0 - _windup_timer / maxf(arrival_windup, 0.01)
+	var color := Color(Palette.DANGER, 0.35 + 0.5 * progress)
+	var start := _windup_dir * radius * 0.6
+	var end := _windup_dir * _windup_reach
+	draw_line(start, end, color, 5.0, true)
+	var side := _windup_dir.orthogonal() * 14.0
+	draw_colored_polygon(PackedVector2Array([end + _windup_dir * 18.0, end + side, end - side]), color)
+
+func _lunge_toward_player(speed: float, duration: float, locked_dir: Vector2 = Vector2.ZERO) -> void:
 	if _actions_blocked():
 		return
 	_play_sfx(SND_LUNGE_START)
 	_lunge_active = true
 	_lunge_timer = duration
 	_lunge_speed = speed
-	var dir: Vector2 = player.global_position - global_position
+	var dir: Vector2 = locked_dir if locked_dir != Vector2.ZERO else player.global_position - global_position
 	_lunge_direction = dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT
 
 func _process_lunge(delta: float) -> void:
@@ -524,6 +577,8 @@ func _update_sprite_state() -> void:
 		pose = "telegraph"
 	elif _skill_pose_timer > 0.0:
 		pose = _skill_pose_name
+	elif _windup_timer > 0.0:
+		pose = "telegraph"
 	elif _lunge_active:
 		pose = "lunge"
 	var entry = _sprite_textures.get(pose, _sprite_textures.get("walk"))

@@ -25,9 +25,46 @@ const DAMAGE_EVENT_LIMIT := 512
 var damage_totals: Dictionary = {}
 var damage_events: Array[Dictionary] = []
 
+## Audyt nagrania 24.09 (P0.2): log KAŻDEGO ciosu, który doszedł do gracza —
+## także zatrzymanego przez dash, nietykalność czy tarczę. Jedno źródło: wpisy
+## dopisuje wyłącznie Player.take_damage(). Widoczny w nakładce debug (F3 /
+## toggle_debug); z włączoną nakładką każdy wpis idzie też na konsolę.
+const PLAYER_HITS_CAP := 200
+var player_hits: Array[Dictionary] = []
+
+func log_player_hit(entry: Dictionary) -> void:
+	entry["time"] = GameFlow.run_time if GameFlow.run_time > 0.0 else Time.get_ticks_msec() / 1000.0
+	player_hits.append(entry)
+	if player_hits.size() > PLAYER_HITS_CAP:
+		player_hits.pop_front()
+	if debug_visible:
+		print("[HIT] " + format_player_hit(entry))
+
+static func format_player_hit(e: Dictionary) -> String:
+	var parts: Array[String] = [
+		"%6.1fs" % float(e.get("time", 0.0)),
+		str(e.get("source", "?")),
+		str(e.get("kind", "?")) + (" (" + str(e["skill"]) + ")" if str(e.get("skill", "")) != "" else ""),
+		"%s: %.0f" % [e.get("outcome", "?"), float(e.get("damage", 0.0))],
+		"HP %.0f→%.0f" % [float(e.get("hp_before", 0.0)), float(e.get("hp_after", 0.0))],
+		"st %.0f→%.0f" % [float(e.get("stamina_before", 0.0)), float(e.get("stamina_after", 0.0))],
+	]
+	var flags: Array[String] = []
+	if e.get("shield", false):
+		flags.append("tarcza")
+	if e.get("dashing", false):
+		flags.append("dash")
+	if float(e.get("iframe", 0.0)) > 0.0:
+		flags.append("i-frame %.2f" % float(e["iframe"]))
+	parts.append("[" + ", ".join(flags) + "]" if not flags.is_empty() else "[—]")
+	var p: Vector2 = e.get("pos", Vector2.ZERO)
+	parts.append("(%d, %d)" % [int(p.x), int(p.y)])
+	return "  ".join(parts)
+
 func reset_damage_metrics() -> void:
 	damage_totals.clear()
 	damage_events.clear()
+	player_hits.clear()
 
 func damage_totals_snapshot() -> Dictionary:
 	return damage_totals.duplicate()
@@ -106,6 +143,10 @@ func _update_debug_label() -> void:
 		if int(event["time_msec"]) >= window_start:
 			recent_damage += float(event["damage"])
 	lines.append("damage DPS/5s: %.1f   totals: %s" % [recent_damage / 5.0, str(damage_totals)])
+	if not player_hits.is_empty():
+		lines.append("ostatnie ciosy w gracza:")
+		for e in player_hits.slice(maxi(0, player_hits.size() - 6)):
+			lines.append("  " + format_player_hit(e))
 	_debug_label.text = "\n".join(lines)
 
 ## Zatrzymuje grę na `duration` sekund w czasie rzeczywistym. Kolejne wywołanie
