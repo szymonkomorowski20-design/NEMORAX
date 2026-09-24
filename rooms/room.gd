@@ -162,6 +162,10 @@ func _ready() -> void:
 	track.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	music.stream = track
 	music.add_to_group(Juice.MUSIC_GROUP) # Paczka 10: ściszanie pod telegrafami
+	# Audyt nagrania P2.16: prolog i inne cutscenki pauzują drzewo — muzyka
+	# pokoju grała wtedy „wstrzymana” (cisza pod dialogiem, a test muzyki
+	# padał zależnie od tego, czy prolog był już widziany). Gra zawsze.
+	music.process_mode = Node.PROCESS_MODE_ALWAYS
 	music.play()
 
 	var center := _play_rect.get_center()

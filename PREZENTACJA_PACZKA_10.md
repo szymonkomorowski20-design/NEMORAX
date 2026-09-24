@@ -23,5 +23,16 @@ Arena bossa nie ma muzyki (tak było wcześniej), więc ściszanie działa w pok
 | Materiał ołtarza/finału i granica areny (A7–A8) | Obecna arena używa tekstury podłogi; przyciemnienie tej samej podłogi jest zakazane w planie. | Tekstura krawędzi areny oraz materiał podłogi ołtarza (kafel 512×512, ta sama paleta co komnaty). |
 | Ambient czterech pilotażowych motywów | Katalog `assets/audio/ambient/` jest pusty. | 4 pętle ambientu 30–60 s: zalana katakumba (kapanie, woda), biblioteka (skrzypienie regałów), kryształowa grota (dzwonienie), zardzewiała hala (metal, prasy). |
 | Dźwięk przełamania gardy | Jest zastępczy (P14 z obniżoną wysokością). | Plik `P15_guard_break.wav`: pęknięcie tarczy, 0,4–0,6 s. |
-| Dźwięk nieudanego bloku z boku/tyłu | Dziś słychać tylko dźwięk bólu i widać napis. | Opcjonalny krótki zgrzyt „ześlizgnięcia” po tarczy. |
-| Odsłuch na słuchawkach | Automatyczny test nie zastąpi ucha. | Autor: krótki odsłuch pokoju z wcieleniem (ściszanie przy telegrafie) oraz fali pocisków. |
+| Dźwięk ześlizgnięcia z tarczy (bok/tył) | **Aktualizacja 24.09:** jest zastępczy — P14 wysoko (×1,9) i ciszej, osobny odtwarzacz. | Plik `P16_block_slip.wav`: krótki metaliczny zgrzyt, 0,2–0,3 s. |
+| Odsłuch na słuchawkach | Automatyczny test nie zastąpi ucha. | Autor: `debug/audio_lab.tscn` (F6) — sceny 1–3; ściszanie −8 dB pod telegrafem, najwyżej 3 kopie tego samego dźwięku. |
+
+## Dopisane po audycie nagrania 24.09 (P1.5–P1.7, P2.15)
+
+Pułapki i woda mają teraz stany rysowane kodem (bez nowych plików). Grafiki poniżej są opcjonalne: poprawią materiał, ale nie są potrzebne do czytelności.
+
+| Co | Stan teraz | Docelowy asset (opcjonalnie) |
+| --- | --- | --- |
+| Kryształy przy murze (grota) | kępy rysowane wielokątami, rozjarzenie przy zbliżeniu pocisku, błysk przy odbiciu | 3–4 sprite’y kęp kryształu 64–96 px, przezroczyste tło, paleta groty; opcjonalnie wariant „świecący” |
+| Moduł prasy (hala) | płyta ze szczeliną, śrubami i głowicą rysowana kodem; 3 stany jasności | kafel 128×128 osadzonej płyty prasy (spoczynek) + nakładka świecących fug (zapowiedź) + głowica (uderzenie) |
+| Brzeg wody (zalana katakumba) | gradient wejścia, mokry kamień, falująca linia brzegu, kręgi u stóp | pasek 512×32 mokrego brzegu (kafelkowany) i drobna tekstura tafli 256×256 z kaustyką |
+| Stojący regał (biblioteka) | tekstura muru przyciemniona na drewno + linie półek | sprite frontu regału z książkami 64×160 |
