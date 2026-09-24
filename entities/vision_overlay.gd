@@ -29,6 +29,35 @@ class_name VisionOverlay
 @export var darkness_color: Color = Color(0.102, 0.063, 0.149, 1.0)
 
 var _target: Node2D
+var _arena_rect := Rect2()
+var _bounds_hint: Node2D
+
+## Drugi audyt (A2): w mroku znikała granica sali. Krawędź areny i narożniki
+## rysowane NAD ciemnością (z = 0 względem rodzica), pod postaciami — gracz
+## zawsze wie, gdzie kończy się ruch, a mrok nadal zakrywa resztę świata.
+const BOUNDS_EDGE := Color(0.62, 0.56, 0.70, 0.30)
+const BOUNDS_CORNER := Color(0.78, 0.72, 0.86, 0.55)
+
+func _ensure_bounds_hint() -> void:
+	if _bounds_hint != null:
+		_bounds_hint.queue_redraw()
+		return
+	_bounds_hint = Node2D.new()
+	_bounds_hint.z_index = 1 # względem nakładki (-1) = 0: nad mrokiem, pod postaciami
+	_bounds_hint.draw.connect(_draw_bounds_hint)
+	add_child(_bounds_hint)
+
+func _draw_bounds_hint() -> void:
+	if not visible or not _arena_rect.has_area():
+		return
+	var r := Rect2(_arena_rect.position - position, _arena_rect.size)
+	_bounds_hint.draw_rect(r, BOUNDS_EDGE, false, 3.0)
+	var leg := 34.0
+	for c in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
+		var sx := 1.0 if c.x <= r.get_center().x else -1.0
+		var sy := 1.0 if c.y <= r.get_center().y else -1.0
+		_bounds_hint.draw_line(c, c + Vector2(leg * sx, 0.0), BOUNDS_CORNER, 4.0)
+		_bounds_hint.draw_line(c, c + Vector2(0.0, leg * sy), BOUNDS_CORNER, 4.0)
 
 const SHADER_CODE := """
 shader_type canvas_item;
@@ -70,6 +99,8 @@ func _ready() -> void:
 ## tylko samą arenę — inaczej byłoby widać jasną krawędź przy ścianach.
 func activate(follow_target: Node2D, arena_rect: Rect2) -> void:
 	_target = follow_target
+	_arena_rect = arena_rect
+	_ensure_bounds_hint()
 	var margin := 400.0
 	position = arena_rect.position - Vector2(margin, margin)
 	size = arena_rect.size + Vector2(margin, margin) * 2.0

@@ -33,6 +33,7 @@ const SND_OPEN := preload("res://assets/audio/sfx/p0/UI_STATS_OPEN.wav")
 func open(p: Player) -> void:
 	player = p
 	_selected_index = 0
+	_effects_scroll = 0
 	visible = true
 	get_tree().paused = true
 	Juice.play_ui_sfx(SND_OPEN)
@@ -64,79 +65,32 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_TAB:
 		Juice.play_ui_sfx_variant(Juice.SND_UI_BACK)
 		_close()
+	elif event is InputEventKey and event.pressed and event.physical_keycode == KEY_PAGEDOWN:
+		scroll_effects(maxi(1, _effects_visible))
+	elif event is InputEventKey and event.pressed and event.physical_keycode == KEY_PAGEUP:
+		scroll_effects(-maxi(1, _effects_visible))
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		scroll_effects(1)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		scroll_effects(-1)
 
-const SKILLS_GRID_COLUMNS := 4
-const SKILLS_GRID_COL_WIDTH := 300.0
-const SKILLS_GRID_ROW_HEIGHT := 26.0
-const SKILLS_ICON_SIZE := 22.0
+## Drugi audyt nagrania (24.09, A1): dawniej jedna kolumna z efektami na dole
+## ściskała wiersze, aż tekst wchodził na stopkę, a opisy były UCINANE na
+## szerokości kolumny (draw_string z szerokością obcina, nie zawija). Teraz:
+## nieprzezroczyste okno (nic z gry pod spodem nie prześwituje), statystyki
+## w lewym panelu, efekty w prawym — każdy opis zawinięty w całości, lista
+## przewijana (PgUp/PgDn, kółko myszy) zamiast ściskania, stopka w stałym pasie.
+const LEFT_PANEL := Rect2(40.0, 150.0, 470.0, 500.0)
+const RIGHT_PANEL := Rect2(540.0, 150.0, 700.0, 500.0)
+const FOOTER_Y := 690.0
+const EFFECT_ICON := 30.0
+const EFFECT_GAP := 10.0
+var _effects_scroll: int = 0
+var _effects_visible: int = 0
+var _effects_total: int = 0
 
-## Był zbudowany z niezależnych procentów viewport_size.y dobranych osobno dla
-## każdego elementu (0.1 / 0.18 / 0.25 / 0.34...) — stąd linia podsumowania
-## (0.30) faktycznie nachodziła na pierwszy, podświetlony wiersz statystyk
-## (zaczynający się na 0.34, ale jego TŁO sięga wyżej niż sama linia bazowa
-## tekstu). Płynący kursor `y`, powiększany o rzeczywistą wysokość właśnie
-## narysowanego elementu, wyklucza taki nachodzący się odstęp z konstrukcji,
-## zamiast wymagać, żeby ktoś ręcznie utrzymywał zgodność kolejnych stałych.
-func _draw() -> void:
-	if not visible or player == null:
-		return
-	var viewport_size := get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, viewport_size), Color(Palette.BACKGROUND, 0.92), true)
-	var y := viewport_size.y * 0.08
-
-	var title := ("Statystyki postaci — Poziom %d/%d · MAX" if player.level >= player.max_level else "Statystyki postaci — Poziom %d/%d") % [player.level, player.max_level]
-	var title_size := FONT_TITLE.get_string_size(title, HORIZONTAL_ALIGNMENT_CENTER, -1, 30)
-	draw_string(FONT_TITLE, Vector2((viewport_size.x - title_size.x) * 0.5, y), title,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 30, SELECTED_COLOR)
-	y += 42.0
-
-	var bar_width := 420.0
-	var bar_pos := Vector2((viewport_size.x - bar_width) * 0.5, y)
-	draw_rect(Rect2(bar_pos, Vector2(bar_width, 14.0)), Color(1.0, 1.0, 1.0, 0.2), true)
-	draw_rect(Rect2(bar_pos, Vector2(bar_width * player.xp_ratio(), 14.0)), Palette.PLAYER_BODY, true)
-	y += 34.0
-
-	var points_text := "Niewydane punkty: %d" % player.unspent_stat_points
-	var points_size := FONT_BODY_MEDIUM.get_string_size(points_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
-	draw_string(FONT_BODY_MEDIUM, Vector2((viewport_size.x - points_size.x) * 0.5, y), points_text,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, TEXT_COLOR)
-	y += 38.0
-
-	var line_height := 34.0
-	var row_width := 360.0
-	for i in range(Player.STAT_KEYS.size()):
-		var key: String = Player.STAT_KEYS[i]
-		var label: String = Player.STAT_LABELS[key]
-		var points: int = player.stat_points[key]
-		var line := "%s — %d %s" % [label, points, ("punkt" if points == 1 else "punktów")]
-		var is_selected := i == _selected_index
-		var font := FONT_BODY_MEDIUM if is_selected else FONT_BODY
-		var color := SELECTED_COLOR if is_selected else TEXT_COLOR
-		var line_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_CENTER, -1, 22)
-		var baseline := Vector2((viewport_size.x - line_size.x) * 0.5, y + i * line_height)
-		if is_selected:
-			var row_rect := Rect2((viewport_size.x - row_width) * 0.5, baseline.y - line_size.y - 4.0, row_width, line_size.y + 12.0)
-			draw_rect(row_rect, SELECTED_BG, true)
-		draw_string(font, baseline, line, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
-	y += Player.STAT_KEYS.size() * line_height
-
-	# Przed → po dla wybranej statystyki (Paczka 6, A12) — ta sama formuła co awans.
-	var preview := "+1 punkt: " + player.stat_point_preview(Player.STAT_KEYS[_selected_index])
-	var preview_size := FONT_BODY_MEDIUM.get_string_size(preview, HORIZONTAL_ALIGNMENT_CENTER, -1, 20)
-	draw_string(FONT_BODY_MEDIUM, Vector2((viewport_size.x - preview_size.x) * 0.5, y), preview,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, SELECTED_COLOR if player.unspent_stat_points > 0 else HINT_COLOR)
-	y += 34.0
-
-	# Podsumowanie efektywnych statystyk PO liście punktów, nie przed nią —
-	# to wynik ich wydawania, więc czytelnie idzie za przyczyną, nie nad nią.
-	var summary := "HP %.0f/%.0f  ·  Miecz %.1f  ·  Różdżka %.1f  ·  Ruch %.0f" % [player.health, player.max_health, player.attack_damage, player.wand_damage, minf(player.base_max_speed * 1.4, player.max_speed * player._upgrade_speed_multiplier())]
-	var summary_size := FONT_BODY_MEDIUM.get_string_size(summary, HORIZONTAL_ALIGNMENT_CENTER, -1, 19)
-	draw_string(FONT_BODY_MEDIUM, Vector2((viewport_size.x - summary_size.x) * 0.5, y), summary,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 19, TEXT_COLOR)
-	y += 40.0
-
-	# Aktywne efekty (Paczka 6, A16): runy z opisem OBECNEJ rangi + relikwie.
-	# Dwie kolumny, ikona 30 px i opis 15 px zamiast samych nazw 16 px.
+func _effect_entries() -> Array:
+	# Jedno źródło: te same katalogi, które zasilają karty i HUD.
 	var entries: Array = []
 	var ids := player.skill_ranks.keys()
 	ids.sort()
@@ -144,33 +98,94 @@ func _draw() -> void:
 		if SkillCatalog.SKILLS.has(id) and player.skill_rank(id) > 0:
 			entries.append({"icon": SkillCatalog.icon(id), "title": "%s %d/%d" % [SkillCatalog.SKILLS[id]["name"], player.skill_rank(id), SkillCatalog.SKILLS[id]["ranks"]],
 				"text": SkillCatalog.rank_text(id, player.skill_rank(id))})
-	# Pakt fragmentu (Paczka 8): efekt teraz + zapowiedź finału — widoczne w Księdze.
 	for ch in GameFlow.pacts:
 		var opt: Dictionary = PactCatalog.OPTIONS.get(GameFlow.pacts[ch], {})
 		if not opt.is_empty():
-			entries.append({"icon": null, "title": "Pakt: %s" % opt["name"], "text": "%s  Finał: %s" % [opt["now"], opt["finale"]]})
+			entries.append({"icon": null, "title": "Pakt: %s" % opt["name"], "text": "Teraz: %s\nW finale: %s" % [opt["now"], opt["finale"]]})
 	for relic in player.owned_upgrades:
 		entries.append({"icon": GameUI.RELIC_ICONS.get(relic), "title": str(GameUI.RELIC_NAMES.get(relic, relic)),
 			"text": str(GameUI.RELIC_DESCRIPTIONS.get(relic, ""))})
-	if not entries.is_empty():
-		var col_w := 590.0
-		var grid_left := (viewport_size.x - col_w * 2.0) * 0.5
-		draw_string(FONT_TITLE, Vector2(grid_left, y), "Aktywne efekty", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, SELECTED_COLOR)
-		y += 14.0
-		var row_h := 44.0
-		var rows := int(ceil(entries.size() / 2.0))
-		var available_h := viewport_size.y * 0.90 - y
-		if rows * row_h > available_h:
-			row_h = maxf(30.0, available_h / rows)
-		for i in entries.size():
-			var e: Dictionary = entries[i]
-			var pos := Vector2(grid_left + (i % 2) * col_w, y + (i / 2) * row_h)
-			if e["icon"] != null:
-				draw_texture_rect(e["icon"], Rect2(pos + Vector2(0, 4), Vector2(30, 30)), false)
-			draw_string(FONT_BODY_MEDIUM, pos + Vector2(38, 18), e["title"], HORIZONTAL_ALIGNMENT_LEFT, col_w - 48.0, 17, SELECTED_COLOR)
-			draw_string(FONT_BODY, pos + Vector2(38, 36), e["text"], HORIZONTAL_ALIGNMENT_LEFT, col_w - 48.0, 15, TEXT_COLOR)
+	return entries
 
-	var hint := "Strzałki: wybór — Enter: wydaj punkt — Tab/Escape: zamknij"
-	var hint_size := FONT_BODY.get_string_size(hint, HORIZONTAL_ALIGNMENT_CENTER, -1, 18)
-	draw_string(FONT_BODY, Vector2((viewport_size.x - hint_size.x) * 0.5, viewport_size.y * 0.92), hint,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 18, HINT_COLOR)
+func _entry_height(e: Dictionary, text_w: float) -> float:
+	var h := FONT_BODY.get_multiline_string_size(str(e["text"]), HORIZONTAL_ALIGNMENT_LEFT, text_w, 15).y
+	return maxf(EFFECT_ICON + 4.0, 22.0 + h) + EFFECT_GAP
+
+func scroll_effects(delta: int) -> void:
+	_effects_scroll = clampi(_effects_scroll + delta, 0, maxi(0, _effects_total - 1))
+	queue_redraw()
+
+func _centered(font: Font, text: String, y: float, size: int, color: Color) -> void:
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	draw_string(font, Vector2((get_viewport_rect().size.x - w) * 0.5, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+
+func _draw() -> void:
+	if not visible or player == null:
+		return
+	var vp := get_viewport_rect().size
+	draw_rect(Rect2(Vector2.ZERO, vp), Palette.BACKGROUND, true) # nieprzezroczyste: modalne okno
+	var title := ("Statystyki postaci — Poziom %d/%d · MAX" if player.level >= player.max_level else "Statystyki postaci — Poziom %d/%d") % [player.level, player.max_level]
+	_centered(FONT_TITLE, title, 58.0, 30, SELECTED_COLOR)
+	var bar_width := 420.0
+	var bar_pos := Vector2((vp.x - bar_width) * 0.5, 76.0)
+	draw_rect(Rect2(bar_pos, Vector2(bar_width, 12.0)), Color(1.0, 1.0, 1.0, 0.2), true)
+	draw_rect(Rect2(bar_pos, Vector2(bar_width * player.xp_ratio(), 12.0)), Palette.PLAYER_BODY, true)
+	var points_text := "Niewydane punkty: %d" % player.unspent_stat_points
+	_centered(FONT_BODY_MEDIUM, points_text, 122.0, 20, SELECTED_COLOR if player.unspent_stat_points > 0 else TEXT_COLOR)
+
+	# Lewy panel: punkty, podgląd, podsumowanie.
+	var lp := LEFT_PANEL
+	draw_rect(lp, Color(1, 1, 1, 0.03), true)
+	var y := lp.position.y + 32.0
+	var line_height := 34.0
+	for i in range(Player.STAT_KEYS.size()):
+		var key: String = Player.STAT_KEYS[i]
+		var points: int = player.stat_points[key]
+		var line := "%s — %d %s" % [Player.STAT_LABELS[key], points, ("punkt" if points == 1 else "punktów")]
+		var is_selected := i == _selected_index
+		if is_selected:
+			draw_rect(Rect2(lp.position.x + 8.0, y - 24.0, lp.size.x - 16.0, 32.0), SELECTED_BG, true)
+		draw_string(FONT_BODY_MEDIUM if is_selected else FONT_BODY, Vector2(lp.position.x + 20.0, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, SELECTED_COLOR if is_selected else TEXT_COLOR)
+		y += line_height
+	y += 10.0
+	var text_w := lp.size.x - 40.0
+	var preview := "+1 punkt: " + player.stat_point_preview(Player.STAT_KEYS[_selected_index])
+	draw_multiline_string(FONT_BODY_MEDIUM, Vector2(lp.position.x + 20.0, y), preview, HORIZONTAL_ALIGNMENT_LEFT, text_w, 19, -1, SELECTED_COLOR if player.unspent_stat_points > 0 else HINT_COLOR)
+	y += FONT_BODY_MEDIUM.get_multiline_string_size(preview, HORIZONTAL_ALIGNMENT_LEFT, text_w, 19).y + 14.0
+	var summary := "HP %.0f/%.0f  ·  Miecz %.1f  ·  Różdżka %.1f  ·  Ruch %.0f" % [player.health, player.max_health, player.attack_damage, player.wand_damage, minf(player.base_max_speed * 1.4, player.max_speed * player._upgrade_speed_multiplier())]
+	draw_multiline_string(FONT_BODY_MEDIUM, Vector2(lp.position.x + 20.0, y), summary, HORIZONTAL_ALIGNMENT_LEFT, text_w, 18, -1, TEXT_COLOR)
+
+	# Prawy panel: aktywne efekty, pełne opisy, przewijanie wpisami.
+	var rp := RIGHT_PANEL
+	draw_rect(rp, Color(1, 1, 1, 0.03), true)
+	var entries := _effect_entries()
+	_effects_total = entries.size()
+	_effects_scroll = clampi(_effects_scroll, 0, maxi(0, _effects_total - 1))
+	draw_string(FONT_TITLE, rp.position + Vector2(16.0, 28.0), "Aktywne efekty (%d)" % _effects_total, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, SELECTED_COLOR)
+	var list_top := rp.position.y + 44.0
+	var list_bottom := rp.end.y - 24.0
+	var ew := rp.size.x - 32.0 - EFFECT_ICON - 10.0
+	var ey := list_top
+	_effects_visible = 0
+	if entries.is_empty():
+		draw_string(FONT_BODY, Vector2(rp.position.x + 16.0, ey + 20.0), "Brak — runy, relikwie i Pakt pojawią się tutaj.", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, HINT_COLOR)
+	for i in range(_effects_scroll, entries.size()):
+		var e: Dictionary = entries[i]
+		var h := _entry_height(e, ew)
+		if ey + h > list_bottom and _effects_visible > 0:
+			break
+		var x0 := rp.position.x + 16.0
+		if e["icon"] != null:
+			draw_texture_rect(e["icon"], Rect2(Vector2(x0, ey + 2.0), Vector2(EFFECT_ICON, EFFECT_ICON)), false)
+		draw_string(FONT_BODY_MEDIUM, Vector2(x0 + EFFECT_ICON + 10.0, ey + 16.0), e["title"], HORIZONTAL_ALIGNMENT_LEFT, ew, 17, SELECTED_COLOR)
+		draw_multiline_string(FONT_BODY, Vector2(x0 + EFFECT_ICON + 10.0, ey + 34.0), str(e["text"]), HORIZONTAL_ALIGNMENT_LEFT, ew, 15, -1, TEXT_COLOR)
+		ey += h
+		_effects_visible += 1
+	var more_up := _effects_scroll > 0
+	var more_down := _effects_scroll + _effects_visible < _effects_total
+	if more_up or more_down:
+		var nav := "%s%s  wpisy %d–%d z %d  ·  PgUp/PgDn lub kółko myszy" % ["▲ " if more_up else "", "▼" if more_down else "", _effects_scroll + 1, _effects_scroll + _effects_visible, _effects_total]
+		draw_string(FONT_BODY, Vector2(rp.position.x + 16.0, rp.end.y - 6.0), nav, HORIZONTAL_ALIGNMENT_LEFT, rp.size.x - 32.0, 15, HINT_COLOR)
+
+	# Stopka w stałym pasie — nic nad nią nie wchodzi.
+	_centered(FONT_BODY, "Strzałki: wybór — Enter: wydaj punkt — PgUp/PgDn: efekty — Tab/Escape: zamknij", FOOTER_Y, 18, HINT_COLOR)

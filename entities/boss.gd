@@ -329,6 +329,7 @@ var vision: VisionOverlay = null
 var _dark_alpha: float = 1.0
 var _contact_shadow: Node2D = null
 const DARK_MIN_ALPHA := 0.0
+const DARK_TRACE_ALPHA := 0.35 ## krąg kontaktu nie gaśnie w mroku poniżej tego (A2)
 const RUNE_RING_SEGMENTS := 12
 const RUNE_RING_SPIN := 0.25 ## rad/s — powolny obrót kręgu runicznego (A9)
 var _rune_ring_angle: float = 0.0
@@ -1021,13 +1022,32 @@ func _draw() -> void:
 	var telegraphing := _lunge_state == "telegraph"
 	var base_radius := radius + 4.0
 	var ring_color: Color = Palette.DANGER if telegraphing else current_color
-	var ring_alpha_scale := 1.0 if telegraphing else _dark_alpha # telegraf zawsze widoczny
+	# Drugi audyt (A2): w mroku Władzy sylwetka znika (decyzja autora 23.09), ale
+	# MIEJSCE bossa zostaje uczciwe — krąg kontaktu (dokładny promień kolizji
+	# ciała) nie gaśnie poniżej DARK_TRACE_ALPHA, a oczy tlą się w ciemności.
+	# Kontakt z ciałem nigdy nie przychodzi z pustki.
+	var ring_alpha_scale := 1.0 if telegraphing else maxf(_dark_alpha, DARK_TRACE_ALPHA)
+	var hidden := 1.0 - _dark_alpha
+	if hidden > 0.05 and not telegraphing:
+		for sx in [-1.0, 1.0]:
+			draw_circle(Vector2(sx * radius * 0.12, -radius * 0.55), 3.0, Color(1.0, 0.32, 0.28, 0.85 * hidden))
+			draw_circle(Vector2(sx * radius * 0.12, -radius * 0.55), 7.0, Color(1.0, 0.32, 0.28, 0.18 * hidden))
 	for i in range(3, 0, -1):
 		var glow_alpha := (0.16 if telegraphing else 0.09) * float(i)
 		draw_arc(Vector2.ZERO, base_radius + float(i) * 3.0, 0.0, TAU, 40, Color(ring_color, glow_alpha * ring_alpha_scale), 6.0)
 	if telegraphing:
-		# Zagrożenie: pełna, gruba linia — czytelność ponad klimat.
-		draw_arc(Vector2.ZERO, base_radius, 0.0, TAU, 40, Color(ring_color, 0.85), 5.0)
+		# Zagrożenie: grube, jasne segmenty runiczne z pęknięciami „wbitymi” w
+		# posadzkę (drugi audyt A3) zamiast gładkiego złotego okręgu — nadal
+		# najjaśniejszy element wokół bossa, promień bez zmian.
+		var tcol := Color(ring_color, 0.9)
+		for s in 16:
+			var t0 := _rune_ring_angle * 3.0 + TAU * float(s) / 16.0
+			draw_arc(Vector2.ZERO, base_radius, t0, t0 + TAU / 16.0 * 0.68, 6, tcol, 5.0, true)
+		for c in 7:
+			var ca := TAU * float(c) / 7.0 + 0.3
+			var d := Vector2.from_angle(ca)
+			var side := d.orthogonal() * 5.0
+			draw_polyline(PackedVector2Array([d * base_radius, d * (base_radius + 12.0) + side, d * (base_radius + 22.0) - side * 0.6]), Color(ring_color, 0.7), 2.0, true)
 		return
 	# A9 (Paczka 10): poza telegrafem krąg jest RUNICZNY, nie idealnym kolorowym
 	# okręgiem — łuki z przerwami i krótkie nacięcia run, powoli obracające się.

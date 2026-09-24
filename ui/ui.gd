@@ -420,16 +420,31 @@ func _resource_flash_modulate(base: Color, kind: String) -> Color:
 	var t: float = _resource_flash_timer / RESOURCE_FLASH_DURATION
 	return base.lerp(RESOURCE_FLASH_COLOR, t)
 
+## Komunikaty świata (drwiny, nagrody) chowają się pod modalnym oknem — każde
+## z nich pauzuje drzewo (drugi audyt A1).
+func world_messages_visible() -> bool:
+	return not (is_inside_tree() and get_tree().paused)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED or what == NOTIFICATION_UNPAUSED:
+		queue_redraw() # schowaj/przywróć komunikaty świata od razu przy otwarciu okna
+
 func _draw() -> void:
 	_draw_reliquary_panel() # PIERWSZE — rodzic rysuje się POD swoimi dziećmi (paski/ikony), więc to zawsze wyląduje w tle
 	if _overlay_active:
 		_draw_overlay()
-	_draw_center_message()
-	_draw_relic_card()
+	# Drugi audyt (A1): gdy otwarte jest modalne okno (wszystkie pauzują drzewo),
+	# komunikaty świata — drwiny, karty relikwii, przyciski i przypomnienia
+	# nagród — nie prześwitują pod nim.
+	var modal_open := not world_messages_visible()
+	if not modal_open:
+		_draw_center_message()
+		_draw_relic_card()
 	_draw_heal_stack_count()
 	_draw_xp_bar()
-	_draw_reward_buttons()
-	_draw_reward_reminder()
+	if not modal_open:
+		_draw_reward_buttons()
+		_draw_reward_reminder()
 	_draw_player_hp_text()
 	_draw_boss_name_and_phase()
 	_draw_boss_hp_text()
