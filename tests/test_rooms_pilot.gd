@@ -252,3 +252,24 @@ func test_every_seed_gives_a_completable_map(_root: Node) -> void:
 				altars += 1
 		NemoraxTest.assert_true(souls == 6 and altars == 1, "seed %d: dusze %d, ołtarz %d" % [s, souls, altars])
 	GameFlow.reset_run()
+
+## Audyt nagrania 24.09 (P1): kryształy są kępami przy murze, prasy mają stan
+## stygnięcia, a powrót do wyczyszczonej biblioteki nie przewraca regałów znowu.
+func test_crystal_clusters_and_revisited_library(root: Node) -> void:
+	var crystal := RoomTerrain.new()
+	crystal.setup(_play_rect(), "open", EncounterPlan.THEME_CRYSTAL, false)
+	NemoraxTest.assert_true(crystal._crystals.size() >= 12, "kępy kryształu wzdłuż wszystkich ścian")
+	var gaps: Array = []
+	for i in range(1, crystal._crystals.size()):
+		gaps.append(snappedf((crystal._crystals[i]["pos"] as Vector2).distance_to(crystal._crystals[i - 1]["pos"]), 1.0))
+	NemoraxTest.assert_true(gaps.max() != gaps.min(), "odstępy nieregularne, nie równy znacznik co 64 px")
+	crystal._crystal_glow_near(crystal._crystals[0]["pos"], 1.0)
+	NemoraxTest.assert_almost_eq(float(crystal._crystals[0]["glow"]), 1.0, 0.01, "odbicie rozjarza najbliższą kępę")
+	var library := RoomTerrain.new()
+	library.setup(_play_rect(), "oslona", EncounterPlan.THEME_LIBRARY, false)
+	library.shelves_already_fallen = true
+	root.add_child(library)
+	NemoraxTest.assert_almost_eq(library._shelf_fall, 1.0, 0.01, "wyczyszczona biblioteka: regały już leżą")
+	root.remove_child(library)
+	library.queue_free()
+	crystal.free()

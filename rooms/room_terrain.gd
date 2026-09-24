@@ -42,7 +42,7 @@ var _activation := {0: 0, 1: 0}
 var _enemy_hit_activation := {} ## instance_id -> "grupa:aktywacja", jedno trafienie wroga na slam
 
 var _shelf_fall: float = 1.0 ## 0 = regał stoi, 1 = przewrócony (biblioteka)
-var _bounce_flashes: Array[Dictionary] = []
+var shelves_already_fallen := false ## ustawiane przez room.gd dla wyczyszczonego pokoju
 var _time: float = 0.0
 var _sfx: AudioStreamPlayer2D
 
@@ -58,6 +58,7 @@ func setup(rect: Rect2, room_layout: String, theme: int, trap: bool) -> void:
 			slow_lane = EncounterPlan.slow_lane_rect(play_rect)
 		"single_bounce":
 			bounce_walls = true
+			_build_crystals()
 		"press_plates":
 			plates = EncounterPlan.trap_plates(play_rect)
 		"projectile_cover":
@@ -83,6 +84,10 @@ func _ready() -> void:
 		add_child(body)
 	if accent == "projectile_cover":
 		# Regały przewracają się chwilę po wejściu — od tej pory to osłona.
+		# Powrót do wyczyszczonej biblioteki: upadek już się wydarzył.
+		if shelves_already_fallen:
+			_shelf_fall = 1.0
+			return
 		var tw := create_tween()
 		tw.tween_interval(0.6)
 		tw.tween_callback(func(): _play(SND_SHELF_FALL, play_rect.get_center()))
@@ -90,9 +95,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_time += delta
-	for f in _bounce_flashes:
-		f["t"] = float(f["t"]) - delta
-	_bounce_flashes = _bounce_flashes.filter(func(f): return float(f["t"]) > 0.0)
+	for c in _crystals:
+		c["glow"] = maxf(0.0, float(c["glow"]) - CRYSTAL_FADE * delta)
 	if not plates.is_empty() and trap_running:
 		_tick_trap(delta)
 	queue_redraw()
@@ -116,9 +120,11 @@ func projectile_step(p: Node2D) -> String:
 		p.set("direction", d)
 		p.global_position = pos.clamp(play_rect.position, play_rect.end)
 		p.set_meta("terrain_bounced", true)
-		_bounce_flashes.append({"pos": p.global_position, "t": 0.25})
+		_crystal_glow_near(p.global_position, 1.0)
 		_play(SND_BOUNCE, p.global_position)
 		return "bounced"
+	if bounce_walls and not p.has_meta("terrain_bounced") and not play_rect.grow(-CRYSTAL_NEAR).has_point(pos):
+		_crystal_glow_near(pos, 0.45) # zapowiedź: pocisk zbliża się do kryształowej ściany
 	return "ok"
 
 # --- Pułapka ---
@@ -173,58 +179,198 @@ func _apply_plate_damage(group: int) -> void:
 
 func _draw() -> void:
 	if slow_lane.has_area():
-		draw_rect(slow_lane, WATER, true)
-		# Brzegi płycizny — kształt granicy, nie sam kolor.
-		for y in [slow_lane.position.y, slow_lane.end.y]:
-			var x0 := slow_lane.position.x
-			while x0 < slow_lane.end.x:
-				draw_line(Vector2(x0, y), Vector2(x0 + 22.0, y + 3.0 * sin(_time * 2.0 + x0 * 0.05)), WATER_RIPPLE, 2.0)
-				x0 += 30.0
-		for i in 6:
-			var x := slow_lane.position.x + fposmod(_time * 40.0 + i * slow_lane.size.x / 6.0, slow_lane.size.x)
-			var y := slow_lane.position.y + slow_lane.size.y * (0.3 + 0.4 * float(i % 2))
-			draw_line(Vector2(x, y), Vector2(x + 46.0, y), WATER_RIPPLE, 2.0)
+		_draw_water()
 	if bounce_walls:
-		# Kryształowe krawędzie: ściana odbija (kształt: zęby kryształu, nie tylko kolor).
-		var step := 64.0
-		var x := play_rect.position.x
-		while x < play_rect.end.x:
-			for y in [play_rect.position.y, play_rect.end.y]:
-				var inward := 1.0 if y == play_rect.position.y else -1.0
-				draw_colored_polygon(PackedVector2Array([Vector2(x, y), Vector2(x + 14.0, y), Vector2(x + 7.0, y + 16.0 * inward)]), CRYSTAL)
-			x += step
-		var y2 := play_rect.position.y
-		while y2 < play_rect.end.y:
-			for xx in [play_rect.position.x, play_rect.end.x]:
-				var inward := 1.0 if xx == play_rect.position.x else -1.0
-				draw_colored_polygon(PackedVector2Array([Vector2(xx, y2), Vector2(xx, y2 + 14.0), Vector2(xx + 16.0 * inward, y2 + 7.0)]), CRYSTAL)
-			y2 += step
-		for f in _bounce_flashes:
-			draw_circle(f["pos"], 22.0 * (1.0 - float(f["t"]) / 0.25) + 6.0, Color(CRYSTAL, float(f["t"]) * 3.0))
+		_draw_crystals()
 	for plate in plates:
-		_draw_plate(plate["rect"], plate_phase(int(plate["group"])))
+		_draw_plate(plate["rect"], int(plate["group"]))
 	for r in obstacles:
 		_draw_obstacle(r)
 
-func _draw_plate(rect: Rect2, phase: String) -> void:
-	draw_rect(rect, PLATE_IDLE, true)
-	draw_rect(rect, Color(0.12, 0.09, 0.08, 0.9), false, 2.0)
+# --- Zalana katakumba (audyt nagrania P1.7): miękkie wejście w wodę, mokry
+# kamień przy brzegu, ciągła linia brzegu i kręgi fal u stóp stojących w wodzie.
+# Granica obszaru (spowolnienie) pozostaje dokładnie na krawędzi slow_lane.
+
+const WATER_DEEP := Color(0.16, 0.36, 0.46, 0.46)
+const WATER_EDGE_BAND := 24.0 ## px łagodnego przejścia wewnątrz pasa
+const WET_STONE := Color(0.02, 0.05, 0.07, 0.30) ## ciemniejszy, mokry kamień tuż za brzegiem
+
+func _draw_water() -> void:
+	var r := slow_lane
+	var clear := Color(WATER_DEEP, 0.0)
+	var band := WATER_EDGE_BAND
+	# Mokry kamień: nieregularny ciemny pas po obu stronach brzegu.
+	for side in [-1.0, 1.0]:
+		var y_edge := r.position.y if side < 0.0 else r.end.y
+		var pts := PackedVector2Array()
+		var x := r.position.x
+		while x <= r.end.x + 0.1:
+			var wobble := 5.0 + 4.0 * sin(x * 0.043 + side * 1.7) + 3.0 * sin(x * 0.11)
+			pts.append(Vector2(x, y_edge + side * wobble))
+			x += 24.0
+		pts.append(Vector2(r.end.x, y_edge))
+		pts.append(Vector2(r.position.x, y_edge))
+		draw_colored_polygon(pts, WET_STONE)
+	# Tafla: pasy z gradientem na brzegach zamiast twardego prostokąta.
+	var top_in := r.position.y + band
+	var bottom_in := r.end.y - band
+	draw_polygon(PackedVector2Array([Vector2(r.position.x, r.position.y), Vector2(r.end.x, r.position.y), Vector2(r.end.x, top_in), Vector2(r.position.x, top_in)]),
+		PackedColorArray([clear, clear, WATER_DEEP, WATER_DEEP]))
+	draw_rect(Rect2(Vector2(r.position.x, top_in), Vector2(r.size.x, bottom_in - top_in)), WATER_DEEP, true)
+	draw_polygon(PackedVector2Array([Vector2(r.position.x, bottom_in), Vector2(r.end.x, bottom_in), Vector2(r.end.x, r.end.y), Vector2(r.position.x, r.end.y)]),
+		PackedColorArray([WATER_DEEP, WATER_DEEP, clear, clear]))
+	# Linia brzegu: jedna ciągła, lekko falująca krawędź (nie przerywane kreski).
+	for y_edge in [r.position.y + 3.0, r.end.y - 3.0]:
+		var line := PackedVector2Array()
+		var x2 := r.position.x
+		while x2 <= r.end.x + 0.1:
+			line.append(Vector2(x2, y_edge + 2.0 * sin(_time * 1.6 + x2 * 0.035)))
+			x2 += 16.0
+		draw_polyline(line, Color(WATER_RIPPLE, 0.45), 1.5, true)
+	# Nurt: kilka długich, bladych smug.
+	for i in 5:
+		var sx := r.position.x + fposmod(_time * 32.0 + i * r.size.x / 5.0, r.size.x)
+		var sy := r.position.y + r.size.y * (0.28 + 0.44 * float(i % 2)) + 4.0 * sin(_time + i)
+		draw_line(Vector2(sx, sy), Vector2(minf(sx + 60.0, r.end.x), sy), Color(WATER_RIPPLE, 0.18), 2.0, true)
+	# Kręgi fal u stóp postaci w wodzie — widać, że stoją W wodzie.
+	for body in _bodies_in_water():
+		var feet: Vector2 = body.global_position - global_position + Vector2(0.0, float(body.get("radius") if body.get("radius") != null else 20.0) * 0.8)
+		for k in 2:
+			var phase := fposmod(_time * 1.2 + k * 0.5, 1.0)
+			var rad := 18.0 + 26.0 * phase
+			draw_set_transform(feet, 0.0, Vector2(1.0, 0.38))
+			draw_arc(Vector2.ZERO, rad, 0.0, TAU, 28, Color(WATER_RIPPLE, 0.5 * (1.0 - phase)), 2.0, true)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _bodies_in_water() -> Array:
+	var out: Array = []
+	var candidates: Array = get_tree().get_nodes_in_group("hittable")
+	var player := get_tree().get_first_node_in_group("player")
+	if player != null:
+		candidates.append(player)
+	for b in candidates:
+		if b is Node2D and b.get("is_dead") != true and slow_lane.has_point((b as Node2D).global_position):
+			out.append(b)
+	return out
+
+# --- Kryształowa grota (audyt nagrania P1.5): nieregularne kępy kryształu
+# osadzone u stóp muru zamiast równych trójkątów. Spoczynek (przygaszone) →
+# zapowiedź (pocisk blisko ściany: rozjarzenie) → aktywacja (odbicie: błysk) →
+# wygaszenie. Odbija dokładnie krawędź play_rect — tam, gdzie stoją kępy.
+
+const CRYSTAL_NEAR := 90.0 ## px od ściany, od których kępa się rozjarza
+const CRYSTAL_FADE := 1.6 ## 1/s wygasania rozjarzenia
+var _crystals: Array[Dictionary] = []
+
+func _build_crystals() -> void:
+	_crystals.clear()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(play_rect.position.x), int(play_rect.size.x), int(play_rect.size.y)])
+	var edges := [
+		[play_rect.position, Vector2(play_rect.end.x, play_rect.position.y), Vector2.DOWN],
+		[Vector2(play_rect.position.x, play_rect.end.y), play_rect.end, Vector2.UP],
+		[play_rect.position, Vector2(play_rect.position.x, play_rect.end.y), Vector2.RIGHT],
+		[Vector2(play_rect.end.x, play_rect.position.y), play_rect.end, Vector2.LEFT],
+	]
+	for e in edges:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var length := a.distance_to(b)
+		var t := rng.randf_range(30.0, 70.0)
+		while t < length - 30.0:
+			var shards: Array = []
+			for s in rng.randi_range(2, 4):
+				shards.append([rng.randf_range(10.0, 26.0), rng.randf_range(4.0, 7.0), rng.randf_range(-0.55, 0.55), rng.randf_range(-7.0, 7.0)])
+			_crystals.append({"pos": a.lerp(b, t / length), "in": e[2], "shards": shards, "glow": 0.0})
+			t += rng.randf_range(80.0, 150.0)
+
+func _crystal_glow_near(pos: Vector2, amount: float) -> void:
+	var best := -1
+	var best_d := INF
+	for i in _crystals.size():
+		var d: float = (_crystals[i]["pos"] as Vector2).distance_to(pos)
+		if d < best_d:
+			best_d = d
+			best = i
+	if best >= 0 and best_d < 160.0:
+		_crystals[best]["glow"] = maxf(float(_crystals[best]["glow"]), amount)
+
+func _draw_crystals() -> void:
+	for c in _crystals:
+		var base: Vector2 = c["pos"]
+		var inward: Vector2 = c["in"]
+		var along := inward.orthogonal()
+		var glow := float(c["glow"])
+		var shimmer := 0.06 * sin(_time * 1.3 + base.x * 0.02 + base.y * 0.03)
+		for s in c["shards"]:
+			var tip_dir := inward.rotated(float(s[2]))
+			var root_pos := base + along * float(s[3])
+			var tip := root_pos + tip_dir * float(s[0]) * (1.0 + 0.25 * glow)
+			var side := tip_dir.orthogonal() * float(s[1])
+			var body := Color(0.30, 0.55, 0.66, 0.55 + shimmer + 0.35 * glow)
+			var edge := Color(0.70, 0.93, 1.0, 0.35 + 0.6 * glow)
+			draw_colored_polygon(PackedVector2Array([root_pos - side, tip, root_pos + side]), body)
+			draw_line(root_pos, tip, edge, 1.5, true)
+		if glow > 0.02:
+			draw_circle(base + inward * 10.0, 14.0 + 18.0 * glow, Color(CRYSTAL, 0.25 * glow))
+
+# --- Hala: moduły prasy (audyt nagrania P1.6). Spoczynek: osadzona w posadzce
+# metalowa płyta ze szczeliną, śrubami i głowicą (niska jasność). Zapowiedź:
+# świecące fugi + odliczający kwadrat, kreskowanie tylko jako warstwa
+# ostrzegawcza. Aktywacja: jasna głowica i fala pyłu. Wygaszenie: stygnące fugi.
+
+const PLATE_METAL := Color(0.19, 0.18, 0.17, 0.92)
+const PLATE_SLOT := Color(0.03, 0.03, 0.03, 0.9)
+const PLATE_BEVEL_LIGHT := Color(0.52, 0.48, 0.42, 0.45)
+const PLATE_BOLT := Color(0.40, 0.36, 0.30, 0.95)
+const PLATE_COOL := 0.4 ## s stygnięcia fug po uderzeniu
+
+func _plate_local(group: int) -> float:
+	return fposmod(trap_time - group * EncounterPlan.TRAP_PERIOD * 0.5, EncounterPlan.TRAP_PERIOD)
+
+func _draw_plate(rect: Rect2, group: int) -> void:
+	var phase := plate_phase(group)
+	var local := _plate_local(group)
+	# Szczelina wokół modułu i sam moduł (lekko zapadnięty).
+	draw_rect(rect.grow(3.0), PLATE_SLOT, true)
+	draw_rect(rect, PLATE_METAL, true)
+	draw_line(rect.position + Vector2(0, rect.size.y), rect.end, PLATE_BEVEL_LIGHT, 2.0)
+	draw_line(Vector2(rect.end.x, rect.position.y), rect.end, PLATE_BEVEL_LIGHT, 2.0)
+	draw_line(rect.position, Vector2(rect.end.x, rect.position.y), Color(0, 0, 0, 0.55), 3.0)
+	draw_line(rect.position, Vector2(rect.position.x, rect.end.y), Color(0, 0, 0, 0.55), 3.0)
+	for corner in [Vector2(10, 10), Vector2(rect.size.x - 10, 10), Vector2(10, rect.size.y - 10), rect.size - Vector2(10, 10)]:
+		draw_circle(rect.position + corner, 3.5, PLATE_BOLT)
+		draw_circle(rect.position + corner + Vector2(-1, -1), 1.2, Color(0.8, 0.75, 0.65, 0.5))
+	var head := rect.grow(-rect.size.x * 0.28)
+	var seam_glow := 0.0
 	if phase == "telegraph":
-		# Forma + rytm: kreskowanie "pod nogami" + kurczący się kwadrat odliczania.
-		var hatch := 18.0
+		seam_glow = 0.35 + 0.65 * clampf(local / EncounterPlan.TRAP_TELEGRAPH, 0.0, 1.0)
+	elif phase == "idle" and trap_running and trap_time >= 0.0:
+		var since := local - EncounterPlan.TRAP_TELEGRAPH - EncounterPlan.TRAP_ACTIVE
+		if since >= 0.0 and since < PLATE_COOL:
+			seam_glow = 0.6 * (1.0 - since / PLATE_COOL)
+	if phase == "active":
+		# Głowica w dół: jasny metal, fala pyłu na zewnątrz.
+		draw_rect(rect, Color(PLATE_ACTIVE, 0.85), true)
+		draw_rect(head, Color(0.42, 0.30, 0.18, 0.95), true)
+		var k := clampf((local - EncounterPlan.TRAP_TELEGRAPH) / EncounterPlan.TRAP_ACTIVE, 0.0, 1.0)
+		draw_rect(rect.grow(6.0 + 18.0 * k), Color(PLATE_ACTIVE, 0.45 * (1.0 - k)), false, 3.0)
+	else:
+		draw_rect(head, Color(0.13, 0.12, 0.11, 0.95), true)
+		draw_rect(head, Color(0, 0, 0, 0.6), false, 2.0)
+	if seam_glow > 0.0:
+		draw_rect(rect.grow(1.5), Color(PLATE_WARN, seam_glow), false, 3.0)
+	if phase == "telegraph":
+		# Warstwa ostrzegawcza tylko w zapowiedzi: rzadkie kreskowanie + odliczanie.
+		var hatch := 26.0
 		var i := -rect.size.y
 		while i < rect.size.x:
 			var a := rect.position + Vector2(maxf(i, 0.0), maxf(-i, 0.0))
 			var b := rect.position + Vector2(minf(i + rect.size.y, rect.size.x), minf(rect.size.x - i, rect.size.y))
-			draw_line(a, b, Color(PLATE_WARN, 0.55), 2.0)
+			draw_line(a, b, Color(PLATE_WARN, 0.22 * seam_glow), 2.0)
 			i += hatch
-		var local := fposmod(trap_time, EncounterPlan.TRAP_PERIOD * 0.5)
-		var k := clampf(1.0 - local / EncounterPlan.TRAP_TELEGRAPH, 0.0, 1.0)
-		draw_rect(Rect2(rect.get_center() - rect.size * 0.5 * k, rect.size * k), PLATE_WARN, false, 3.0)
-		draw_rect(rect, PLATE_WARN, false, 3.0)
-	elif phase == "active":
-		draw_rect(rect, PLATE_ACTIVE, true)
-		draw_rect(rect.grow(-rect.size.x * 0.3), Color(0.35, 0.22, 0.12, 0.9), true) # głowica prasy
+		var kk := clampf(1.0 - local / EncounterPlan.TRAP_TELEGRAPH, 0.0, 1.0)
+		draw_rect(Rect2(rect.get_center() - rect.size * 0.5 * kk, rect.size * kk), Color(PLATE_WARN, 0.85), false, 2.5)
 
 func _draw_obstacle(r: Rect2) -> void:
 	var is_shelf := accent == "projectile_cover"
@@ -243,10 +389,20 @@ func _draw_obstacle(r: Rect2) -> void:
 				draw_line(Vector2(x, r.position.y + 4), Vector2(x, r.end.y - 4), Color(0.12, 0.07, 0.04, 0.9), 2.0)
 		return
 	if is_shelf and _shelf_fall < 0.99:
-		# Stojący regał: wysoki, cienki — dopiero po upadku zajmuje prostokąt osłony.
-		var standing := Rect2(Vector2(r.position.x, r.end.y - r.size.y * (1.0 + 2.0 * (1.0 - _shelf_fall))), Vector2(r.size.x, r.size.y * (1.0 + 2.0 * (1.0 - _shelf_fall))))
-		draw_rect(standing, side, true)
-		draw_rect(standing.grow(-4.0), top, false, 2.0)
+		# Stojący regał: wysoki front z półkami, ten sam materiał co po upadku
+		# (audyt nagrania P1.8 — nie płaski prostokąt koloru).
+		var h := r.size.y * (1.0 + 2.0 * (1.0 - _shelf_fall))
+		var standing := Rect2(Vector2(r.position.x, r.end.y - h), Vector2(r.size.x, h))
+		draw_rect(Rect2(standing.position + Vector2(6, 10), standing.size), Color(0, 0, 0, 0.35), true)
+		if wall_texture != null:
+			draw_texture_rect(wall_texture, standing, true, Color(0.95, 0.92, 1.0) * Color(1.0, 0.78, 0.55))
+		else:
+			draw_rect(standing, side, true)
+		var shelf_y := standing.position.y + 14.0
+		while shelf_y < standing.end.y - 4.0:
+			draw_line(Vector2(standing.position.x + 3, shelf_y), Vector2(standing.end.x - 3, shelf_y), Color(0.12, 0.07, 0.04, 0.9), 2.0)
+			shelf_y += 16.0
+		draw_rect(standing, Color(0.05, 0.04, 0.07, 0.9), false, 2.0)
 		return
 	draw_rect(Rect2(r.position + Vector2(0, 8), r.size), side, true)
 	draw_rect(r, top, true)

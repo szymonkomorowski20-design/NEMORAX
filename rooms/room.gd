@@ -350,6 +350,7 @@ func _build_terrain(wall_tex: Texture2D) -> void:
 	terrain = RoomTerrain.new()
 	terrain.setup(_play_rect, str(_room_data.get("layout", "open")), int(_room_data.get("theme", 0)), bool(_room_data.get("trap", false)))
 	terrain.wall_texture = wall_tex
+	terrain.shelves_already_fallen = bool(_room_data.get("cleared", false))
 	add_child(terrain)
 	if bool(_room_data.get("cleared", false)):
 		terrain.stop_trap()
