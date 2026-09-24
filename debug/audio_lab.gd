@@ -3,7 +3,9 @@ extends Node2D
 ## odsłuchu w słuchawkach, nie część gry. Uruchom w edytorze (F6 na audio_lab.tscn).
 ##   1 — telegraf wcielenia (z muzyką; M przełącza muzykę, żeby porównać),
 ##   2 — fala 10 pocisków uderzających w ścianę w 0,3 s,
-##   3 — blok → parowanie → przełamanie gardy pod rząd.
+##   3 — blok → parowanie → przełamanie gardy pod rząd,
+##   4 — prasa: zapowiedź i uderzenie (hala pułapek),
+##   5 — cisza fazy Siła (Pakt „Zwiąż”) przez 3 s; przy „Oczyść” cisza nie zapada.
 ## Na ekranie: poziom muzyki (ściszenie pod telegrafem), bieżąca i szczytowa
 ## liczba jednoczesnych efektów. Słuchacz ma bez napisu rozpoznać telegraf
 ## i przełamanie, bez skoku głośności i „ściany dźwięku”.
@@ -56,6 +58,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_scene_volley()
 		KEY_3:
 			_scene_guard_sequence()
+		KEY_4:
+			_scene_press()
+		KEY_5:
+			_scene_force_silence()
 		KEY_M:
 			music.stream_paused = not music.stream_paused
 
@@ -89,6 +95,22 @@ func _scene_guard_sequence() -> void:
 		player.health = player.max_health
 		await get_tree().create_timer(0.9).timeout
 
+func _scene_press() -> void:
+	_begin("4 — prasa: zapowiedź → uderzenie")
+	Juice.play_sfx_at(RoomTerrain.SND_PRESS_TELEGRAPH, player.global_position + Vector2(120, 0))
+	await get_tree().create_timer(0.8).timeout
+	Juice.play_sfx_at(RoomTerrain.SND_PRESS_SLAM, player.global_position + Vector2(120, 0))
+
+## Faza Siła wycisza Master (arena.gd) — tu na 3 s, z telegrafem w środku,
+## żeby usłyszeć, czego brakuje bez „Oczyść ciszę”.
+func _scene_force_silence() -> void:
+	_begin("5 — cisza fazy Siła (Zwiąż): 3 s bez dźwięku")
+	var bus := AudioServer.get_bus_index("Master")
+	AudioServer.set_bus_mute(bus, true)
+	Juice.play_sfx_at(SND_TELEGRAPH, player.global_position + Vector2(200, 0))
+	await get_tree().create_timer(3.0).timeout
+	AudioServer.set_bus_mute(bus, false)
+
 func _active_sfx() -> int:
 	var n := 0
 	for c in get_children():
@@ -103,7 +125,7 @@ func _process(_delta: float) -> void:
 	peak_sfx = maxi(peak_sfx, now)
 	min_music_db = minf(min_music_db, Juice.music_duck_db)
 	label.text = "\n".join([
-		"LABORATORIUM DŹWIĘKU   (1 telegraf · 2 fala pocisków · 3 blok/parowanie/przełamanie · M muzyka)",
+		"LABORATORIUM DŹWIĘKU   (1 telegraf · 2 fala pocisków · 3 blok/parowanie/przełamanie · 4 prasa · 5 cisza Siły · M muzyka)",
 		"Scena: %s" % scene_name,
 		"Muzyka: %s   ściszenie teraz %.1f dB, najniżej w scenie %.1f dB" % ["gra" if not music.stream_paused else "wyłączona", Juice.music_duck_db, min_music_db],
 		"Jednoczesne efekty: teraz %d, szczyt w scenie %d (limit tego samego dźwięku: %d)" % [now, peak_sfx, Juice.MAX_SAME_SFX],

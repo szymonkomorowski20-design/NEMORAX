@@ -23,6 +23,7 @@ Arena bossa nie ma muzyki (tak było wcześniej), więc ściszanie działa w pok
 | Materiał ołtarza/finału i granica areny (A7–A8) | Obecna arena używa tekstury podłogi; przyciemnienie tej samej podłogi jest zakazane w planie. | Tekstura krawędzi areny oraz materiał podłogi ołtarza (kafel 512×512, ta sama paleta co komnaty). |
 | Ambient czterech pilotażowych motywów | Katalog `assets/audio/ambient/` jest pusty. | 4 pętle ambientu 30–60 s: zalana katakumba (kapanie, woda), biblioteka (skrzypienie regałów), kryształowa grota (dzwonienie), zardzewiała hala (metal, prasy). |
 | Dźwięk przełamania gardy | Jest zastępczy (P14 z obniżoną wysokością). | Plik `P15_guard_break.wav`: pęknięcie tarczy, 0,4–0,6 s. |
+| Chlupot wejścia w wodę (zalana katakumba) | **Drugi audyt (C3):** brak pliku — spowolnienie jest dziś tylko widoczne, nie słyszalne. | `S_water_step.wav`: chlupot 0,2 s, 2–3 warianty. |
 | Dźwięk ześlizgnięcia z tarczy (bok/tył) | **Aktualizacja 24.09:** jest zastępczy — P14 wysoko (×1,9) i ciszej, osobny odtwarzacz. | Plik `P16_block_slip.wav`: krótki metaliczny zgrzyt, 0,2–0,3 s. |
 | Odsłuch na słuchawkach | Automatyczny test nie zastąpi ucha. | Autor: `debug/audio_lab.tscn` (F6) — sceny 1–3; ściszanie −8 dB pod telegrafem, najwyżej 3 kopie tego samego dźwięku. |
 

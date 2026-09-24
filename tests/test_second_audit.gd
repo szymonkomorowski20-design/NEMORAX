@@ -81,3 +81,88 @@ func test_arena_visual_wraps_unchanged_play_rect(_root: Node) -> void:
 	NemoraxTest.assert_eq(IntegratedRoomVisual.play_rect(outer), arena.ARENA_RECT, "wnętrze muru = ARENA_RECT (kolizje bez zmian)")
 	NemoraxTest.assert_true(ResourceLoader.exists(IntegratedRoomVisual.ART_ROOT + arena.FINALE_THEME + "/room_preview.png"), "grafika sali finału istnieje")
 	arena.free()
+
+## B1: „chroniony pierwszy cykl” — każda faza najpierw pokazuje każdy swój
+## wzorzec raz, dopiero potem losuje z powtórzeniami.
+func test_boss_first_cycle_shows_every_pattern(root: Node) -> void:
+	var boss: Boss = load("res://entities/boss.tscn").instantiate()
+	root.add_child(boss)
+	for phase in 6:
+		boss._pattern_groups = boss._build_pattern_groups(phase)
+		boss._refill_unseen_patterns()
+		boss._last_pattern_name = ""
+		var seen := {}
+		for i in boss._pattern_groups.size():
+			var n := boss._choose_protected_pattern()
+			seen[n] = true
+			boss._last_pattern_name = n
+		NemoraxTest.assert_eq(seen.size(), boss._pattern_groups.size(), "faza %d: pierwszy cykl bez powtórzeń" % phase)
+	root.remove_child(boss)
+	boss.queue_free()
+
+## B3: 1000 ofert na styl (tylko miecz, tylko różdżka), kolejne poziomy
+## i intencje — żadna oferta nie może mieć trzech kart martwych dla stylu
+## (runy drugiej broni, Przeplot bez zmiany broni). Ziarno odtwarza ofertę.
+func test_thousand_offers_never_all_dead(_root: Node) -> void:
+	var SkillCatalog = load("res://entities/skill_catalog.gd")
+	var intents := ["ostrze", "rozdzka", "kontra", ""]
+	for style in ["sword", "wand"]:
+		var offers := 0
+		var dead := 0
+		var run := 0
+		while offers < 1000:
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 9000 + run
+			var ranks := {}
+			var intent: String = intents[run % intents.size()]
+			for level in range(1, 11):
+				var offer: Array[String] = SkillCatalog.roll_offer(ranks, level, rng, style, intent, level <= SkillCatalog.INTENT_GUIDED_OFFERS)
+				if offer.is_empty():
+					continue
+				offers += 1
+				var pick := ""
+				for id in offer:
+					if SkillCatalog.useful_for(id, style):
+						pick = id
+						break
+				if pick == "":
+					dead += 1
+					pick = offer[0]
+				ranks[pick] = int(ranks.get(pick, 0)) + 1
+			run += 1
+		NemoraxTest.assert_eq(dead, 0, "styl %s: %d ofert, całkowicie martwych: %d" % [style, offers, dead])
+	var a := RandomNumberGenerator.new()
+	a.seed = 77
+	var b := RandomNumberGenerator.new()
+	b.seed = 77
+	NemoraxTest.assert_eq(SkillCatalog.roll_offer({}, 4, a, "sword"), SkillCatalog.roll_offer({}, 4, b, "sword"), "to samo ziarno = ta sama oferta")
+
+func test_weave_is_not_useful_for_single_weapon(_root: Node) -> void:
+	var SkillCatalog = load("res://entities/skill_catalog.gd")
+	NemoraxTest.assert_true(not SkillCatalog.useful_for("guard_weapon_weave", "sword"), "Przeplot nie jest przydatny dla samego miecza")
+	NemoraxTest.assert_true(SkillCatalog.useful_for("guard_weapon_weave", "hybrid"), "ale jest dla hybrydy")
+	NemoraxTest.assert_true(SkillCatalog.useful_for("guard_iron_skin", "wand"), "karty ogólne działają dla każdej broni")
+	NemoraxTest.assert_true(not SkillCatalog.useful_for("wand_rapid_cast", "sword"), "runa różdżki martwa dla miecza")
+
+## C4: ekran końca nie przyjmuje wyboru w klatce pojawienia się, a trzymany
+## S (ruch w dół) nie restartuje próby — dopiero świeże wciśnięcie.
+func test_end_screen_gate_ignores_held_s_and_early_input(_root: Node) -> void:
+	Input.use_accumulated_input = false
+	var press := InputEventKey.new()
+	press.physical_keycode = KEY_S
+	press.pressed = true
+	Input.parse_input_event(press)
+	var gate := EndScreenGate.new()
+	gate.arm()
+	NemoraxTest.assert_true(not gate.is_ready(), "tuż po pokazaniu ekran jeszcze nie przyjmuje wyboru")
+	gate._ready_at_msec = 0
+	NemoraxTest.assert_true(not gate.same_seed_pressed(), "S trzymany od chwili pokazania nie restartuje")
+	var release := InputEventKey.new()
+	release.physical_keycode = KEY_S
+	release.pressed = false
+	Input.parse_input_event(release)
+	NemoraxTest.assert_true(not gate.same_seed_pressed(), "puszczony S nic nie robi")
+	Input.parse_input_event(press)
+	NemoraxTest.assert_true(gate.same_seed_pressed(), "świeże wciśnięcie S po odczekaniu = ta sama próba")
+	Input.parse_input_event(release)
+	Input.use_accumulated_input = true

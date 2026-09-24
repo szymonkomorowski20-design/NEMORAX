@@ -85,6 +85,18 @@ const INTENT_GUIDED_OFFERS := 3 ## ile pierwszych awansów dostaje kartę z puli
 static func weapon_of(id: String) -> String:
 	return SKILL_WEAPON.get(id, "any")
 
+## Czy karta realnie działa dla gracza używającego `weapon` („sword”/„wand”)
+## bez zmiany stylu. Runy drugiej broni i Przeplot (wymaga naprzemiennej
+## zmiany broni) są dla stylu jednej broni martwe; „hybrid” = obie bronie.
+const NEEDS_BOTH_WEAPONS := ["guard_weapon_weave"]
+
+static func useful_for(id: String, weapon: String) -> bool:
+	if weapon == "hybrid" or weapon == "":
+		return true
+	if id in NEEDS_BOTH_WEAPONS:
+		return false
+	return weapon_of(id) in [weapon, "any"]
+
 ## Opis dla KONKRETNEJ rangi: każdą grupę "a/b/c" zastępuje wartością tej rangi
 ## (z tego samego tekstu co karta, więc karta, Księga i ekran statystyk mówią
 ## to samo). Rangi liczone od 1.
@@ -142,17 +154,18 @@ static func roll_offer(ranks: Dictionary, level: int, rng: RandomNumberGenerator
 		var chosen: String = source[r.randi() % source.size()]
 		result.append(chosen)
 		pool.erase(chosen)
-	# Gwarancja użytecznej karty: jeśli żadna nie służy bieżącej broni,
-	# ostatnią podmieniamy na taką (broń gracza albo "any").
+	# Gwarancja użytecznej karty: jeśli żadna nie służy bieżącemu stylowi,
+	# ostatnią podmieniamy na taką (patrz useful_for — Przeplot nie liczy się
+	# jako przydatny dla gry jedną bronią, drugi audyt B3).
 	if weapon != "" and not result.is_empty():
 		var useful := false
 		for id in result:
-			if weapon_of(id) in [weapon, "any"]:
+			if useful_for(id, weapon):
 				useful = true
 		if not useful:
 			var fitting: Array[String] = []
 			for id in pool:
-				if weapon_of(id) in [weapon, "any"]:
+				if useful_for(id, weapon):
 					fitting.append(id)
 			if not fitting.is_empty():
 				result[result.size() - 1] = fitting[r.randi() % fitting.size()]

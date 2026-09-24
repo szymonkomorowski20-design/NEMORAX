@@ -197,7 +197,6 @@ const WET_STONE := Color(0.02, 0.05, 0.07, 0.30) ## ciemniejszy, mokry kamień t
 
 func _draw_water() -> void:
 	var r := slow_lane
-	var clear := Color(WATER_DEEP, 0.0)
 	var band := WATER_EDGE_BAND
 	# Mokry kamień: nieregularny ciemny pas po obu stronach brzegu.
 	for side in [-1.0, 1.0]:
@@ -212,15 +211,20 @@ func _draw_water() -> void:
 		pts.append(Vector2(r.position.x, y_edge))
 		draw_colored_polygon(pts, WET_STONE)
 	# Tafla: pasy z gradientem na brzegach zamiast twardego prostokąta.
-	var top_in := r.position.y + band
-	var bottom_in := r.end.y - band
-	draw_polygon(PackedVector2Array([Vector2(r.position.x, r.position.y), Vector2(r.end.x, r.position.y), Vector2(r.end.x, top_in), Vector2(r.position.x, top_in)]),
-		PackedColorArray([clear, clear, WATER_DEEP, WATER_DEEP]))
-	draw_rect(Rect2(Vector2(r.position.x, top_in), Vector2(r.size.x, bottom_in - top_in)), WATER_DEEP, true)
-	draw_polygon(PackedVector2Array([Vector2(r.position.x, bottom_in), Vector2(r.end.x, bottom_in), Vector2(r.end.x, r.end.y), Vector2(r.position.x, r.end.y)]),
-		PackedColorArray([WATER_DEEP, WATER_DEEP, clear, clear]))
+	# Drugi audyt (C2): przejście jest WYŚRODKOWANE na granicy spowolnienia —
+	# na samej krawędzi slow_lane woda jest już w połowie widoczna, więc
+	# spowolnienie nigdy nie zaczyna się na „suchym” kamieniu.
+	var half := band * 0.5
+	for k in 8:
+		var a0 := float(k) / 8.0
+		var y_top := r.position.y - half + band * a0
+		var y_bot := r.end.y + half - band * a0
+		var col := Color(WATER_DEEP, WATER_DEEP.a * (a0 + 0.0625))
+		draw_rect(Rect2(Vector2(r.position.x, y_top), Vector2(r.size.x, band / 8.0)), col, true)
+		draw_rect(Rect2(Vector2(r.position.x, y_bot - band / 8.0), Vector2(r.size.x, band / 8.0)), col, true)
+	draw_rect(Rect2(Vector2(r.position.x, r.position.y + half), Vector2(r.size.x, r.size.y - band)), WATER_DEEP, true)
 	# Linia brzegu: jedna ciągła, lekko falująca krawędź (nie przerywane kreski).
-	for y_edge in [r.position.y + 3.0, r.end.y - 3.0]:
+	for y_edge in [r.position.y, r.end.y]: # dokładnie na granicy spowolnienia
 		var line := PackedVector2Array()
 		var x2 := r.position.x
 		while x2 <= r.end.x + 0.1:

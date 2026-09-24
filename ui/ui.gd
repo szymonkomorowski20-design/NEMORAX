@@ -643,14 +643,21 @@ func _draw_minimap() -> void:
 		return
 	if big_map:
 		_draw_big_map()
-	var pip_size := 14.0
-	var gap := 4.0
+	# Drugi audyt (C1): mapa leżała wprost na grafice muru i była mała —
+	# odwiedzone pokoje zlewały się z kamieniem. Ciemne tło z ramką pod całym
+	# polem 7×7, większe komórki; algorytm odwiedzin bez zmian.
+	var pip_size := 18.0
+	var gap := 5.0
 	var spacing := pip_size + gap
-	var box_size := Vector2(6, 6) * spacing
-	var anchor := Vector2(VIEWPORT_SIZE.x - box_size.x - 20.0, 20.0) + box_size * 0.5 - Vector2(pip_size, pip_size) * 0.5
+	var box_size := Vector2(7, 7) * spacing - Vector2(gap, gap)
+	var panel := Rect2(Vector2(VIEWPORT_SIZE.x - box_size.x - 26.0, 14.0), box_size + Vector2(12.0, 12.0))
+	draw_rect(panel, Color(0.03, 0.02, 0.05, 0.78), true)
+	draw_rect(panel, RELIQUARY_BORDER_COLOR, false, 1.5)
+	var anchor := panel.position + Vector2(6.0, 6.0) + Vector2(3, 3) * spacing
 	_draw_map_pips(anchor, pip_size, spacing, 3)
 	var hint := "[%s] mapa" % Keybinds.display_for("toggle_map")
-	draw_string(ThemeDB.fallback_font, Vector2(VIEWPORT_SIZE.x - 20.0 - box_size.x - 52.0, 32.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.5))
+	var hw := ThemeDB.fallback_font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	draw_string(ThemeDB.fallback_font, Vector2(panel.end.x - hw, panel.end.y + 15.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.6))
 
 func _draw_big_map() -> void:
 	var panel := Rect2(Vector2(240.0, 70.0), Vector2(800.0, 560.0))

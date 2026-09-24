@@ -58,6 +58,7 @@ var wins: int = 0
 var _battle_time: float = 0.0
 var _battle_over: bool = false
 var _game_over_kind: String = "" # "", "death" albo "victory"
+var _end_gate := EndScreenGate.new() ## drugi audyt C4: bez przypadkowego restartu
 
 func _ready() -> void:
 	# Wyciszenie z fazy Cisza jest globalnym stanem silnika, więc świeży start
@@ -386,6 +387,7 @@ func _play_victory_epilogue(is_first_win: bool) -> void:
 	GameFlow.add_chronicle_entry(entry)
 	ui.show_run_summary(entry)
 	_game_over_kind = "victory"
+	_end_gate.arm()
 
 func _on_player_died() -> void:
 	# _battle_over przed śmiercią gracza = już wygrana (gracz nie umiera dwa
@@ -405,6 +407,7 @@ func _on_player_died() -> void:
 	GameFlow.add_chronicle_entry(entry)
 	ui.show_run_summary(entry)
 	_game_over_kind = "death"
+	_end_gate.arm()
 
 
 func _stage_label() -> String:
@@ -417,26 +420,26 @@ func _handle_game_over_input() -> void:
 		"death":
 			# Przegrana z Nemoraksem = koniec całego przebiegu, nie tylko tej
 			# walki — wraca się do pokoju 1 na czysto (nowe fragmenty, świeży gracz).
-			if Input.is_action_just_pressed("ui_accept"):
+			if _end_gate.accept_pressed():
 				GameFlow.reset_run()
 				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
-			elif Input.is_physical_key_pressed(KEY_S):
+			elif _end_gate.same_seed_pressed():
 				GameFlow.reset_run(GameFlow.run_seed)
 				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
 			# Krok 9: "przyciski: spróbuj ponownie / menu" — dawniej jedyną
 			# drogą z ekranu porażki był restart, bez wyjścia do menu.
-			elif Input.is_action_just_pressed("ui_cancel"):
+			elif _end_gate.cancel_pressed():
 				GameFlow.reset_run()
 				get_tree().change_scene_to_file("res://menu.tscn")
 		"victory":
 			# Paczka 9: po zwycięstwie od razu kolejna próba (inny wybór) albo menu.
-			if Input.is_action_just_pressed("ui_accept"):
+			if _end_gate.accept_pressed():
 				GameFlow.reset_run()
 				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
-			elif Input.is_physical_key_pressed(KEY_S):
+			elif _end_gate.same_seed_pressed():
 				GameFlow.reset_run(GameFlow.run_seed)
 				get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
-			elif Input.is_action_just_pressed("ui_cancel"):
+			elif _end_gate.cancel_pressed():
 				GameFlow.reset_run()
 				get_tree().change_scene_to_file("res://menu.tscn")
 

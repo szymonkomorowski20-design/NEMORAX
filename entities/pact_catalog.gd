@@ -11,6 +11,18 @@ const ZWIAZ := "zwiaz"
 const OCZYSC_STAMINA_BONUS := 20.0
 const ZWIAZ_SILENCE_RADIUS := 160.0
 const ZWIAZ_SILENCE_TIME := 1.2
+## Drugi audyt (B4): techniczny wariant „Zwiąż 220 px / 1,6 s” do pomiaru —
+## WYŁĄCZONY w grze, włączany tylko przez skrypty pomiarowe. Zmiana wartości
+## wymaga decyzji autora po próbie obu dróg.
+const ZWIAZ_TEST_RADIUS := 220.0
+const ZWIAZ_TEST_TIME := 1.6
+static var test_bind_boost := false
+
+static func silence_radius() -> float:
+	return ZWIAZ_TEST_RADIUS if test_bind_boost else ZWIAZ_SILENCE_RADIUS
+
+static func silence_time() -> float:
+	return ZWIAZ_TEST_TIME if test_bind_boost else ZWIAZ_SILENCE_TIME
 
 const OPTIONS := {
 	OCZYSC: {

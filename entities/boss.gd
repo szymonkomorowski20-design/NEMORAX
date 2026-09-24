@@ -312,6 +312,7 @@ func _ready() -> void:
 	var lunge_warning_scale := (lunge_reach / LUNGE_WARNING_CONTENT_HEIGHT) * LUNGE_WARNING_SAFETY_MARGIN
 	lunge_warning.scale = Vector2(lunge_warning_scale, lunge_warning_scale)
 	_pattern_groups = _build_pattern_groups(0)
+	_refill_unseen_patterns()
 	_update_sprite_state()
 
 func _init_position_history() -> void:
@@ -545,10 +546,32 @@ func _choose_pattern_name(groups: Array[Dictionary], previous: String) -> String
 		attempts += 1
 	return choice
 
+## Drugi audyt (B1): „chroniony pierwszy cykl” — w nowej fazie (i małej
+## formie) boss najpierw zagrywa KAŻDY swój wzorzec raz, w ważonej, losowej
+## kolejności; potem losuje jak dotąd. Pomiar: hybryda przeszła Siłę w 6
+## atakach bez F2. Bez dodatkowego czasu, HP ani nietykalności — tylko kolejność.
+var _unseen_patterns: Array[String] = []
+
+func _refill_unseen_patterns() -> void:
+	_unseen_patterns.clear()
+	for g in _pattern_groups:
+		_unseen_patterns.append(str(g["name"]))
+
+func _choose_protected_pattern() -> String:
+	if _unseen_patterns.is_empty():
+		return _choose_pattern_name(_pattern_groups, _last_pattern_name)
+	var pool: Array[Dictionary] = []
+	for g in _pattern_groups:
+		if _unseen_patterns.has(str(g["name"])):
+			pool.append(g)
+	var choice := _choose_pattern_name(pool, _last_pattern_name)
+	_unseen_patterns.erase(choice)
+	return choice
+
 func _perform_random_pattern() -> void:
 	if _pattern_groups.is_empty():
 		return
-	var name := _choose_pattern_name(_pattern_groups, _last_pattern_name)
+	var name := _choose_protected_pattern()
 	_last_pattern_name = name
 	for g in _pattern_groups:
 		if g["name"] == name:
@@ -904,6 +927,7 @@ func _enter_phase(new_index: int) -> void:
 	health = max_health
 	current_color = Palette.PHASE_COLORS[phase_index]
 	_pattern_groups = _build_pattern_groups(phase_index)
+	_refill_unseen_patterns()
 	_last_pattern_name = ""
 	phase_changed.emit(phase_index, current_color, Palette.PHASE_NAMES[phase_index])
 	_start_transform_invulnerability()
@@ -954,6 +978,7 @@ func start_final_phase() -> void:
 	is_dead = false
 	is_final_phase = true
 	radius = final_radius
+	_refill_unseen_patterns() # mała forma też pokazuje najpierw wszystko
 	health = final_health
 	max_health = final_health
 	current_color = Palette.PHASE_COLORS[5]

@@ -918,10 +918,10 @@ func _silence_wave() -> void:
 	for target in get_tree().get_nodes_in_group("hittable"):
 		if target.get("is_dead") == true or not (target is Node2D) or not target.has_method("silence"):
 			continue
-		if global_position.distance_to((target as Node2D).global_position) <= PactCatalog.ZWIAZ_SILENCE_RADIUS + float(target.get("radius") if target.get("radius") != null else 0.0):
-			target.silence(PactCatalog.ZWIAZ_SILENCE_TIME)
+		if global_position.distance_to((target as Node2D).global_position) <= PactCatalog.silence_radius() + float(target.get("radius") if target.get("radius") != null else 0.0):
+			target.silence(PactCatalog.silence_time())
 	if get_parent() != null:
-		AttackVfx.spawn(get_parent(), VFX_DASH_RING, global_position, 0.3, PactCatalog.ZWIAZ_SILENCE_RADIUS * 2.0 / float(maxi(1, VFX_DASH_RING.get_width())))
+		AttackVfx.spawn(get_parent(), VFX_DASH_RING, global_position, 0.3, PactCatalog.silence_radius() * 2.0 / float(maxi(1, VFX_DASH_RING.get_width())))
 
 const BLOCK_FEEDBACK_TEXT := {
 	"blocked": "Blok", "parry": "Parowanie!", "broken": "Garda przełamana",

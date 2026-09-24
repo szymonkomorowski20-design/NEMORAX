@@ -105,6 +105,7 @@ var _relic_draft: RelicDraft
 var incarnation: Incarnation
 var _active_enemies: Array[Incarnation] = []
 var _game_over_kind: String = "" # "" albo "death"
+var _end_gate := EndScreenGate.new() ## drugi audyt C4: bez przypadkowego restartu
 var _room_data: Dictionary
 var _integrated_visual: IntegratedRoomVisual
 ## Obszar gry: kolizja, spawny, granice wrogów, drzwi. ARENA_RECT zostaje dla
@@ -603,6 +604,7 @@ func _on_player_died() -> void:
 	GameFlow.add_chronicle_entry(entry)
 	ui.show_run_summary(entry)
 	_game_over_kind = "death"
+	_end_gate.arm()
 
 ## Zgon w zwykłym pokoju (dowolny losowy wróg albo wcielenie) MUSI resetować
 ## przebieg tak samo jak zgon w arena.gd (walka z Nemoraxem) — dawne
@@ -612,22 +614,22 @@ func _on_player_died() -> void:
 ## że ekran mówił "spróbuj ponownie". Prawdziwy bug, nie tylko niespójność.
 func _handle_game_over_input() -> void:
 	if _game_over_kind == "training":
-		if Input.is_action_just_pressed("ui_accept"):
+		if _end_gate.accept_pressed():
 			GameFlow.begin_training(GameFlow.training_chapter)
 			get_tree().change_scene_to_file(GameFlow.ROOM_SCENE)
-		elif Input.is_action_just_pressed("ui_cancel"):
+		elif _end_gate.cancel_pressed():
 			GameFlow.end_training()
 			get_tree().change_scene_to_file("res://menu.tscn")
 		return
 	if _game_over_kind != "death":
 		return
-	if Input.is_action_just_pressed("ui_accept"):
+	if _end_gate.accept_pressed():
 		_restart_run_from_scratch()
-	elif Input.is_physical_key_pressed(KEY_S):
+	elif _end_gate.same_seed_pressed():
 		_restart_same_seed()
 	# Krok 9: "przyciski: spróbuj ponownie / menu" — dawniej jedyną drogą z
 	# ekranu porażki był restart, bez wyjścia do menu.
-	elif Input.is_action_just_pressed("ui_cancel"):
+	elif _end_gate.cancel_pressed():
 		_exit_to_menu_from_death()
 
 ## Wydzielone z _handle_game_over_input() tak, żeby dało się przetestować
@@ -650,6 +652,7 @@ Komnata Echa — bez nagród i bez wpływu na próbę.
 
 Enter — jeszcze raz      Escape — wyjdź z Komnaty Echa" % title, "death")
 	_game_over_kind = "training"
+	_end_gate.arm()
 
 func _exit_to_menu_from_death() -> void:
 	GameFlow.reset_run()
